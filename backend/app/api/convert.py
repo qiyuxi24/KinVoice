@@ -1,21 +1,29 @@
 """
-破冰转换接口 —— POST /convert
-将用户原始发言转换为 NVC（非暴力沟通）四要素
+NVC 破冰转换服务接口 —— POST /convert
 """
+# 负责将用户输入的原始文本传入nvc_service.py进行处理，并将处理后的文本返回给用户
+
+
+import time
 from fastapi import APIRouter
 from app.schemas.convert import ConvertRequest, ConvertResponse
-from app.services.nvc_service import convert_to_nvc
+from app.services.nvc_service import convert_text
 from app.utils.logger import logger
 
-router = APIRouter(prefix="/convert", tags=["破冰转换"])
+router = APIRouter(tags=["破冰转换"])
 
 
-@router.post("", response_model=ConvertResponse)
-async def convert_text(req: ConvertRequest):
-    """
-    将原始文本转换为 NVC 四要素：
-    observation（观察）、feeling（感受）、need（需要）、request（请求）
-    """
-    logger.info(f"收到转换请求: text_len={len(req.raw_text)}, emotion_hint={req.emotion_hint}")
-    result = await convert_to_nvc(req.raw_text, req.emotion_hint)
-    return ConvertResponse(**result)
+@router.post("/convert", response_model=ConvertResponse)
+async def convert(request: ConvertRequest):
+    start_time = time.time()
+    logger.info(f"收到转换请求: {request.text}")
+
+    converted = await convert_text(request.text)
+    elapsed = round(time.time() - start_time, 2)
+
+    return ConvertResponse(
+        original=request.text,
+        converted=converted,
+        tokens_used=0,
+        processing_time=elapsed,
+    )

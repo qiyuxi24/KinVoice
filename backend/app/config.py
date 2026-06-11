@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     # 大模型配置 
-    llm_api_key: str = "sk-your-key-here"
-    llm_api_base: str = "https://your-endpoint.com/v1"
-    llm_model: str = "qwen-plus"
+    llm_api_key: str = "no"       # 模型接口密钥
+    llm_api_base: str = "no"  # 模型接口根地址
+    llm_model: str = "Volc-DeepSeek-V3.2"    # 模型名称
 
     # 数据库
     database_url: str = "sqlite+aiosqlite:///./data/kinvoice.db"
