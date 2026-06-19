@@ -1,4 +1,4 @@
-const previewBaseUrl = 'http://127.0.0.1:8000'
+const previewBaseUrl = 'http://localhost:8000'
 
 export default {
   // QuickApp Studio 本机预览默认走 8000 端口。

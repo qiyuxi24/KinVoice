@@ -56,7 +56,8 @@ export default {
     rawText: '',
     transformedText: '',
     showResult: false,
-    hasInput: false
+    hasInput: false,
+    converting: false
   },
 
   onInit() {
@@ -76,75 +77,26 @@ export default {
       return
     }
 
-    this.transformedText = this.transformToGentle(content)
+    if (this.converting) return
+    this.converting = true
+    this.transformedText = '正在转换...'
     this.showResult = true
-    $utils.showToast('✨ 转换成功')
-  },
 
-  transformToGentle(text) {
-    let result = text
-    
-    const insultWords = [
-      { bad: /蠢|笨蛋|傻瓜|傻逼|弱智/g, good: '有些欠缺考虑' },
-      { bad: /丑|难看/g, good: '不太符合我的审美' },
-      { bad: /滚|滚开/g, good: '请你离开' },
-      { bad: /讨厌|烦/g, good: '不太喜欢' },
-      { bad: /死/g, good: '很不舒服' },
-      { bad: /妈的|操/g, good: '' },
-      { bad: /神经病|有病/g, good: '不太正常' },
-      { bad: /废物|没用/g, good: '需要更多努力' },
-      { bad: /恶心/g, good: '不太舒服' },
-      { bad: /垃圾/g, good: '不太理想' }
-    ]
-    
-    insultWords.forEach(item => {
-      result = result.replace(item.bad, item.good)
-    })
-    
-    result = result.replace(/！+/g, '~')
-    result = result.replace(/！/g, '。')
-    result = result.replace(/\?+/g, '~')
-    result = result.replace(/\?/g, '。')
-    
-    result = result.replace(/^[，,、]+/, '')
-    result = result.replace(/[，,、]+$/, '')
-    
-    const gentlePrefixes = [
-      '我觉得',
-      '我希望',
-      '或许我们可以',
-      '其实我想',
-      '如果可以的话',
-      '我感觉',
-      '我认为'
-    ]
-    
-    const gentleSuffixes = [
-      '，你觉得呢？',
-      '，好吗？',
-      '，可以吗？',
-      '，谢谢理解~',
-      '，希望你能理解~',
-      '，我们可以聊聊吗？',
-      '，希望我们能好好沟通~'
-    ]
-    
-    const prefix = gentlePrefixes[Math.floor(Math.random() * gentlePrefixes.length)]
-    const suffix = gentleSuffixes[Math.floor(Math.random() * gentleSuffixes.length)]
-    
-    if (!result.startsWith('我') && !result.startsWith('你') && result.length > 0) {
-      result = prefix + result
-    }
-    
-    if (!result.endsWith('~') && !result.endsWith('？') && !result.endsWith('。') && result.length > 0) {
-      result = result + suffix
-    }
-    
-    if (result.length === 0) {
-      result = '让我们用更温和的方式交流吧~'
-    }
-    
-    return result
+    $apis.convert.transform({ rawText: content })
+      .then((data) => {
+        this.converting = false
+        if (data && data.converted) {
+          this.transformedText = data.converted
+          $utils.showToast('✨ 转换成功')
+        } else {
+          $utils.showToast('转换失败，请重试')
+        }
+      })
+      .catch((error) => {
+        this.converting = false
+        this.transformedText = '错误: ' + (error && (error.message || JSON.stringify(error)))
+        $utils.showToast('请求失败: ' + (error && error.message ? error.message : '未知错误'))
+      })
   },
 
   goCompanion() {

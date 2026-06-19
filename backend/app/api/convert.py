@@ -16,13 +16,13 @@ router = APIRouter(tags=["破冰转换"])
 @router.post("/convert", response_model=ConvertResponse)
 async def convert(request: ConvertRequest):
     start_time = time.time()
-    logger.info(f"收到转换请求: {request.text}")
+    logger.info(f"收到转换请求: {request.raw_text}")
 
-    converted = await convert_text(request.text)
+    converted = await convert_text(request.raw_text)
     elapsed = round(time.time() - start_time, 2)
 
     return ConvertResponse(
-        original=request.text,
+        original=request.raw_text,
         converted=converted,
         tokens_used=0,
         processing_time=elapsed,

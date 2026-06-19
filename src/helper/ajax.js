@@ -6,6 +6,20 @@ import $utils from './utils'
 
 const TIMEOUT = 20000
 
+// 错误类型，方便调用方区分处理
+function TimeoutError(message) {
+  this.name = 'TimeoutError'
+  this.message = message
+}
+TimeoutError.prototype = Object.create(Error.prototype)
+
+function HttpError(message, statusCode) {
+  this.name = 'HttpError'
+  this.message = message
+  this.statusCode = statusCode
+}
+HttpError.prototype = Object.create(Error.prototype)
+
 if (!Promise.prototype.finally) {
   Promise.prototype.finally = function(callback) {
     const P = this.constructor
@@ -45,7 +59,7 @@ function buildRequestData(method, data) {
 
 function buildErrorMessage(response) {
   const payload = normalizeData(response.data)
-  const debugHint = '；请确认后端已启动，真机调试时把 baseUrl 改成电脑局域网 IP:18000'
+  const debugHint = '；请确认后端已启动，真机调试时把 baseUrl 改成电脑局域网 IP:8000'
   if (payload && payload.detail) {
     return `${payload.detail}${debugHint}`
   }
@@ -72,14 +86,20 @@ function fetchPromise(params) {
       })
       .then(response => {
         const statusCode = Number(response.code || 0)
-        const content = normalizeData(response.data)
+        // 快应用 @system.fetch 返回 { code, headers, data }，data 是字符串
+        var body = normalizeData(response.data)
+        // 如果 body 解析后仍是原始响应结构，说明 JSON.parse 未生效，手动再试
+        if (body && body.code !== undefined && body.data && typeof body.data === 'string') {
+          body = normalizeData(body.data)
+        }
 
         if (statusCode >= 200 && statusCode < 300) {
-          resolve(content)
-        } else if (content) {
-          resolve(content)
+          resolve(body)
+        } else if (body) {
+          // 快应用模拟器 code 可能为 0，有响应数据即视为成功
+          resolve(body)
         } else {
-          reject(new Error(buildErrorMessage(response)))
+          reject(new HttpError(buildErrorMessage(response), statusCode))
         }
       })
       .catch((error, code) => {
@@ -102,18 +122,18 @@ function requestHandle(params, timeout = TIMEOUT) {
     fetchPromise(params),
     new Promise((resolve, reject) => {
       setTimeout(() => {
-        reject(new Error('网络状况不太好，再刷新一次？若是真机调试，请检查局域网 IP:18000 是否可访问'))
+        reject(new Error('网络状况不太好，再刷新一次？若是真机调试，请检查局域网 IP:8000 是否可访问'))
       }, timeout)
     })
   ])
 }
 
 export default {
-  post: function(url, params) {
+  post: function(url, data) {
     return requestHandle({
       method: 'post',
       url: url,
-      data: params
+      data: data
     })
   },
   get: function(url, params) {
@@ -122,17 +142,17 @@ export default {
       url: $utils.queryString(url, params)
     })
   },
-  put: function(url, params) {
+  put: function(url, data) {
     return requestHandle({
       method: 'put',
       url: url,
-      data: params
+      data: data
     })
   },
-  delete: function(url) {
+  delete: function(url, params) {
     return requestHandle({
       method: 'delete',
-      url: url
+      url: $utils.queryString(url, params)
     })
   }
 }

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 class ConvertRequest(BaseModel):
     # 请求
-    text: str = Field(..., min_length=1, max_length=500, description="需要转换的原始文本")
+    raw_text: str = Field(..., min_length=1, max_length=500, description="需要转换的原始文本")
 
 
 class ConvertResponse(BaseModel):

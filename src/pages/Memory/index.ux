@@ -139,6 +139,28 @@
 import router from '@system.router'
 import storage from '@system.storage'
 
+// 后端字段 ↔ 前端字段映射
+function cardToBackend(item) {
+  return {
+    category: item.tag,
+    emotion: '感慨',
+    observation: item.title,
+    feeling: item.content,
+    need: '记录与传承',
+    request: '来自' + item.author
+  }
+}
+
+function cardFromBackend(b) {
+  return {
+    tag: b.category || '人生阅历',
+    date: (b.created_at || '').slice(0, 10).replace(/-/g, '.'),
+    title: b.observation || '',
+    author: (b.request || '').replace('来自', '') || '家人',
+    content: [b.feeling, b.need].filter(Boolean).join('\n')
+  }
+}
+
 export default {
   private: {
     activeCategory: '人生阅历',
@@ -240,6 +262,30 @@ export default {
   },
 
   loadCards() {
+    // 1. 在线：从后端拉取
+    $apis.cards.list({ limit: 100 })
+      .then((resp) => {
+        if (resp && resp.cards && resp.cards.length > 0) {
+          const grouped = { '人生阅历': [], '家庭菜谱': [], '成长故事': [], '相处感悟': [] }
+          resp.cards.forEach(b => {
+            const item = cardFromBackend(b)
+            const key = grouped[item.tag] ? item.tag : '人生阅历'
+            if (grouped[key]) grouped[key].push(item)
+          })
+          Object.keys(grouped).forEach(key => {
+            if (grouped[key].length > 0) this.cards[key] = grouped[key]
+          })
+          this.saveCardsToLocal()
+        }
+      })
+      .catch((err) => {
+        console.log('后端不可达，从本地加载:', err)
+        // 2. 离线兜底：从本地存储加载
+        this.loadCardsFromLocal()
+      })
+  },
+
+  loadCardsFromLocal() {
     storage.get({
       key: 'memory_cards',
       success: (data) => {
@@ -247,31 +293,23 @@ export default {
           try {
             const savedCards = JSON.parse(data)
             Object.keys(savedCards).forEach(key => {
-              if (this.cards[key]) {
-                this.cards[key] = [...savedCards[key]]
-              }
+              if (this.cards[key]) this.cards[key] = [...savedCards[key]]
             })
           } catch (e) {
             console.log('Failed to parse saved cards')
           }
         }
       },
-      fail: () => {
-        console.log('No saved cards found')
-      }
+      fail: () => console.log('No saved cards found')
     })
   },
 
-  saveCards() {
+  saveCardsToLocal() {
     storage.set({
       key: 'memory_cards',
       value: JSON.stringify(this.cards),
-      success: () => {
-        console.log('Cards saved successfully')
-      },
-      fail: () => {
-        console.log('Failed to save cards')
-      }
+      success: () => {},
+      fail: (err) => console.log('Failed to save cards:', err)
     })
   },
 
@@ -320,14 +358,15 @@ export default {
     }
 
     this.cards[this.formData.category].unshift(newCard)
-    this.saveCards()
+    this.saveCardsToLocal()
     this.hideModal()
-    this.formData = {
-      category: '人生阅历',
-      title: '',
-      content: ''
-    }
+    this.formData = { category: '人生阅历', title: '', content: '' }
     $utils.showToast('✅ 保存成功')
+
+    // 后台同步到后端（非阻塞，失败不影响本地数据）
+    $apis.cards.create(cardToBackend(newCard))
+      .then(() => console.log('后端同步成功'))
+      .catch((err) => console.log('后端同步失败（数据已存本地）:', err))
   },
 
   goCompanion() {
