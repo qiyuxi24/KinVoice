@@ -1,0 +1,207 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <div class="user-card">
+        <div class="avatar">
+          <text class="avatar-text">C</text>
+        </div>
+        <div class="user-info">
+          <text class="user-name">Cloudie 用户</text>
+          <text class="user-desc">你的家庭情绪树洞</text>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-list">
+      <div class="menu-item" onclick="showSettings">
+        <text class="menu-icon">⚙️</text>
+        <text class="menu-text">设置</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="showAbout">
+        <text class="menu-icon">ℹ️</text>
+        <text class="menu-text">关于我们</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="showHelp">
+        <text class="menu-icon">❓</text>
+        <text class="menu-text">帮助与反馈</text>
+        <text class="menu-arrow">›</text>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item tab-active">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+
+export default {
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+
+  showSettings() {
+    $utils.showToast('设置')
+  },
+
+  showAbout() {
+    $utils.showToast('关于我们')
+  },
+
+  showHelp() {
+    $utils.showToast('帮助与反馈')
+  },
+
+  goCompanion() {
+    router.replace({ uri: '/pages/Companion' })
+  },
+
+  goBreakIce() {
+    router.replace({ uri: '/pages/BreakIce' })
+  },
+
+  goMemory() {
+    router.replace({ uri: '/pages/Memory' })
+  },
+
+  goProfile() {
+    router.replace({ uri: '/pages/Profile' })
+  }
+}
+</script>
+
+<style lang="less">
+@import './../../assets/styles/style.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f5ebe0;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 30px;
+  background: linear-gradient(180deg, #fffbf7 0%, #f5ebe0 100%);
+}
+
+.user-card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  background-color: #9cb5c9;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-text {
+  font-size: 44px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.user-info {
+  flex-direction: column;
+  margin-left: 24px;
+}
+
+.user-name {
+  font-size: 36px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.user-desc {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+}
+
+.menu-list {
+  flex-direction: column;
+  padding: 24px;
+}
+
+.menu-item {
+  flex-direction: row;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+
+.menu-icon {
+  font-size: 40px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30px;
+  color: #4a3728;
+  margin-left: 16px;
+}
+
+.menu-arrow {
+  font-size: 36px;
+  color: #c9b8ad;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fffbf7;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>

@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@babel/runtime": "^7.12.5",
-    "@types/quickapp": "npm:quickapp-interface@1.0.0",
+    "@types/quickapp": "npm:quickapp-interface@^1.0.0",
     "colors": "^1.4.0",
     "husky": "^7.0.1",
     "less": "^4.1.1",

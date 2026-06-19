@@ -1,6 +1,6 @@
 {
-  "package": "com.example.demo",
-  "name": "demo",
+  "package": "cn.nekohackers.kinvoice",
+  "name": "KinVoice",
   "versionName": "1.0.0",
   "versionCode": 1,
   "minPlatformVersion": 1070,
@@ -17,6 +17,9 @@
     },
     {
       "name": "system.fetch"
+    },
+    {
+      "name": "system.storage"
     }
   ],
   "permissions": [
@@ -29,12 +32,18 @@
     "logLevel": "debug"
   },
   "router": {
-    "entry": "pages/Demo",
+    "entry": "pages/Companion",
     "pages": {
-      "pages/Demo": {
+      "pages/Companion": {
         "component": "index"
       },
-      "pages/DemoDetail": {
+      "pages/BreakIce": {
+        "component": "index"
+      },
+      "pages/Memory": {
+        "component": "index"
+      },
+      "pages/Profile": {
         "component": "index"
       }
     },
@@ -42,6 +51,7 @@
       "CardDemo": {
         "name": "CardDemo",
         "description": "快应用卡片展示",
+        "type": "js",
         "component": "index",
         "path": "/CardDemo",
         "minPlatformVersion": 1032,
@@ -53,14 +63,20 @@
     }
   },
   "display": {
-    "titleBarBackgroundColor": "#f2f2f2",
-    "titleBarTextColor": "#414141",
+    "titleBarBackgroundColor": "#f7f0e7",
+    "titleBarTextColor": "#1f365c",
     "pages": {
-      "pages/Demo": {
-        "titleBarText": "快应用示例模版"
+      "pages/Companion": {
+        "titleBarText": "陪伴页"
       },
-      "pages/DemoDetail": {
-        "titleBarText": "详情页"
+      "pages/BreakIce": {
+        "titleBarText": "破冰页"
+      },
+      "pages/Memory": {
+        "titleBarText": "传承页"
+      },
+      "pages/Profile": {
+        "titleBarText": "我的"
       }
     }
   }

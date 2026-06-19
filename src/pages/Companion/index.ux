@@ -1,0 +1,345 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <text class="app-name">Cloudie</text>
+      <text class="app-subtitle">你的家庭情绪树洞</text>
+    </div>
+
+    <div class="main-content">
+      <div class="speech-bubble">
+        <text class="speech-text">{{ currentSpeech }}</text>
+        <div class="speech-arrow"></div>
+      </div>
+
+      <div class="cloudie-container" onclick="onCloudieClick">
+        <div class="cloudie-wrapper" :class="{ 'cloudie-bounce': isAnimating }">
+          <image class="cloudie-image" src="../../assets/images/云朵精灵.png" mode="aspectFit" />
+        </div>
+        <text class="cloudie-name">Cloudie</text>
+        <text class="cloudie-hint">点击我聊天</text>
+      </div>
+    </div>
+
+    <div class="bottom-input-area">
+      <input class="message-input" type="text" placeholder="告诉小云你的心事吧..." onchange="onMessageChange" />
+      <div class="send-btn" onclick="sendMessage">
+        <text class="send-icon">→</text>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab-item tab-active" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import chatAPI from '../../helper/apis/chat'
+
+export default {
+  private: {
+    messageText: '',
+    currentSpeech: '今天过得开心吗？戳戳我，或者直接跟我说说话吧！',
+    isAnimating: false,
+    replies: [
+      '嗨~我是小云，有什么想聊的吗？',
+      '今天心情怎么样呀？',
+      '我一直在这儿哦，随时可以找我聊天！',
+      '有什么烦恼都可以跟我说~',
+      '你看起来今天心情不错呢！',
+      '抱抱你~',
+      '我在认真听呢！',
+      '谢谢你愿意跟我分享~',
+      '一切都会好起来的！',
+      '加油！你很棒的！',
+      '嗯嗯，我懂你的感受~',
+      '慢慢来，不着急~'
+    ],
+    thinkingReplies: [
+      '让我想想...',
+      '嗯...',
+      '我懂了~',
+      '好的！'
+    ]
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+
+  onMessageChange(event) {
+    this.messageText = event.value || ''
+  },
+
+  onCloudieClick() {
+    this.playAnimation()
+    const randomIndex = Math.floor(Math.random() * this.replies.length)
+    this.currentSpeech = this.replies[randomIndex]
+    $utils.showToast('Cloudie在说话~')
+  },
+
+  playAnimation() {
+    this.isAnimating = true
+    setTimeout(() => {
+      this.isAnimating = false
+    }, 500)
+  },
+
+  sendMessage() {
+    const content = (this.messageText || '').trim()
+    if (!content) {
+      $utils.showToast('请输入内容')
+      return
+    }
+    
+    this.playAnimation()
+    this.currentSpeech = this.thinkingReplies[Math.floor(Math.random() * this.thinkingReplies.length)]
+    
+    this.callCloudieAPI(content)
+    this.messageText = ''
+  },
+
+  callCloudieAPI(message) {
+    chatAPI.sendMessage({
+      message: message
+    }).then((data) => {
+      console.log('API Response:', data)
+      if (data && data.reply) {
+        this.currentSpeech = data.reply
+      } else {
+        this.currentSpeech = this.getFallbackReply(message)
+      }
+    }).catch((error) => {
+      console.log('API Error:', error)
+      this.currentSpeech = this.getFallbackReply(message)
+    })
+  },
+
+  getFallbackReply(message) {
+    if (message.includes('你好') || message.includes('hi') || message.includes('hello')) {
+      return '你好呀！我是小云，很高兴认识你~'
+    }
+    if (message.includes('名字') || message.includes('叫什么')) {
+      return '我叫Cloudie，是你的家庭情绪树洞~'
+    }
+    if (message.includes('烦恼') || message.includes('烦') || message.includes('郁闷')) {
+      return '哎呀，怎么了？跟我说说吧，我愿意听你倾诉~'
+    }
+    if (message.includes('开心') || message.includes('高兴') || message.includes('快乐')) {
+      return '太棒了！看到你开心我也很开心呢~'
+    }
+    if (message.includes('谢谢') || message.includes('感谢')) {
+      return '不用谢呀！能帮到你我很开心~'
+    }
+    if (message.includes('爱') || message.includes('喜欢')) {
+      return '爱是很美好的事情呢~ ❤️'
+    }
+    return this.replies[Math.floor(Math.random() * this.replies.length)]
+  },
+
+  goCompanion() {
+    router.replace({ uri: '/pages/Companion' })
+  },
+
+  goBreakIce() {
+    router.replace({ uri: '/pages/BreakIce' })
+  },
+
+  goMemory() {
+    router.replace({ uri: '/pages/Memory' })
+  },
+
+  goProfile() {
+    router.replace({ uri: '/pages/Profile' })
+  }
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 30px;
+  flex-direction: column;
+}
+
+.app-name {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.app-subtitle {
+  font-size: 26px;
+  color: #8b7355;
+  margin-top: 8px;
+}
+
+.main-content {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.speech-bubble {
+  background-color: #fff;
+  border-radius: 24px;
+  padding: 24px 32px;
+  margin-bottom: 24px;
+  position: relative;
+  max-width: 90%;
+}
+
+.speech-text {
+  font-size: 28px;
+  color: #4a3728;
+  text-align: center;
+  line-height: 34px;
+}
+
+.speech-arrow {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 16px solid #fff;
+}
+
+.cloudie-container {
+  width: 200px;
+  height: 200px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.cloudie-wrapper {
+  width: 180px;
+  height: 180px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.cloudie-bounce {
+  transform: scale(1.1);
+}
+
+.cloudie-image {
+  width: 180px;
+  height: 180px;
+}
+
+.cloudie-name {
+  font-size: 32px;
+  font-weight: 600;
+  color: #a8c5d9;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.cloudie-hint {
+  font-size: 22px;
+  color: #a89a8a;
+  margin-top: 4px;
+}
+
+.bottom-input-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 90px;
+  padding: 16px 24px;
+  background-color: #fff;
+  flex-direction: row;
+  align-items: center;
+}
+
+.message-input {
+  flex: 1;
+  height: 72px;
+  padding: 0 24px;
+  background-color: #f5f0e8;
+  border-radius: 36px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #b5a899;
+}
+
+.send-btn {
+  width: 72px;
+  height: 72px;
+  background-color: #a8c5d9;
+  border-radius: 36px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+}
+
+.send-icon {
+  font-size: 32px;
+  color: #fff;
+  font-weight: bold;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>

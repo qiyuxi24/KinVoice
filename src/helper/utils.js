@@ -7,9 +7,16 @@ const prompt = require('@system.prompt')
  * 拼接 url 和参数
  */
 function queryString(url, query) {
+  if (!query) {
+    return url
+  }
+
   let str = []
   for (let key in query) {
-    str.push(key + '=' + query[key])
+    if (query[key] === null || typeof query[key] === 'undefined' || query[key] === '') {
+      continue
+    }
+    str.push(`${encodeURIComponent(key)}=${encodeURIComponent(query[key])}`)
   }
   let paramStr = str.join('&')
   return paramStr ? `${url}?${paramStr}` : url

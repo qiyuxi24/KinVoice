@@ -1,0 +1,325 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <text class="page-title">情感缓冲带</text>
+      <text class="page-subtitle">将冲动化作理解 · 矛盾调解 · 换位思考</text>
+    </div>
+
+    <div class="content-area">
+      <div class="input-card">
+        <div class="input-header">
+          <div class="dot"></div>
+          <text class="input-title">你想宣泄的冲动话语</text>
+        </div>
+        <textarea class="input-textarea" placeholder="例如：你们从来都不理解我！总是把你们的想法强加给我！" onchange="onRawTextChange"></textarea>
+      </div>
+
+      <div class="convert-btn" :class="{ 'btn-active': hasInput }" onclick="transformText">
+        <text class="btn-icon">✨</text>
+        <text class="btn-text">一键转化为温柔表达</text>
+      </div>
+
+      <div class="result-card" if="showResult">
+        <div class="result-header">
+          <text class="result-title">💝 温柔表达</text>
+        </div>
+        <text class="result-content">{{ transformedText }}</text>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item tab-active">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+
+export default {
+  private: {
+    rawText: '',
+    transformedText: '',
+    showResult: false,
+    hasInput: false
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+
+  onRawTextChange(event) {
+    this.rawText = event.text || ''
+    this.hasInput = (this.rawText || '').trim().length > 0
+    this.showResult = false
+  },
+
+  transformText() {
+    const content = (this.rawText || '').trim()
+    if (!content) {
+      $utils.showToast('请输入冲动话语')
+      return
+    }
+
+    this.transformedText = this.transformToGentle(content)
+    this.showResult = true
+    $utils.showToast('✨ 转换成功')
+  },
+
+  transformToGentle(text) {
+    let result = text
+    
+    const insultWords = [
+      { bad: /蠢|笨蛋|傻瓜|傻逼|弱智/g, good: '有些欠缺考虑' },
+      { bad: /丑|难看/g, good: '不太符合我的审美' },
+      { bad: /滚|滚开/g, good: '请你离开' },
+      { bad: /讨厌|烦/g, good: '不太喜欢' },
+      { bad: /死/g, good: '很不舒服' },
+      { bad: /妈的|操/g, good: '' },
+      { bad: /神经病|有病/g, good: '不太正常' },
+      { bad: /废物|没用/g, good: '需要更多努力' },
+      { bad: /恶心/g, good: '不太舒服' },
+      { bad: /垃圾/g, good: '不太理想' }
+    ]
+    
+    insultWords.forEach(item => {
+      result = result.replace(item.bad, item.good)
+    })
+    
+    result = result.replace(/！+/g, '~')
+    result = result.replace(/！/g, '。')
+    result = result.replace(/\?+/g, '~')
+    result = result.replace(/\?/g, '。')
+    
+    result = result.replace(/^[，,、]+/, '')
+    result = result.replace(/[，,、]+$/, '')
+    
+    const gentlePrefixes = [
+      '我觉得',
+      '我希望',
+      '或许我们可以',
+      '其实我想',
+      '如果可以的话',
+      '我感觉',
+      '我认为'
+    ]
+    
+    const gentleSuffixes = [
+      '，你觉得呢？',
+      '，好吗？',
+      '，可以吗？',
+      '，谢谢理解~',
+      '，希望你能理解~',
+      '，我们可以聊聊吗？',
+      '，希望我们能好好沟通~'
+    ]
+    
+    const prefix = gentlePrefixes[Math.floor(Math.random() * gentlePrefixes.length)]
+    const suffix = gentleSuffixes[Math.floor(Math.random() * gentleSuffixes.length)]
+    
+    if (!result.startsWith('我') && !result.startsWith('你') && result.length > 0) {
+      result = prefix + result
+    }
+    
+    if (!result.endsWith('~') && !result.endsWith('？') && !result.endsWith('。') && result.length > 0) {
+      result = result + suffix
+    }
+    
+    if (result.length === 0) {
+      result = '让我们用更温和的方式交流吧~'
+    }
+    
+    return result
+  },
+
+  goCompanion() {
+    router.replace({ uri: '/pages/Companion' })
+  },
+
+  goBreakIce() {
+    router.replace({ uri: '/pages/BreakIce' })
+  },
+
+  goMemory() {
+    router.replace({ uri: '/pages/Memory' })
+  },
+
+  goProfile() {
+    router.replace({ uri: '/pages/Profile' })
+  }
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 30px;
+  flex-direction: column;
+  background: linear-gradient(180deg, #fffbf7 0%, #f7f0e7 100%);
+}
+
+.page-title {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.page-subtitle {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+}
+
+.content-area {
+  flex: 1;
+  padding: 24px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-card {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.input-header {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.dot {
+  width: 16px;
+  height: 16px;
+  background-color: #e85d5d;
+  border-radius: 8px;
+  margin-right: 12px;
+}
+
+.input-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.input-textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 20px;
+  background-color: #fff5f5;
+  border-radius: 16px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #c9b8ad;
+  line-height: 34px;
+}
+
+.convert-btn {
+  width: 100%;
+  height: 96px;
+  margin-top: 32px;
+  background-color: #b5c6d3;
+  border-radius: 48px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.btn-active {
+  background-color: #a8c5d9;
+  opacity: 1;
+}
+
+.btn-icon {
+  font-size: 36px;
+  margin-right: 12px;
+}
+
+.btn-text {
+  font-size: 32px;
+  color: #fff;
+  font-weight: 500;
+}
+
+.result-card {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  margin-top: 24px;
+  border-left: 6px solid #6bcb77;
+}
+
+.result-header {
+  margin-bottom: 12px;
+}
+
+.result-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.result-content {
+  font-size: 28px;
+  color: #5a4a3a;
+  line-height: 34px;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>
