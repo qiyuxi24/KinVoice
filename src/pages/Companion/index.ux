@@ -222,7 +222,6 @@ export default {
 .speech-arrow {
   position: absolute;
   bottom: -16px;
-  left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;

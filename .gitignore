@@ -2,8 +2,6 @@
 node_modules
 /dist
 /build
-CLAUDE.md
-*/CLAUDE.md
 
 # sign
 
@@ -25,5 +23,13 @@ yarn-error.log*
 *.sln
 *.sw*
 .ide
-.docs
 .quickapp.preview.json
+
+# claude文件
+.docs
+CLAUDE.md
+*/CLAUDE.md
+
+# python.pyc缓存文件
+__pycache__/
+*.pyc
