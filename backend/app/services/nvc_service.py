@@ -1,60 +1,33 @@
 """
-NVC 破冰转换服务 —— 将原始发言转换为非暴力沟通四要素
+NVC 破冰转换服务 —— 将原始发言转换为非暴力语言( NVC: Nonviolent Communication)
 """
-import json
-from app.services.llm_service import chat_completion
+# 接收来自api\convert.py传入的用户端的原始文本，进行调用模型llm_service.py进行处理
+
+
+from app.services.llm_service import chat, FALLBACK_MESSAGE
 from app.utils.logger import logger
 
-NVC_SYSTEM_PROMPT = """你是一个非暴力沟通（NVC）专家。你的任务是将用户的原始发言转换为 NVC 四要素格式。
+NVC_SYSTEM_PROMPT = """你是一位专业的非暴力沟通(NVC)语言转换专家。
 
-请严格按以下 JSON 格式输出（不要输出其他内容）：
-{
-  "observation": "客观描述观察到的事实，不带评判",
-  "feeling": "说话者可能的感受",
-  "need": "说话者未满足的需要",
-  "request": "可以提出的具体请求（可选，填 null 如果无法推断）",
-  "emotion": "识别到的情绪关键词（如：生气、委屈、焦虑）"
-}
+你的任务是把用户输入的、可能带有攻击性或负面情绪的话语, 转换成温和、尊重、建设性的表达;
+一定要注意你是"替身"，你只是在帮用户完成他所说的话的非暴力转换，从而让对话更加和谐融洽易于建立有效沟通.
 
-规则：
-1. observation 只描述事实，不添加评价
-2. feeling 使用 NVC 感受词汇表中的词
-3. need 从 NVC 需要词汇表中选择
-4. 保持中文输出
+转换规则：
+1. 使用"观察-感受-需要-请求"四步法
+2. 保留原意，但用更温和的方式表达
+3. 不要添加原句没有的内容
+4. 不要评价或批评用户的原始表达
+5. 直接返回转换后的文本，不要加任何解释或前缀
 """
 
 
-async def convert_to_nvc(raw_text: str, emotion_hint: str | None = None) -> dict:
-    """
-    将原始文本转换为 NVC 四要素
-    """
-    user_content = raw_text
-    if emotion_hint:
-        user_content = f"【情绪提示】{emotion_hint}\n【原文】{raw_text}"
+async def convert_text(original_text: str) -> str:
+    if not original_text or not original_text.strip():
+        return "请输入需要转换的文本"
 
-    messages = [
-        {"role": "system", "content": NVC_SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
-
-    response = await chat_completion(messages, temperature=0.3, max_tokens=512)
-
-    # 尝试解析 JSON
     try:
-        result = json.loads(response)
-        return {
-            "observation": result.get("observation", ""),
-            "feeling": result.get("feeling", ""),
-            "need": result.get("need", ""),
-            "request": result.get("request"),
-            "emotion": result.get("emotion", "未知"),
-        }
-    except json.JSONDecodeError:
-        logger.warning(f"NVC 输出不是有效 JSON，原样返回: {response}")
-        return {
-            "observation": raw_text,
-            "feeling": "",
-            "need": "",
-            "request": None,
-            "emotion": "未知",
-        }
+        result = await chat(prompt=original_text, system_prompt=NVC_SYSTEM_PROMPT)
+        return result
+    except Exception as e:
+        logger.error(f"NVC 转换失败: {str(e)}")
+        return FALLBACK_MESSAGE
