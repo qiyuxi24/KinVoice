@@ -4,21 +4,15 @@
 """
 import asyncio
 import os
-from app.db.session import engine, Base, BASE_DIR, DATABASE_PATH
-from app.models.card import Card  # 手动导入创建的"记忆卡片"Card
-
+from app.db.session import engine, Base, BASE_DIR
+from app.models.card import Card  # 导入 Card 会自动加载 Conversation, ChatMessage
 
 async def init_db():
     data_dir = os.path.join(BASE_DIR, "data")
     os.makedirs(data_dir, exist_ok=True)
-
-    # 异步获取数据库连接,自动创建项目中所有定义好类型的数据库数据表(仅新建不存在的表，不会改动已有表)
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)  
-    # Base 是 SQLAlchemy(一种ORM框架) 提供的基类, models里面所有表模型都继承自它
-
-    print(f"数据库初始化完成！{DATABASE_PATH}")
-
+        await conn.run_sync(Base.metadata.create_all)
+    print(f"数据库初始化完成！{BASE_DIR}/data/kinvoice.db")
 
 if __name__ == "__main__":
     asyncio.run(init_db())    # 入口

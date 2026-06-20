@@ -26,5 +26,15 @@ yarn-error.log*
 .quickapp.preview.json
 
 # python.pyc缓存文件
-__pycache__/
+backend/app/__pycache__/
+backend/app/api/__pycache__/
+backend/app/db/__pycache__/
+backend/app/utils/__pycache__/
+backend/app/services/__pycache__/
+backend/app/models/__pycache__/
+backend/app/schemas/__pycache__/
 *.pyc
+
+# 含api密钥的配置文件
+backend/.env
+backend/app/config.py

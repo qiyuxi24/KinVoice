@@ -1,46 +1,51 @@
 """
-经验卡片 —— CRUD 请求/响应模型
+Memory 接口的 Pydantic 模型
 """
-from datetime import datetime
+"""
+记忆卡片 / 收藏相关 Schema
+"""
 from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
 
 
 class CardCreate(BaseModel):
-    """创建卡片"""
-    category: str = Field("通用", max_length=50)
-    emotion: str = Field(..., max_length=100)
-    observation: str = Field(...)
-    feeling: str = Field(...)
-    need: str = Field(...)
-    request: str | None = None
+    """手动创建 NVC 卡片"""
+    category: str = Field(default="通用", description="分类")
+    emotion: str = Field(..., description="情绪关键词")
+    observation: str = Field(..., description="观察")
+    feeling: str = Field(..., description="感受")
+    need: str = Field(..., description="需要")
+    request: Optional[str] = Field(None, description="请求")
+    family_id: int = Field(default=1)
 
 
-class CardUpdate(BaseModel):
-    """更新卡片（全字段可选）"""
-    category: str | None = Field(None, max_length=50)
-    emotion: str | None = Field(None, max_length=100)
-    observation: str | None = None
-    feeling: str | None = None
-    need: str | None = None
-    request: str | None = None
-
-
-class CardOut(BaseModel):
-    """卡片响应"""
+class CardResponse(BaseModel):
     id: int
-    category: str
-    emotion: str
-    observation: str
-    feeling: str
-    need: str
-    request: str | None = None
-    created_at: datetime
-    updated_at: datetime
+    type: str
 
-    model_config = {"from_attributes": True}
+    # NVC 字段
+    category: Optional[str] = None
+    emotion: Optional[str] = None
+    observation: Optional[str] = None
+    feeling: Optional[str] = None
+    need: Optional[str] = None
+    request: Optional[str] = None
+
+    # 对话收藏字段
+    conversation_id: Optional[int] = None
+    message_id: Optional[int] = None
+    title: Optional[str] = None
+    content: Optional[str] = None
+    original_text: Optional[str] = None
+
+    family_id: int
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 
-class CardListOut(BaseModel):
-    """卡片列表响应"""
-    cards: list[CardOut]
-    total: int
+class DeleteResponse(BaseModel):
+    success: bool

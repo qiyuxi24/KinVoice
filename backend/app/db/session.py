@@ -1,6 +1,10 @@
 """
-数据库连接管理 —— 异步式调用数据库 & 会话实现
+数据库连接管理 —— 异步式调用数据库 & 数据库会话实现
 """
+
+# api/memory.py先将该请求经过schemas/memory.py的格式校验，然后调用models/card.py创建卡片，最终利用db/session.py手动存储到创建好的card中(即存入数据库)
+
+
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase

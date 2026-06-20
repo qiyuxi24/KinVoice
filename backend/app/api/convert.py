@@ -1,7 +1,7 @@
 """
 NVC 破冰转换服务接口 —— POST /convert
 """
-# 负责将用户输入的原始文本传入nvc_service.py进行处理，并将处理后的文本返回给用户
+# 负责将用户输入的原始文本传入nvc_service.py进行处理，同时负责将处理后的文本返回给前端用户
 
 
 import time

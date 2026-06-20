@@ -1,20 +1,14 @@
 """
-陪伴对话 —— 请求/响应模型
+Chat 接口的 Pydantic 模型--数据校验
 """
 from pydantic import BaseModel, Field
 
-
 class ChatRequest(BaseModel):
-    """陪伴对话请求"""
-    message: str = Field(..., min_length=1, max_length=2000, description="用户消息")
-    history: list[dict] | None = Field(
-        None, description="对话历史 [{role, content}, ...]"
-    )
-    emotion_state: str | None = Field(None, description="当前情绪状态")
-
+    message: str = Field(..., min_length=1, max_length=1000, description="用户消息")
+    conversation_id: int | None = Field(None, description="会话 ID, 不传则新建会话")
 
 class ChatResponse(BaseModel):
-    """陪伴对话响应"""
-    reply: str = Field(..., description="AI 回复")
-    emotion: str | None = Field(None, description="识别到的用户情绪")
-    need_hint: str | None = Field(None, description="推测的潜在需求（NVC 角度）")
+    reply: str
+    conversation_id: int
+    message_id: int | None = None       # 本次助手回复的消息 ID
+    tokens_used: int = 0

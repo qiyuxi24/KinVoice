@@ -21,6 +21,16 @@ async def call_llm(messages: list[dict]) -> str:
         logger.warning("使用 Mock 模式")
         await asyncio.sleep(0.5)
         return _mock_response(messages[-1]["content"])
+    
+    def _mock_response(user_input: str) -> str:
+        if "管" in user_input or "烦" in user_input or "别" in user_input:
+            return "我知道你是关心我，但我需要一些空间。我们可以好好聊聊这件事吗？"
+        elif "谢谢" in user_input or "感谢" in user_input:
+            return "你的感谢让我感到很温暖。"
+        elif "对不起" in user_input or "抱歉" in user_input:
+            return "没关系，我理解你的感受。我们一起来解决这个问题。"
+        else:
+            return "我理解你想表达的意思。让我们用更温和的方式沟通，好吗？"
 
     # 真实调用
     request_id = str(uuid.uuid4())
@@ -53,17 +63,6 @@ async def call_llm(messages: list[dict]) -> str:
         response.raise_for_status()
         data = response.json()
         return data["choices"][0]["message"]["content"]
-
-
-def _mock_response(user_input: str) -> str:
-    if "管" in user_input or "烦" in user_input or "别" in user_input:
-        return "我知道你是关心我，但我需要一些空间。我们可以好好聊聊这件事吗？"
-    elif "谢谢" in user_input or "感谢" in user_input:
-        return "你的感谢让我感到很温暖。"
-    elif "对不起" in user_input or "抱歉" in user_input:
-        return "没关系，我理解你的感受。我们一起来解决这个问题。"
-    else:
-        return "我理解你想表达的意思。让我们用更温和的方式沟通，好吗？"
 
 
 async def chat(prompt: str, system_prompt: str | None = None) -> str:
