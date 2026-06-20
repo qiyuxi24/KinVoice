@@ -8,11 +8,16 @@ from pydantic import BaseModel, Field
 class CardCreate(BaseModel):
     """创建卡片"""
     category: str = Field("通用", max_length=50)
-    emotion: str = Field(..., max_length=100)
-    observation: str = Field(...)
-    feeling: str = Field(...)
-    need: str = Field(...)
+    emotion: str = Field(default="感慨", max_length=100)
+    observation: str = Field(default="")
+    feeling: str = Field(default="")
+    need: str = Field(default="")
     request: str | None = None
+    # 前端额外携带的展示字段（存入对应 NVC 字段）
+    title: str | None = Field(None, max_length=200)
+    content: str | None = None
+    author: str | None = Field(None, max_length=100)
+    tag: str | None = Field(None, max_length=50)
 
 
 class CardUpdate(BaseModel):
@@ -23,6 +28,10 @@ class CardUpdate(BaseModel):
     feeling: str | None = None
     need: str | None = None
     request: str | None = None
+    title: str | None = Field(None, max_length=200)
+    content: str | None = None
+    author: str | None = Field(None, max_length=100)
+    tag: str | None = Field(None, max_length=50)
 
 
 class CardOut(BaseModel):

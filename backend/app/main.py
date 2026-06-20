@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.convert import router as convert_router
 from app.api.chat import router as chat_router
 from app.api.memory import router as memory_router
+<<<<<<< Updated upstream
 from app.utils.logger import logger
 
 
@@ -17,6 +18,10 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("KinVoice 后端已关闭")
 
+=======
+from app.api.summarize import router as summarize_router
+from app.api.profile import router as profile_router
+>>>>>>> Stashed changes
 
 app = FastAPI(
     title="KinVoice API",
@@ -38,6 +43,11 @@ app.add_middleware(
 app.include_router(convert_router)
 app.include_router(chat_router)
 app.include_router(memory_router)
+<<<<<<< Updated upstream
+=======
+app.include_router(summarize_router)
+app.include_router(profile_router)
+>>>>>>> Stashed changes
 
 
 @app.get("/", tags=["健康检查"])

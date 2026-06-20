@@ -4,10 +4,16 @@
 """
 import asyncio
 import os
+<<<<<<< Updated upstream
 from app.db.session import engine, Base
 from app.models.card import Card  # noqa: F401 — 确保模型被注册
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+=======
+from app.db.session import engine, Base, BASE_DIR, DATABASE_PATH
+from app.models.card import Card  # 手动导入创建的"记忆卡片"Card
+from app.models.profile import FamilyMember  # 家庭成员档案
+>>>>>>> Stashed changes
 
 
 async def init_db():

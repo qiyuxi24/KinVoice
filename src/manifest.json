@@ -36,6 +36,9 @@
       },
       "pages/DemoDetail": {
         "component": "index"
+      },
+      "pages/ProfileDetail": {
+        "component": "index"
       }
     },
     "widgets": {
@@ -59,8 +62,22 @@
       "pages/Demo": {
         "titleBarText": "快应用示例模版"
       },
+<<<<<<< Updated upstream
       "pages/DemoDetail": {
         "titleBarText": "详情页"
+=======
+      "pages/BreakIce": {
+        "titleBarText": "破冰页"
+      },
+      "pages/Memory": {
+        "titleBarText": "传承页"
+      },
+      "pages/Profile": {
+        "titleBarText": "我的"
+      },
+      "pages/ProfileDetail": {
+        "titleBarText": "用户档案"
+>>>>>>> Stashed changes
       }
     }
   }

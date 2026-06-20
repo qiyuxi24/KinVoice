@@ -18,14 +18,23 @@ class Base(DeclarativeBase):
     pass
 
 
+<<<<<<< Updated upstream
 async def get_session() -> AsyncSession:
     """FastAPI 依赖注入：获取异步数据库会话"""
     async with async_session_factory() as session:
+=======
+# 3.FastAPI 依赖注入 —— 每次请求自动创建/提交/关闭 session
+async def get_session():
+    async with AsyncSessionLocal() as session:
+>>>>>>> Stashed changes
         try:
             yield session
             await session.commit()
         except Exception:
             await session.rollback()
             raise
+<<<<<<< Updated upstream
         finally:
             await session.close()
+=======
+>>>>>>> Stashed changes
