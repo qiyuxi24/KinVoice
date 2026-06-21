@@ -9,7 +9,7 @@ from app.config import settings
 from app.utils.logger import logger
 
 FALLBACK_MESSAGE = "我暂时无法回答，请稍后再试"
-TIMEOUT_SECONDS = 10
+TIMEOUT_SECONDS = 3600
 
 # 需要 request_id 的 vivo 模型列表
 VIVO_MODELS = ["qwen3.5-plus", "Volc-DeepSeek-V3.2", "Doubao-Seed-2.0-mini", "Doubao-Seed-2.0-lite", "Doubao-Seed-2.0-pro"]
