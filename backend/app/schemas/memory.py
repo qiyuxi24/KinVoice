@@ -1,9 +1,7 @@
 """
 Memory 接口的 Pydantic 模型
 """
-"""
-记忆卡片 / 收藏相关 Schema
-"""
+
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime

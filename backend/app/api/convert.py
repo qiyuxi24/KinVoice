@@ -17,13 +17,20 @@ router = APIRouter(tags=["破冰转换"])
 async def convert(request: ConvertRequest):
     start_time = time.time()
     logger.info(f"收到转换请求: {request.text}")
-
-    converted = await convert_text(request.text)
-    elapsed = round(time.time() - start_time, 2)
-
-    return ConvertResponse(
-        original=request.text,
-        converted=converted,
-        tokens_used=0,
-        processing_time=elapsed,
-    )
+    try:
+        converted = await convert_text(request.text)
+        elapsed = round(time.time() - start_time, 2)
+        return ConvertResponse(
+            original=request.text,
+            converted=converted,
+            tokens_used=0,
+            processing_time=elapsed,
+        )
+    except Exception as e:
+        logger.error(f"转换失败，使用降级预设: {str(e)}")
+        return ConvertResponse(
+            original=request.text,
+            converted="我理解你的感受，我们可以换一种更温和的方式来表达。",
+            tokens_used=0,
+            processing_time=0.0,
+        )

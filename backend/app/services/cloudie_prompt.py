@@ -1,5 +1,5 @@
 """
-Cloudie 陪伴对话 —— 传给llm_service.py的系统提示词
+Cloudie 陪伴对话 —— 与AI对话的系统提示词
 """
 
 

@@ -20,19 +20,20 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
     # 大模型配置 
-    llm_api_key: str = "no"       # 模型接口密钥
-    llm_api_base: str = "no"  # 模型接口根地址
-    llm_model: str = "Volc-DeepSeek-V3.2"    # 模型名称
+    llm_api_key: str = ""       # 模型接口密钥
+    llm_api_base: str = ""  # 模型接口根地址
+    llm_model: str = ""    # 模型名称
 
     # 数据库
-    database_url: str = "sqlite+aiosqlite:///./data/kinvoice.db"
+    database_url: str = ""
 
     # 日志 
     LOG_LEVEL: str = "INFO"
 
-    # Azure TTS（后期可选）
-    azure_speech_key: str = ""
-    azure_speech_region: str = ""
+    # vivo TTS
+    tts_app_id: str = ""
+    tts_app_key: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:

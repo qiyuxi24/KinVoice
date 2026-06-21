@@ -7,6 +7,7 @@
 
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey, func
 from sqlalchemy.orm import relationship
+
 from app.db.session import Base
 
 
