@@ -13,7 +13,8 @@
 
       <div class="cloudie-container" onclick="onCloudieClick">
         <div class="cloudie-wrapper" :class="{ 'cloudie-bounce': isAnimating }">
-          <image class="cloudie-image" src="../../assets/images/云朵精灵.png" mode="aspectFit" />
+          <!-- TODO: 替换为 云朵精灵.png 图片资源 -->
+          <image class="cloudie-image" src="../../assets/images/logo.png" mode="aspectFit" />
         </div>
         <text class="cloudie-name">Cloudie</text>
         <text class="cloudie-hint">点击我聊天</text>
@@ -51,6 +52,7 @@
 <script>
 import router from '@system.router'
 import storage from '@system.storage'
+import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
 import $ajax from '../../helper/ajax'
 import config from '../../helper/apis/config'
@@ -150,9 +152,7 @@ export default {
       return
     }
 
-    const payload = JSON.stringify({ history: this.chatHistory })
-
-    $ajax.post(`${BASE}/chat/summarize`, JSON.parse(payload))
+    $ajax.post(`${BASE}/chat/summarize`, { history: this.chatHistory })
       .then((resp) => {
         console.log('对话总结完成:', resp)
         this.clearHistory()

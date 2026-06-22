@@ -1,6 +1,6 @@
 {
-  "package": "com.example.demo",
-  "name": "demo",
+  "package": "com.kinvoice.app",
+  "name": "KinVoice",
   "versionName": "1.0.0",
   "versionCode": 1,
   "minPlatformVersion": 1070,
@@ -17,6 +17,9 @@
     },
     {
       "name": "system.fetch"
+    },
+    {
+      "name": "system.storage"
     }
   ],
   "permissions": [
@@ -29,12 +32,24 @@
     "logLevel": "debug"
   },
   "router": {
-    "entry": "pages/Demo",
+    "entry": "pages/Companion",
     "pages": {
       "pages/Demo": {
         "component": "index"
       },
       "pages/DemoDetail": {
+        "component": "index"
+      },
+      "pages/BreakIce": {
+        "component": "index"
+      },
+      "pages/Companion": {
+        "component": "index"
+      },
+      "pages/Memory": {
+        "component": "index"
+      },
+      "pages/Profile": {
         "component": "index"
       },
       "pages/ProfileDetail": {
@@ -62,12 +77,14 @@
       "pages/Demo": {
         "titleBarText": "快应用示例模版"
       },
-<<<<<<< Updated upstream
       "pages/DemoDetail": {
         "titleBarText": "详情页"
-=======
+      },
       "pages/BreakIce": {
-        "titleBarText": "破冰页"
+        "titleBarText": "破冰对话"
+      },
+      "pages/Companion": {
+        "titleBarText": "AI 陪伴"
       },
       "pages/Memory": {
         "titleBarText": "传承页"
@@ -77,7 +94,6 @@
       },
       "pages/ProfileDetail": {
         "titleBarText": "用户档案"
->>>>>>> Stashed changes
       }
     }
   }

@@ -6,15 +6,17 @@ import $utils from './utils'
 
 const TIMEOUT = 20000
 
-Promise.prototype.finally = function(callback) {
-  const P = this.constructor
-  return this.then(
-    value => P.resolve(callback()).then(() => value),
-    reason =>
-      P.resolve(callback()).then(() => {
-        throw reason
-      })
-  )
+if (!Promise.prototype.finally) {
+  Promise.prototype.finally = function(callback) {
+    const P = this.constructor
+    return this.then(
+      value => P.resolve(callback()).then(() => value),
+      reason =>
+        P.resolve(callback()).then(() => {
+          throw reason
+        })
+    )
+  }
 }
 
 /**
@@ -31,9 +33,10 @@ function fetchPromise(params) {
       })
       .then(response => {
         const result = response.data
-        const content = JSON.parse(result.data)
-        /* @desc: 可跟具体不同业务接口数据，返回你所需要的部分，使得使用尽可能便捷 */
-        content.success ? resolve(content.value) : resolve(content.message)
+        // 快应用 @system.fetch 返回结构: { code: 200, data: "JSON字符串", headers: {} }
+        // response.data 本身就是 JSON 字符串，直接 parse
+        const content = JSON.parse(result)
+        resolve(content)
       })
       .catch((error, code) => {
         console.log(`🐛 request fail, code = ${code}`)
@@ -41,7 +44,6 @@ function fetchPromise(params) {
       })
       .finally(() => {
         console.log(`✔️ request @${params.url} has been completed.`)
-        resolve()
       })
   })
 }
@@ -85,6 +87,12 @@ export default {
       url: url,
       data: params
     })
+  },
+  delete: function(url, params) {
+    return requestHandle({
+      method: 'delete',
+      url: url,
+      data: params
+    })
   }
-  // 如果，method 您需要更多类型，可自行添加更多方法；
 }

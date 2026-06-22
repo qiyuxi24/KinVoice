@@ -118,11 +118,13 @@
 <script>
 import router from '@system.router'
 import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
 
 const CACHE_KEY = 'kinvoice_profiles'
 
 export default {
-  data: {
+  private: {
     profiles: [],           // 档案列表
     loading: true,
     showDialog: false,      // 编辑弹窗
@@ -167,7 +169,7 @@ export default {
       key: CACHE_KEY,
       success: (res) => {
         try {
-          const data = JSON.parse(res.data)
+          const data = JSON.parse(res)
           this.profiles = data || []
         } catch (e) {
           this.profiles = []
@@ -299,7 +301,8 @@ export default {
 </script>
 
 <style lang="less">
-@import './../../assets/styles/style.less';
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
 
 .page {
   flex: 1;

@@ -149,6 +149,8 @@
 <script>
 import router from '@system.router'
 import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
 
 // ── 常量 ────────────────────────────────────────────
 const STORAGE_KEY = 'memory_cards'
@@ -251,14 +253,17 @@ export default {
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
-    // 始终从本地缓存加载
-    this.loadFromLocal()
+    // 从本地缓存加载（异步），完成后触发同步
+    this.loadFromLocal(() => {
+      this.syncWithBackend()
+    })
   },
 
   onShow() {
-    // 每次显示页面时：先确保本地有数据，再与后端双向同步
-    this.loadFromLocal()
-    this.syncWithBackend()
+    // 每次切回页面时重新从本地加载最新数据
+    this.loadFromLocal(() => {
+      this.syncWithBackend()
+    })
   },
 
   // ═══════════════════════════════════════════════════
@@ -266,10 +271,11 @@ export default {
   // ═══════════════════════════════════════════════════
 
   /** 从本地缓存加载卡片（首次使用时用 mock 数据初始化） */
-  loadFromLocal() {
+  loadFromLocal(callback) {
     storage.get({
       key: STORAGE_KEY,
       success: (data) => {
+        let loaded = false
         if (data) {
           try {
             const saved = JSON.parse(data)
@@ -278,8 +284,12 @@ export default {
               CATEGORIES.forEach(cat => {
                 if (saved[cat] && saved[cat].length > 0) {
                   this.cards[cat] = saved[cat]
+                  loaded = true
                 }
               })
+            }
+            if (!loaded) {
+              this.initWithMockData()
             }
           } catch (e) {
             console.log('解析本地缓存失败，使用初始数据:', e)
@@ -289,10 +299,13 @@ export default {
           // 首次使用，写入 mock 数据
           this.initWithMockData()
         }
+        if (callback) callback()
       },
       fail: () => {
         // 存储读取失败，用 mock 兜底
+        console.log('本地存储读取失败，使用 mock 数据')
         this.initWithMockData()
+        if (callback) callback()
       }
     })
   },
@@ -400,7 +413,8 @@ export default {
   },
 
   onContentChange(event) {
-    this.formData.content = event.text || ''
+    // 快应用 textarea onchange 兼容：不同厂商可能是 event.text / event.value / event.detail.value
+    this.formData.content = event.text || event.value || (event.detail && event.detail.value) || ''
   },
 
   onAuthorChange(event) {
@@ -469,14 +483,16 @@ export default {
       date: card.date
     }
 
+    const oldTag = card.tag
+
     if (card.id) {
       // 有后端 id → 调 PUT /cards/{id}
       $apis.cards.update(card.id, localToBackendUpdate(updated))
         .then(() => {
           Object.assign(card, updated)
           // 如果分类变了，移动卡片
-          if (updated.tag !== card.tag) {
-            this.cards[card.tag].splice(index, 1)
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
             this.cards[updated.tag].unshift(card)
           }
           this.saveToLocal()
@@ -486,8 +502,8 @@ export default {
         .catch((err) => {
           console.log('后端更新失败，仅更新本地:', err)
           Object.assign(card, updated)
-          if (updated.tag !== card.tag) {
-            this.cards[card.tag].splice(index, 1)
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
             this.cards[updated.tag].unshift(card)
           }
           this.saveToLocal()
@@ -499,8 +515,8 @@ export default {
       $apis.cards.create(localToBackendCreate(updated))
         .then((resp) => {
           Object.assign(card, updated, { id: resp.id })
-          if (updated.tag !== card.tag) {
-            this.cards[card.tag].splice(index, 1)
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
             this.cards[updated.tag].unshift(card)
           }
           this.saveToLocal()
@@ -570,7 +586,8 @@ export default {
 </script>
 
 <style lang="less">
-@import './../../assets/styles/style.less';
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
 
 .page {
   flex: 1;

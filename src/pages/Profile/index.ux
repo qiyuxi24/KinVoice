@@ -58,6 +58,7 @@
 
 <script>
 import router from '@system.router'
+import $utils from '../../helper/utils'
 
 export default {
   onInit() {
@@ -99,7 +100,8 @@ export default {
 </script>
 
 <style lang="less">
-@import './../../assets/styles/style.less';
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
 
 .page {
   flex: 1;

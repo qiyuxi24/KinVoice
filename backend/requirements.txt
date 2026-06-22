@@ -17,3 +17,6 @@ pydantic-settings==2.2.0
 # 工具
 python-multipart==0.0.9
 loguru==0.7.2
+
+# TTS 所需（vivo WebSocket）
+websocket-client==1.8.0

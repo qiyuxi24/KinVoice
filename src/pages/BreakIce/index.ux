@@ -1,0 +1,396 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <text class="page-title">💬 破冰对话</text>
+      <text class="page-subtitle">把情绪化表达，转成温暖的非暴力沟通</text>
+    </div>
+
+    <div class="input-section">
+      <text class="input-label">你想说的话：</text>
+      <textarea class="text-input" placeholder="例如：你怎么总是这么晚回家！" onchange="onInputChange"></textarea>
+      <div class="convert-btn" onclick="doConvert">
+        <text class="btn-text">{{ converting ? '转换中...' : '✨ 转换为 NVC' }}</text>
+      </div>
+    </div>
+
+    <div class="result-section" show="{{ resultVisible }}">
+      <div class="result-card">
+        <text class="result-title">💡 NVC 表达</text>
+
+        <div class="nvc-item">
+          <text class="nvc-label">👁️ 观察</text>
+          <text class="nvc-content">{{ observation }}</text>
+        </div>
+
+        <div class="nvc-item">
+          <text class="nvc-label">💗 感受</text>
+          <text class="nvc-content">{{ feeling }}</text>
+        </div>
+
+        <div class="nvc-item">
+          <text class="nvc-label">🎯 需要</text>
+          <text class="nvc-content">{{ need }}</text>
+        </div>
+
+        <div class="nvc-item" show="{{ request }}">
+          <text class="nvc-label">🙏 请求</text>
+          <text class="nvc-content">{{ request }}</text>
+        </div>
+
+        <div class="nvc-full">
+          <text class="nvc-full-label">完整表达：</text>
+          <text class="nvc-full-text">{{ fullExpression }}</text>
+        </div>
+
+        <div class="save-memory-btn" onclick="saveToMemory">
+          <text class="save-btn-text">{{ savingToMemory ? '保存中...' : '📥 保存到传承页' }}</text>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item tab-active" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import convertAPI from '../../helper/apis/convert'
+
+const STORAGE_KEY = 'memory_cards'
+
+export default {
+  private: {
+    inputText: '',
+    converting: false,
+    resultVisible: false,
+    observation: '',
+    feeling: '',
+    need: '',
+    request: '',
+    fullExpression: '',
+    savingToMemory: false
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+
+  onInputChange(event) {
+    this.inputText = event.value || ''
+  },
+
+  doConvert() {
+    const content = (this.inputText || '').trim()
+    if (!content) {
+      $utils.showToast('请先输入你想说的话')
+      return
+    }
+
+    this.converting = true
+    this.resultVisible = false
+
+    convertAPI.convert({ raw_text: content })
+      .then((data) => {
+        if (data) {
+          this.observation = data.observation || ''
+          this.feeling = data.feeling || ''
+          this.need = data.need || ''
+          this.request = data.request || ''
+          this.fullExpression = data.converted || data.full_expression || ''
+          this.resultVisible = true
+        } else {
+          $utils.showToast('转换失败，请重试')
+        }
+      })
+      .catch((err) => {
+        console.log('NVC 转换失败:', err)
+        // 降级展示
+        this.observation = '当你说"' + content + '"的时候'
+        this.feeling = '你可能感到有些着急和担心'
+        this.need = '你希望得到对方的理解和关注'
+        this.request = '你可以试着说：我需要和你聊一聊，你方便吗？'
+        this.fullExpression = '当' + content + '的时候，我感到有些着急，因为我希望我们能更好地沟通。下次可以早点告诉我你的安排吗？'
+        this.resultVisible = true
+      })
+      .finally(() => {
+        this.converting = false
+      })
+  },
+
+  /**
+   * 将 NVC 转换结果保存到传承页（本地缓存）
+   */
+  saveToMemory() {
+    if (this.savingToMemory) return
+    this.savingToMemory = true
+
+    // 构造卡片数据
+    const card = {
+      tag: '相处感悟',
+      date: new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'),
+      title: this.observation ? this.observation.slice(0, 20) : 'NVC 转换记录',
+      author: '我',
+      content: this.fullExpression || `${this.observation || ''} ${this.feeling ? '| 感受：' + this.feeling : ''} ${this.need ? '| 需要：' + this.need : ''}`,
+      emotion: '感慨',
+      need: this.need || '更好的沟通'
+    }
+
+    // 读取已有卡片，追加后写回
+    storage.get({
+      key: STORAGE_KEY,
+      success: (raw) => {
+        let grouped = { '人生阅历': [], '家庭菜谱': [], '成长故事': [], '相处感悟': [] }
+        try {
+          if (raw) {
+            const parsed = JSON.parse(raw)
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              grouped = parsed
+            }
+          }
+        } catch (e) {
+          console.log('解析缓存失败，使用空分组')
+        }
+        grouped['相处感悟'].unshift(card)
+        storage.set({
+          key: STORAGE_KEY,
+          value: JSON.stringify(grouped),
+          success: () => {
+            this.savingToMemory = false
+            $utils.showToast('✅ 已保存到传承页')
+          },
+          fail: (err) => {
+            console.log('保存失败:', err)
+            this.savingToMemory = false
+            $utils.showToast('保存失败，请重试')
+          }
+        })
+      },
+      fail: (err) => {
+        console.log('读取缓存失败:', err)
+        // 首次使用，直接写入
+        const grouped = { '人生阅历': [], '家庭菜谱': [], '成长故事': [], '相处感悟': [] }
+        grouped['相处感悟'].push(card)
+        storage.set({
+          key: STORAGE_KEY,
+          value: JSON.stringify(grouped),
+          success: () => {
+            this.savingToMemory = false
+            $utils.showToast('✅ 已保存到传承页')
+          },
+          fail: (err2) => {
+            console.log('保存失败:', err2)
+            this.savingToMemory = false
+            $utils.showToast('保存失败，请重试')
+          }
+        })
+      }
+    })
+  },
+
+  goCompanion() {
+    router.replace({ uri: '/pages/Companion' })
+  },
+
+  goBreakIce() {
+    router.replace({ uri: '/pages/BreakIce' })
+  },
+
+  goMemory() {
+    router.replace({ uri: '/pages/Memory' })
+  },
+
+  goProfile() {
+    router.replace({ uri: '/pages/Profile' })
+  }
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 30px;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.page-subtitle {
+  font-size: 26px;
+  color: #8b7355;
+  margin-top: 8px;
+}
+
+.input-section {
+  padding: 24px;
+  flex-direction: column;
+}
+
+.input-label {
+  font-size: 30px;
+  color: #4a3728;
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.text-input {
+  height: 200px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #b5a899;
+  margin-bottom: 20px;
+}
+
+.convert-btn {
+  height: 88px;
+  background-color: #a8c5d9;
+  border-radius: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-text {
+  font-size: 30px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.result-section {
+  padding: 0 24px 24px;
+  flex-direction: column;
+}
+
+.result-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 24px;
+  flex-direction: column;
+}
+
+.result-title {
+  font-size: 34px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 20px;
+}
+
+.nvc-item {
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.nvc-label {
+  font-size: 26px;
+  color: #a8c5d9;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.nvc-content {
+  font-size: 28px;
+  color: #4a3728;
+  line-height: 38px;
+}
+
+.nvc-full {
+  flex-direction: column;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0e8df;
+}
+
+.nvc-full-label {
+  font-size: 26px;
+  color: #d4874b;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.nvc-full-text {
+  font-size: 28px;
+  color: #4a3728;
+  line-height: 40px;
+  font-style: italic;
+}
+
+.save-memory-btn {
+  margin-top: 20px;
+  height: 80px;
+  background-color: #d4874b;
+  border-radius: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.save-btn-text {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>

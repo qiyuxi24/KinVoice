@@ -1,14 +1,11 @@
 /**
  * 导出 apis 下目录的所有接口
+ * 注意：快应用不支持 require.context，需手动 import
  */
-const files = require.context('.', true, /\.js/)
-const modules = {}
+import cards from './cards'
+import chat from './chat'
+import config from './config'
+import convert from './convert'
+import profiles from './profiles'
 
-files.keys().forEach(key => {
-  if (key === './index.js') {
-    return
-  }
-  modules[key.replace(/(^\.\/|\.js$)/g, '')] = files(key).default
-})
-
-export default modules
+export default { cards, chat, config, convert, profiles }
