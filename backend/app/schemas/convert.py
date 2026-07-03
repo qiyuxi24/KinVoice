@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 
 
 class ConvertRequest(BaseModel):
-    """NVC 破冰转换请求"""
-    text: str = Field(..., min_length=1, max_length=2000, description="需要转换的原始文本")
+    """NVC 破冰转换请求（兼容 si text / xia raw_text 两种字段名）"""
+    text: str | None = Field(None, max_length=2000, description="需要转换的原始文本（新前端）")
     # si 旧字段
     raw_text: str | None = Field(None, max_length=2000, description="原始发言文本（兼容旧前端）")
     emotion_hint: str | None = Field(None, description="情绪提示（可选）")

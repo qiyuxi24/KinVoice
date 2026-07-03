@@ -3,7 +3,7 @@ NVC 破冰转换接口 —— POST /convert
 支持两种模式：json（四要素）/ spoken（口语化）
 """
 import time
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.schemas.convert import ConvertRequest, ConvertResponse
 from app.services.nvc_service import convert_to_nvc, convert_text
 from app.utils.logger import logger
@@ -20,6 +20,8 @@ async def convert(request: ConvertRequest):
     """
     # 兼容旧前端 raw_text 字段
     text = request.raw_text or request.text
+    if not text:
+        raise HTTPException(status_code=400, detail="请提供 text 或 raw_text 字段")
     start_time = time.time()
     logger.info(f"收到转换请求: text_len={len(text)}, mode={request.mode}")
 
