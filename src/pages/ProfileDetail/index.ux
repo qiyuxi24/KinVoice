@@ -105,7 +105,7 @@
         <div class="detail-divider"></div>
         <!-- Markdown 渲染区 -->
         <div class="detail-content">
-          <richtext class="md-render" type="markdown">{{ viewingProfile.content_md || '暂无详细内容' }}</richtext>
+          <richtext class="md-render">{{ viewingProfile.content_md || '暂无详细内容' }}</richtext>
         </div>
         <div class="detail-close" onclick="closeDetail">
           <text class="detail-close-text">关闭</text>
@@ -116,12 +116,17 @@
 </template>
 
 <script>
-import router from '@system.router'
+import { safeBack } from '../../helper/navigate'
 import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import $apis from '../../helper/apis'
 
 const CACHE_KEY = 'kinvoice_profiles'
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
 
 export default {
   private: {
@@ -137,37 +142,61 @@ export default {
     // 查看详情
     showDetail: false,
     viewingProfile: {},
+    isActive: false,
+    loadingProfiles: false  // 防抖：防止 loadProfiles 并发
   },
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
+    this.isActive = true
   },
 
   onShow() {
+    this.isActive = true
     this.loadProfiles()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
   },
 
   // ── 数据加载 ──
   async loadProfiles() {
+    if (!checkActive(this)) return
+    // 防抖：防止快速切页导致的并发请求堆积
+    if (this.loadingProfiles) return
+    this.loadingProfiles = true
     this.loading = true
+
     try {
       const result = await $apis.profiles.list()
       const profiles = (result && result.profiles) ? result.profiles : []
+      if (!checkActive(this)) return
       this.profiles = profiles
       // 同步到本地缓存
       this.saveToLocal(profiles)
     } catch (e) {
       console.warn('从后端加载档案失败，尝试本地缓存:', e)
+      if (!checkActive(this)) return
       this.loadFromLocal()
     } finally {
-      this.loading = false
+      if (checkActive(this)) {
+        this.loading = false
+        this.loadingProfiles = false
+      }
     }
   },
 
   loadFromLocal() {
+    if (!checkActive(this)) return
     storage.get({
       key: CACHE_KEY,
       success: (res) => {
+        if (!checkActive(this)) return
         try {
           const data = JSON.parse(res)
           this.profiles = data || []
@@ -176,7 +205,9 @@ export default {
         }
       },
       fail: () => {
-        this.profiles = []
+        if (checkActive(this)) {
+          this.profiles = []
+        }
       },
     })
   },
@@ -192,6 +223,7 @@ export default {
 
   // ── 弹窗控制 ──
   showAddDialog() {
+    if (!checkActive(this)) return
     this.editingId = null
     this.formName = ''
     this.formRelation = '家人'
@@ -201,6 +233,7 @@ export default {
   },
 
   editProfile(item, e) {
+    if (!checkActive(this)) return
     if (e) e.stopPropagation && e.stopPropagation()
     this.editingId = item.id
     this.formName = item.name || ''
@@ -211,6 +244,7 @@ export default {
   },
 
   closeDialog() {
+    if (!checkActive(this)) return
     this.showDialog = false
     this.editingId = null
   },
@@ -221,32 +255,39 @@ export default {
 
   // ── 查看详情 ──
   viewProfile(item) {
+    if (!checkActive(this)) return
     this.viewingProfile = item
     this.showDetail = true
   },
 
   closeDetail() {
+    if (!checkActive(this)) return
     this.showDetail = false
     this.viewingProfile = {}
   },
 
   // ── 表单字段绑定 ──
   onNameChange(e) {
+    if (!checkActive(this)) return
     this.formName = e.value || e.text || ''
   },
   onRelationChange(e) {
+    if (!checkActive(this)) return
     const val = e.value || (e.newSelected !== undefined ? e.newSelected : '')
     this.formRelation = val || '家人'
   },
   onBirthDateChange(e) {
+    if (!checkActive(this)) return
     this.formBirthDate = e.value || e.text || ''
   },
   onContentChange(e) {
+    if (!checkActive(this)) return
     this.formContent = e.value || e.text || ''
   },
 
   // ── 保存（新增/编辑）──
   async saveProfile() {
+    if (!checkActive(this)) return
     const name = (this.formName || '').trim()
     if (!name) {
       $utils.showToast('请输入姓名')
@@ -264,38 +305,46 @@ export default {
       if (this.editingId) {
         // 更新
         await $apis.profiles.update(this.editingId, payload)
+        if (!checkActive(this)) return
         $utils.showToast('档案已更新')
       } else {
         // 新增
         await $apis.profiles.create(payload)
+        if (!checkActive(this)) return
         $utils.showToast('档案已添加')
       }
+      if (!checkActive(this)) return
       this.closeDialog()
       await this.loadProfiles()
     } catch (e) {
       console.error('保存档案失败:', e)
-      $utils.showToast('保存失败，请检查网络')
+      if (checkActive(this)) {
+        $utils.showToast('保存失败，请检查网络')
+      }
     }
   },
 
   // ── 删除 ──
   async deleteProfile(item, e) {
+    if (!checkActive(this)) return
     if (e) e.stopPropagation && e.stopPropagation()
-    // 快应用没有原生 confirm，用 toast 替代简单确认
-    // 实际产品可改用弹窗确认组件
     try {
       await $apis.profiles.remove(item.id)
+      if (!checkActive(this)) return
       $utils.showToast('档案已删除')
       await this.loadProfiles()
     } catch (e) {
       console.error('删除档案失败:', e)
-      $utils.showToast('删除失败，请检查网络')
+      if (checkActive(this)) {
+        $utils.showToast('删除失败，请检查网络')
+      }
     }
   },
 
   // ── 返回 ──
   goBack() {
-    router.back()
+    if (!checkActive(this)) return
+    safeBack()
   },
 }
 </script>
@@ -585,7 +634,7 @@ export default {
 }
 .detail-content {
   max-height: 420px;
-  overflow-y: auto;
+  /* overflow-y 快应用不支持，用 scroll 代替 */
   padding: 8px 0;
 }
 .md-render {

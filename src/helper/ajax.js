@@ -74,12 +74,27 @@ function parseBackendError(responseData, statusCode) {
  */
 function fetchPromise(params) {
   return new Promise((resolve, reject) => {
+    // 构建请求配置
+    const fetchOptions = {
+      url: params.url,
+      method: params.method,
+      header: params.header || {},
+    }
+
+    // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
+    // 快应用 @system.fetch 对 data 的自动处理行为不一致，
+    // 有的版本会转成 form-urlencoded 导致 FastAPI 收到非 JSON body → 422
+    if (params.data !== undefined && params.data !== null) {
+      if (typeof params.data === 'string') {
+        fetchOptions.data = params.data
+      } else {
+        fetchOptions.data = JSON.stringify(params.data)
+        fetchOptions.header['Content-Type'] = 'application/json'
+      }
+    }
+
     $fetch
-      .fetch({
-        url: params.url,
-        method: params.method,
-        data: params.data,
-      })
+      .fetch(fetchOptions)
       .then(response => {
         // 快应用 @system.fetch 返回: { code: 200, data: "JSON字符串", headers: {} }
         const rawText = response.data
@@ -92,6 +107,25 @@ function fetchPromise(params) {
           console.log('[ajax] 响应非 JSON，可能是二进制数据')
           resolve(rawText)
           return
+        }
+
+        // 处理 Quick App Studio 代理包装：
+        // /api/proxy/xxx 会返回 { code: 200, headers: {}, data: "原响应JSON字符串" }
+        // 需要解包并返回真正的后端响应体
+        console.log('[ajax] parsed keys:', Object.keys(parsed), 'has headers:', !!parsed.headers, 'data type:', typeof parsed.data)
+        if (parsed && typeof parsed === 'object' &&
+            typeof parsed.data === 'string' &&
+            parsed.headers && typeof parsed.headers === 'object') {
+          try {
+            console.log('[ajax] 检测到代理包装，解包 data 字段')
+            parsed = JSON.parse(parsed.data)
+            console.log('[ajax] 解包后:', JSON.stringify(parsed).substring(0, 120))
+          } catch (e) {
+            // 内层 data 不是 JSON，保留外层对象
+            console.log('[ajax] 代理响应 data 字段非 JSON，保留外层:', e)
+          }
+        } else {
+          console.log('[ajax] 非代理包装响应，直接返回')
         }
 
         // 检查后端是否返回了错误
@@ -117,20 +151,36 @@ function fetchPromise(params) {
 
 /**
  * 处理网络请求，带超时保护
+ *
+ * 【重要】超时定时器在 fetch 完成后会被清除，防止定时器泄漏。
+ * 在快应用资源受限环境中，未清理的定时器累积会导致定时器池耗尽，
+ * 进而引发「点击无反应」的假死现象。
+ *
  * @param {object} params  - { url, method, data }
  * @param {number} timeout - 超时时间 ms
  * @returns {Promise}
  */
 function requestHandle(params, timeout = TIMEOUT) {
   try {
+    let timerId = null
+
+    const timeoutPromise = new Promise((resolve, reject) => {
+      timerId = setTimeout(() => {
+        timerId = null
+        reject(buildError(1001, null, '请求超时（' + (timeout / 1000) + 's）'))
+      }, timeout)
+    })
+
     return Promise.race([
       fetchPromise(params),
-      new Promise((resolve, reject) => {
-        setTimeout(() => {
-          reject(buildError(1001, null, '请求超时（' + (timeout / 1000) + 's）'))
-        }, timeout)
-      }),
-    ])
+      timeoutPromise,
+    ]).finally(() => {
+      // 无论 fetch 先完成还是超时先触发，都要清理定时器
+      if (timerId) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+    })
   } catch (error) {
     console.log('[ajax] requestHandle 异常:', error)
     return Promise.reject(buildError(1099, error))

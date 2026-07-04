@@ -132,7 +132,7 @@
           <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
 
           <text class="form-label">📝 正文内容</text>
-          <textarea class="form-textarea" placeholder="记录下你的故事、经验或感悟..." value="{{ formData.content }}" onchange="onContentChange"></textarea>
+          <textarea class="form-textarea" placeholder="记录下你的故事、经验或感悟..." onchange="onContentChange">{{ formData.content }}</textarea>
 
           <text class="form-label">👤 作者</text>
           <input class="form-input" type="text" placeholder="来自谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
@@ -147,14 +147,24 @@
 </template>
 
 <script>
-import router from '@system.router'
 import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import $apis from '../../helper/apis'
+import { safeReplace } from '../../helper/navigate'
 
 // ── 常量 ────────────────────────────────────────────
 const STORAGE_KEY = 'memory_cards'
 const CATEGORIES = ['人生阅历', '家庭菜谱', '成长故事', '相处感悟']
+// 后端同步最小间隔（ms）：防止快速切页导致请求堆积卡死
+const SYNC_MIN_INTERVAL = 30000
+// 全局对象上共享的上次同步时间戳 key
+const SYNC_TS_KEY = '__kv_mem_sync_ts'
+const hook2global = global.__proto__ || global
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
 
 // ── 初始 mock 数据（首次使用时填充缓存）───────────
 const INITIAL_MOCK_CARDS = {
@@ -248,22 +258,43 @@ export default {
       '家庭菜谱': [],
       '成长故事': [],
       '相处感悟': []
-    }
+    },
+    isActive: false,
+    syncing: false,
+    loadingLocal: false,  // 防抖：防止 loadFromLocal 并发
+    timers: []            // 定时器引用，onDestroy 时统一清理
+
   },
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
-    // 从本地缓存加载（异步），完成后触发同步
-    this.loadFromLocal(() => {
-      this.syncWithBackend()
-    })
+    this.isActive = true
+    // 只加载本地缓存，不触发后端同步（同步移至 onShow + 全局时间间隔保护）
+    this.loadFromLocal()
   },
 
   onShow() {
-    // 每次切回页面时重新从本地加载最新数据
-    this.loadFromLocal(() => {
-      this.syncWithBackend()
-    })
+    this.isActive = true
+    // 每次切回时刷新本地缓存
+    this.loadFromLocal()
+    // 全局时间间隔保护：距上次同步 ≥ 30 秒才触发后端同步
+    // 防止用户快速在页面间切换时，每次创建新实例都发起 HTTP 请求导致连接池耗尽
+    this.trySync()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+    // 清理所有未完成的定时器
+    if (Array.isArray(this.timers)) {
+      this.timers.forEach((timer) => {
+        if (timer) clearTimeout(timer)
+      })
+    }
+    this.timers = []
   },
 
   // ═══════════════════════════════════════════════════
@@ -272,9 +303,18 @@ export default {
 
   /** 从本地缓存加载卡片（首次使用时用 mock 数据初始化） */
   loadFromLocal(callback) {
+    if (!checkActive(this)) return
+    // 防抖：防止快速切页导致的并发加载
+    if (this.loadingLocal) {
+      if (callback) callback()
+      return
+    }
+    this.loadingLocal = true
+
     storage.get({
       key: STORAGE_KEY,
       success: (data) => {
+        if (!checkActive(this)) { this.loadingLocal = false; return }
         let loaded = false
         if (data) {
           try {
@@ -299,12 +339,16 @@ export default {
           // 首次使用，写入 mock 数据
           this.initWithMockData()
         }
+        this.loadingLocal = false
         if (callback) callback()
       },
       fail: () => {
-        // 存储读取失败，用 mock 兜底
-        console.log('本地存储读取失败，使用 mock 数据')
-        this.initWithMockData()
+        if (checkActive(this)) {
+          // 存储读取失败，用 mock 兜底
+          console.log('本地存储读取失败，使用 mock 数据')
+          this.initWithMockData()
+        }
+        this.loadingLocal = false
         if (callback) callback()
       }
     })
@@ -312,6 +356,7 @@ export default {
 
   /** 用初始 mock 数据填充缓存和内存 */
   initWithMockData() {
+    if (!checkActive(this)) return
     this.cards = JSON.parse(JSON.stringify(INITIAL_MOCK_CARDS))
     this.saveToLocal()
   },
@@ -330,13 +375,17 @@ export default {
   // 双向同步
   // ═══════════════════════════════════════════════════
 
-  /** 与后端双向同步（只增不减） */
+  /** 与后端双向同步（只增不减，防止并发请求） */
   syncWithBackend() {
+    if (!checkActive(this)) return
     const flatList = flattenCards(this.cards)
     if (flatList.length === 0) return
+    if (this.syncing) return
 
+    this.syncing = true
     $apis.cards.sync(flatList)
       .then((resp) => {
+        if (!checkActive(this)) return
         console.log(`同步完成: +${resp.added_to_backend}到后端, +${resp.added_to_local}到本地`)
         if (resp.cards && resp.cards.length > 0) {
           // 用后端返回的合并结果更新本地（保证 id 一致）
@@ -346,8 +395,36 @@ export default {
       })
       .catch((err) => {
         console.log('同步失败（网络不可用）:', err)
-        // 离线情况不做任何处理，本地数据不变
       })
+      .finally(() => {
+        if (checkActive(this)) {
+          this.syncing = false
+        }
+      })
+  },
+
+  /** 按需触发后端同步，全局时间间隔保护（防止快速切页导致请求堆积） */
+  trySync() {
+    if (!checkActive(this)) return
+    // 全局时间戳：跨实例共享，即使旧实例被 router.replace 销毁，新实例也能读取到上次同步时间
+    const now = Date.now()
+    const lastSync = hook2global[SYNC_TS_KEY] || 0
+    if (now - lastSync < SYNC_MIN_INTERVAL) return
+    // 更新全局时间戳
+    hook2global[SYNC_TS_KEY] = now
+    // 延迟一小段，确保 loadFromLocal 已完成（storage 读取是异步的）
+    // 若 cards 为空（loadFromLocal 尚未完成），syncWithBackend 会自行跳过
+    const timer = setTimeout(() => {
+      // 从 timers 移除自身
+      const idx = this.timers ? this.timers.indexOf(timer) : -1
+      if (idx !== -1) this.timers.splice(idx, 1)
+      if (checkActive(this)) {
+        this.syncWithBackend()
+      }
+    }, 600)
+    if (Array.isArray(this.timers)) {
+      this.timers.push(timer)
+    }
   },
 
   // ═══════════════════════════════════════════════════
@@ -365,10 +442,12 @@ export default {
   // ═══════════════════════════════════════════════════
 
   switchCategory(category) {
+    if (!checkActive(this)) return
     this.activeCategory = category
   },
 
   selectCategory(category) {
+    if (!checkActive(this)) return
     this.formData.category = category
   },
 
@@ -378,6 +457,7 @@ export default {
 
   /** 打开新增弹窗 */
   showModal() {
+    if (!checkActive(this)) return
     this.editMode = false
     this.editingCard = null
     this.editingCardIndex = -1
@@ -387,6 +467,7 @@ export default {
 
   /** 打开编辑弹窗（传入卡片对象和索引） */
   editCard(card, index) {
+    if (!checkActive(this)) return
     this.editMode = true
     this.editingCard = card
     this.editingCardIndex = index
@@ -402,6 +483,7 @@ export default {
   },
 
   hideModal() {
+    if (!checkActive(this)) return
     this.showModalFlag = false
     this.editMode = false
     this.editingCard = null
@@ -409,15 +491,18 @@ export default {
   },
 
   onTitleChange(event) {
+    if (!checkActive(this)) return
     this.formData.title = event.value || ''
   },
 
   onContentChange(event) {
+    if (!checkActive(this)) return
     // 快应用 textarea onchange 兼容：不同厂商可能是 event.text / event.value / event.detail.value
     this.formData.content = event.text || event.value || (event.detail && event.detail.value) || ''
   },
 
   onAuthorChange(event) {
+    if (!checkActive(this)) return
     this.formData.author = event.value || '我'
   },
 
@@ -426,6 +511,7 @@ export default {
   // ═══════════════════════════════════════════════════
 
   saveCard() {
+    if (!checkActive(this)) return
     if (!this.formData.title || !this.formData.content) {
       $utils.showToast('请填写完整信息')
       return
@@ -440,6 +526,7 @@ export default {
 
   /** 新增卡片 */
   doCreateCard() {
+    if (!checkActive(this)) return
     const newCard = {
       tag: this.formData.category,
       date: new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'),
@@ -452,6 +539,7 @@ export default {
 
     $apis.cards.create(localToBackendCreate(newCard))
       .then((resp) => {
+        if (!checkActive(this)) return
         newCard.id = resp.id
         this.cards[this.formData.category].unshift(newCard)
         this.saveToLocal()
@@ -459,6 +547,7 @@ export default {
         $utils.showToast('✅ 保存成功')
       })
       .catch((err) => {
+        if (!checkActive(this)) return
         console.log('后端创建失败，仅存本地:', err)
         this.cards[this.formData.category].unshift(newCard)
         this.saveToLocal()
@@ -469,6 +558,7 @@ export default {
 
   /** 更新卡片 */
   doUpdateCard() {
+    if (!checkActive(this)) return
     const card = this.editingCard
     const index = this.editingCardIndex
     if (!card || index < 0) return
@@ -489,6 +579,7 @@ export default {
       // 有后端 id → 调 PUT /cards/{id}
       $apis.cards.update(card.id, localToBackendUpdate(updated))
         .then(() => {
+          if (!checkActive(this)) return
           Object.assign(card, updated)
           // 如果分类变了，移动卡片
           if (updated.tag !== oldTag) {
@@ -500,6 +591,7 @@ export default {
           $utils.showToast('✅ 更新成功')
         })
         .catch((err) => {
+          if (!checkActive(this)) return
           console.log('后端更新失败，仅更新本地:', err)
           Object.assign(card, updated)
           if (updated.tag !== oldTag) {
@@ -514,6 +606,7 @@ export default {
       // 无 id（离线创建的卡片）→ 调 POST /cards
       $apis.cards.create(localToBackendCreate(updated))
         .then((resp) => {
+          if (!checkActive(this)) return
           Object.assign(card, updated, { id: resp.id })
           if (updated.tag !== oldTag) {
             this.cards[oldTag].splice(index, 1)
@@ -524,6 +617,7 @@ export default {
           $utils.showToast('✅ 更新成功')
         })
         .catch((err) => {
+          if (!checkActive(this)) return
           console.log('后端创建失败:', err)
           Object.assign(card, updated)
           this.saveToLocal()
@@ -538,6 +632,7 @@ export default {
   // ═══════════════════════════════════════════════════
 
   deleteCard(card, index) {
+    if (!checkActive(this)) return
     const cat = card.tag || '人生阅历'
     const cardId = card.id
 
@@ -545,11 +640,13 @@ export default {
       // 有后端 id → 调 DELETE /cards/{id}
       $apis.cards.remove(cardId)
         .then(() => {
+          if (!checkActive(this)) return
           this.cards[cat].splice(index, 1)
           this.saveToLocal()
           $utils.showToast('🗑️ 已删除')
         })
         .catch((err) => {
+          if (!checkActive(this)) return
           console.log('后端删除失败，仅删本地:', err)
           this.cards[cat].splice(index, 1)
           this.saveToLocal()
@@ -568,19 +665,19 @@ export default {
   // ═══════════════════════════════════════════════════
 
   goCompanion() {
-    router.replace({ uri: '/pages/Companion' })
+    safeReplace('/pages/Companion')
   },
 
   goBreakIce() {
-    router.replace({ uri: '/pages/BreakIce' })
+    safeReplace('/pages/BreakIce')
   },
 
   goMemory() {
-    router.replace({ uri: '/pages/Memory' })
+    safeReplace('/pages/Memory')
   },
 
   goProfile() {
-    router.replace({ uri: '/pages/Profile' })
+    safeReplace('/pages/Profile')
   }
 }
 </script>

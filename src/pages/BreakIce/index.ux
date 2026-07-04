@@ -70,12 +70,17 @@
 </template>
 
 <script>
-import router from '@system.router'
 import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import convertAPI from '../../helper/apis/convert'
+import { safeReplace } from '../../helper/navigate'
 
 const STORAGE_KEY = 'memory_cards'
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
 
 export default {
   private: {
@@ -87,18 +92,34 @@ export default {
     need: '',
     request: '',
     fullExpression: '',
-    savingToMemory: false
+    savingToMemory: false,
+    isActive: false
   },
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+  },
+
+  onShow() {
+    this.isActive = true
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
   },
 
   onInputChange(event) {
+    if (!checkActive(this)) return
     this.inputText = event.value || ''
   },
 
   doConvert() {
+    if (!checkActive(this)) return
     const content = (this.inputText || '').trim()
     if (!content) {
       $utils.showToast('请先输入你想说的话')
@@ -109,7 +130,15 @@ export default {
     this.resultVisible = false
 
     convertAPI.convert({ raw_text: content })
-      .then((data) => {
+      .then((raw) => {
+        if (!checkActive(this)) return
+        // 解包 Quick App Studio 代理包装
+        let data = raw
+        if (raw && typeof raw === 'object' && raw.headers && typeof raw.data === 'string') {
+          try {
+            data = JSON.parse(raw.data)
+          } catch (e) { /* ignore */ }
+        }
         if (data) {
           this.observation = data.observation || ''
           this.feeling = data.feeling || ''
@@ -122,17 +151,14 @@ export default {
         }
       })
       .catch((err) => {
+        if (!checkActive(this)) return
         console.log('NVC 转换失败:', err)
-        // 降级展示
-        this.observation = '当你说"' + content + '"的时候'
-        this.feeling = '你可能感到有些着急和担心'
-        this.need = '你希望得到对方的理解和关注'
-        this.request = '你可以试着说：我需要和你聊一聊，你方便吗？'
-        this.fullExpression = '当' + content + '的时候，我感到有些着急，因为我希望我们能更好地沟通。下次可以早点告诉我你的安排吗？'
-        this.resultVisible = true
+        $utils.showToast('NVC 转换失败，请检查网络后重试')
       })
       .finally(() => {
-        this.converting = false
+        if (checkActive(this)) {
+          this.converting = false
+        }
       })
   },
 
@@ -140,6 +166,7 @@ export default {
    * 将 NVC 转换结果保存到传承页（本地缓存）
    */
   saveToMemory() {
+    if (!checkActive(this)) return
     if (this.savingToMemory) return
     this.savingToMemory = true
 
@@ -158,6 +185,7 @@ export default {
     storage.get({
       key: STORAGE_KEY,
       success: (raw) => {
+        if (!checkActive(this)) return
         let grouped = { '人生阅历': [], '家庭菜谱': [], '成长故事': [], '相处感悟': [] }
         try {
           if (raw) {
@@ -174,10 +202,12 @@ export default {
           key: STORAGE_KEY,
           value: JSON.stringify(grouped),
           success: () => {
+            if (!checkActive(this)) return
             this.savingToMemory = false
             $utils.showToast('✅ 已保存到传承页')
           },
           fail: (err) => {
+            if (!checkActive(this)) return
             console.log('保存失败:', err)
             this.savingToMemory = false
             $utils.showToast('保存失败，请重试')
@@ -185,6 +215,7 @@ export default {
         })
       },
       fail: (err) => {
+        if (!checkActive(this)) return
         console.log('读取缓存失败:', err)
         // 首次使用，直接写入
         const grouped = { '人生阅历': [], '家庭菜谱': [], '成长故事': [], '相处感悟': [] }
@@ -193,10 +224,12 @@ export default {
           key: STORAGE_KEY,
           value: JSON.stringify(grouped),
           success: () => {
+            if (!checkActive(this)) return
             this.savingToMemory = false
             $utils.showToast('✅ 已保存到传承页')
           },
           fail: (err2) => {
+            if (!checkActive(this)) return
             console.log('保存失败:', err2)
             this.savingToMemory = false
             $utils.showToast('保存失败，请重试')
@@ -207,19 +240,19 @@ export default {
   },
 
   goCompanion() {
-    router.replace({ uri: '/pages/Companion' })
+    safeReplace('/pages/Companion')
   },
 
   goBreakIce() {
-    router.replace({ uri: '/pages/BreakIce' })
+    safeReplace('/pages/BreakIce')
   },
 
   goMemory() {
-    router.replace({ uri: '/pages/Memory' })
+    safeReplace('/pages/Memory')
   },
 
   goProfile() {
-    router.replace({ uri: '/pages/Profile' })
+    safeReplace('/pages/Profile')
   }
 }
 </script>
