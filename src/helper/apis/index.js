@@ -5,7 +5,6 @@
 import cards from './cards'
 import chat from './chat'
 import config from './config'
-import convert from './convert'
 import profiles from './profiles'
 
-export default { cards, chat, config, convert, profiles }
+export default { cards, chat, config, profiles }

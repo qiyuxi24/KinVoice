@@ -15,7 +15,7 @@ TIMEOUT_SECONDS = 3600
 VIVO_MODELS = ["qwen3.5-plus", "Volc-DeepSeek-V3.2", "Doubao-Seed-2.0-mini", "Doubao-Seed-2.0-lite", "Doubao-Seed-2.0-pro"]
 
 SYSTEM_PROMPT_CHAT = (
-    "你是一个温柔、善解人意的陪伴者。你擅长用非暴力沟通（NVC）的方式倾听和回应。"
+    "你是一个温柔、善解人意的陪伴者。你擅长用温和的方式倾听和回应。"
     "你会关注对方的感受和需要，用温暖的语气给予回应。"
     "回复长度控制在 80-200 字之间，语气自然亲切。"
 )

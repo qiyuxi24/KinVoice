@@ -7,16 +7,31 @@ DELETE /cards/{id}         — 删除卡片
 POST   /cards/sync         — 双向同步（只增不减）
 POST   /cards/favorite     — 收藏对话消息为卡片（xia 新增）
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session, AsyncSessionLocal
 from app.models.card import Card, ChatMessage
 from app.schemas.memory import CardCreate, CardUpdate, CardOut, CardListOut, DeleteResponse
+from app.middleware.user_identity import get_user_id
+from app.services.family_service import get_user_family_id
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/cards", tags=["经验卡片"])
+
+
+# ── 辅助：动态获取 family_id ──
+
+async def resolve_family_id(user_id: str) -> str | None:
+    """
+    根据 user_id 解析 family_id。
+    - user_id="1" → family_id=1（兼容现有数据）
+    - 已加入家庭组 → 返回组 ID
+    - 未加入 → 返回 None
+    """
+    async with AsyncSessionLocal() as session:
+        return await get_user_family_id(session, user_id)
 
 
 # ── GET /cards ──
@@ -28,10 +43,18 @@ async def list_cards(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_session),
+    user_id: str = Depends(get_user_id),
 ):
-    """获取经验卡片列表"""
+    """获取经验卡片列表（按 family_id 隔离）"""
+    family_id = await resolve_family_id(user_id)
+
     stmt = select(Card)
     count_stmt = select(func.count(Card.id))
+
+    # 按 family_id 过滤
+    if family_id is not None:
+        stmt = stmt.where(Card.family_id == family_id)
+        count_stmt = count_stmt.where(Card.family_id == family_id)
 
     if category:
         stmt = stmt.where(Card.category == category)
@@ -60,8 +83,11 @@ async def list_cards(
 async def create_card(
     data: CardCreate,
     session: AsyncSession = Depends(get_session),
+    user_id: str = Depends(get_user_id),
 ):
     """创建新卡片（兼容 NVC + 对话收藏）"""
+    family_id = await resolve_family_id(user_id)
+
     orm_fields = {c.name for c in Card.__table__.columns}
     payload = {k: v for k, v in data.model_dump().items() if k in orm_fields and v is not None}
 
@@ -69,11 +95,14 @@ async def create_card(
     if "type" not in payload:
         payload["type"] = "nvc"
 
+    # 动态注入 family_id（覆盖前端可能传的值）
+    payload["family_id"] = family_id if family_id is not None else 1
+
     card = Card(**payload)
     session.add(card)
     await session.flush()
     await session.refresh(card)
-    logger.info(f"创建卡片: id={card.id}, type={card.type}, category={card.category}")
+    logger.info(f"创建卡片: id={card.id}, type={card.type}, family_id={card.family_id}")
     return CardOut.model_validate(card)
 
 
@@ -159,14 +188,21 @@ class SyncResult(BaseModel):
 async def sync_cards(
     req: SyncRequest,
     session: AsyncSession = Depends(get_session),
+    user_id: str = Depends(get_user_id),
 ):
     """
     双向同步：只增不减
     1. 前端本地有 id 的卡片 → 后端不存在则创建
     2. 前端本地无 id 的卡片 → 创建到后端，分配 id
-    3. 后端有但本地没有的卡片 → 返回给前端
+    3. 后端有但本地没有的卡片 → 返回给前端（仅限同 family_id）
     """
-    result = await session.execute(select(Card).order_by(Card.created_at.desc()))
+    family_id = await resolve_family_id(user_id)
+    resolved_fid = family_id if family_id is not None else 1
+
+    # 只查询同 family_id 的卡片
+    result = await session.execute(
+        select(Card).where(Card.family_id == resolved_fid).order_by(Card.created_at.desc())
+    )
     db_cards = result.scalars().all()
     db_map: dict[int, Card] = {c.id: c for c in db_cards}
 
@@ -189,7 +225,7 @@ async def sync_cards(
             request=f"来自{local.author}" if local.author and local.author != "家人" else None,
             title=local.title or "",
             content=local.content or "",
-            family_id=1,
+            family_id=resolved_fid,
         )
         session.add(card)
         await session.flush()
@@ -198,7 +234,7 @@ async def sync_cards(
         if not local.date:
             local.date = card.created_at.strftime("%Y.%m.%d") if card.created_at else ""
         added_to_backend += 1
-        logger.info(f"sync: 本地→后端 创建卡片 id={card.id} category={card.category}")
+        logger.info(f"sync: 本地→后端 创建卡片 id={card.id} family_id={card.family_id}")
 
     # 步骤2：后端 → 本地
     merged = list(req.cards)
@@ -242,11 +278,15 @@ class FavoriteRequest(BaseModel):
 @router.post("/favorite", response_model=CardOut, status_code=201)
 async def favorite_message(
     req: FavoriteRequest,
+    user_id: str = Depends(get_user_id),
 ):
     """
     将一条对话消息收藏为卡片（xia 新增）
     自动关联用户消息和 AI 回复
     """
+    family_id = await resolve_family_id(user_id)
+    resolved_fid = family_id if family_id is not None else 1
+
     async with AsyncSessionLocal() as session:
         # 查询目标消息
         result = await session.execute(select(ChatMessage).where(ChatMessage.id == req.message_id))
@@ -275,10 +315,10 @@ async def favorite_message(
             title="收藏的 AI 回复",
             content=msg.content,
             original_text=user_msg.content if user_msg else None,
-            family_id=1,
+            family_id=resolved_fid,
         )
         session.add(card)
         await session.commit()
         await session.refresh(card)
-        logger.info(f"收藏消息 {req.message_id} → 卡片 id={card.id}")
+        logger.info(f"收藏消息 {req.message_id} → 卡片 id={card.id}, family_id={card.family_id}")
         return CardOut.model_validate(card)

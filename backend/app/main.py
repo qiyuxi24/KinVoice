@@ -9,13 +9,15 @@ from app.config import settings
 from app.utils.logger import logger
 
 # 路由导入
-from app.api.convert import router as convert_router
 from app.api.chat import router as chat_router
 from app.api.memory import router as memory_router
 from app.api.summarize import router as summarize_router
 from app.api.profile import router as profile_router
 from app.api.tts import router as tts_router
 from app.api.replica import router as replica_router
+from app.api.profile_ai import router as profile_ai_router
+from app.api.family import router as family_router
+from app.api.chatroom import router as chatroom_router
 
 
 @asynccontextmanager
@@ -28,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.APP_NAME or "KinVoice API",
-    description="亲子破冰 · NVC 非暴力沟通智能助手",
+    description="KinVoice 家庭沟通智能助手",
     version="0.2.0",
     lifespan=lifespan,
     docs_url="/docs",
@@ -47,8 +49,6 @@ app.add_middleware(
 
 # ── 注册路由（si 全部保留 + xia TTS/replica） ──
 
-# NVC 破冰转换
-app.include_router(convert_router)
 # AI 陪伴对话
 app.include_router(chat_router)
 # 经验卡片 CRUD + 同步 + 收藏
@@ -61,6 +61,12 @@ app.include_router(profile_router)
 app.include_router(tts_router)
 # 音色克隆（xia）
 app.include_router(replica_router)
+# AI 档案编写（独立模块）
+app.include_router(profile_ai_router)
+# 家庭组管理（独立模块）
+app.include_router(family_router)
+# 家庭聊天室（独立模块）
+app.include_router(chatroom_router)
 
 
 # ── 健康检查 ──

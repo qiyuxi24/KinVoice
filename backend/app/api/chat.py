@@ -21,14 +21,20 @@ router = APIRouter(prefix="/chat", tags=["陪伴对话"])
 # ── xia 分支辅助函数 ──
 
 async def get_or_create_conversation(session, conv_id: int | None, first_message: str) -> Conversation:
-    """获取或创建会话"""
+    """获取或创建会话（仅限 AI 对话类型）"""
     if conv_id:
-        result = await session.execute(select(Conversation).where(Conversation.id == conv_id))
+        result = await session.execute(
+            select(Conversation).where(
+                Conversation.id == conv_id,
+                Conversation.type == "ai",
+            )
+        )
         conv = result.scalar_one_or_none()
         if conv:
             return conv
+        raise HTTPException(status_code=404, detail="会话不存在或不是 AI 对话")
     title = first_message[:50] if first_message else "新对话"
-    conv = Conversation(title=title)
+    conv = Conversation(title=title, type="ai")
     session.add(conv)
     await session.flush()
     return conv
@@ -132,13 +138,16 @@ async def list_conversations():
 async def get_history(conversation_id: int):
     """拉取某个会话的全部消息历史"""
     async with AsyncSessionLocal() as session:
-        # 验证会话存在
+        # 验证会话存在且为 AI 对话类型（隔离聊天室会话）
         conv_result = await session.execute(
-            select(Conversation).where(Conversation.id == conversation_id)
+            select(Conversation).where(
+                Conversation.id == conversation_id,
+                Conversation.type == "ai",
+            )
         )
         conv = conv_result.scalar_one_or_none()
         if not conv:
-            raise HTTPException(status_code=404, detail="会话不存在")
+            raise HTTPException(status_code=404, detail="会话不存在或不是 AI 对话")
 
         # 按时间正序拉取消息
         msg_result = await session.execute(

@@ -21,7 +21,7 @@ class ChatResponse(BaseModel):
     reply: str = Field(..., description="AI 回复")
     # si 旧字段（兼容）
     emotion: str | None = Field(None, description="识别到的用户情绪")
-    need_hint: str | None = Field(None, description="推测的潜在需求（NVC 角度）")
+    need_hint: str | None = Field(None, description="推测的潜在需求")
     # xia 新字段
     conversation_id: int | None = None
     message_id: int | None = None

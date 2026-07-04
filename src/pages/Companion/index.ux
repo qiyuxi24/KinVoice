@@ -107,7 +107,7 @@
       </div>
       <div class="tab-item" onclick="goBreakIce">
         <text class="tab-icon">💬</text>
-        <text class="tab-label">破冰</text>
+        <text class="tab-label">聊天</text>
       </div>
       <div class="tab-item" onclick="goMemory">
         <text class="tab-icon">📚</text>
@@ -125,6 +125,7 @@
 import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
+import profileAI from '../../helper/apis/profile_ai'
 import { safeReplace } from '../../helper/navigate'
 
 // 本地存储 key
@@ -198,6 +199,8 @@ export default {
 
   onHide() {
     this.isActive = false
+    // 离开页面时静默触发动态档案更新（不阻塞、不弹 toast）
+    this.triggerProfileUpdate()
   },
 
   onDestroy() {
@@ -560,6 +563,23 @@ export default {
 
   goProfile() {
     safeReplace('/pages/Profile')
+  },
+
+  // ==================== 档案更新 ====================
+
+  /**
+   * 离开 Companion 页面时静默触发动态档案更新。
+   * 失败不弹 toast，不影响用户正常使用。
+   */
+  triggerProfileUpdate() {
+    profileAI.updateDynamic('default')
+      .then((res) => {
+        console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息')
+      })
+      .catch((err) => {
+        // 静默失败，仅日志记录
+        console.log('[Companion] 动态档案更新失败（静默）:', err)
+      })
   }
 }
 </script>

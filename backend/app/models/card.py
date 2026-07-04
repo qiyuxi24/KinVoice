@@ -13,6 +13,10 @@ class Conversation(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=True, comment="会话标题（取第一条消息前50字）")
     family_id = Column(Integer, default=1)
+    # 聊天室扩展字段（家庭组成员互聊，与 AI 对话解耦）
+    type = Column(String(20), default="ai", comment="会话类型: ai(默认)/private(私聊)/group(群聊)")
+    sender_id = Column(String(36), nullable=True, comment="私聊发起者 user_id")
+    receiver_id = Column(String(36), nullable=True, comment="私聊接收者 user_id")
     is_favorited = Column(Boolean, default=False, comment="整个会话是否被收藏")
     created_at = Column(DateTime, server_default=func.now())
 
@@ -29,7 +33,7 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False)
-    role = Column(String(20), nullable=False, comment="user 或 assistant")
+    role = Column(String(36), nullable=False, comment="user/assistant 或聊天室 sender_id")
     content = Column(Text, nullable=False)
     is_favorited = Column(Boolean, default=False, comment="单条消息是否被收藏")
     created_at = Column(DateTime, server_default=func.now())

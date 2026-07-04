@@ -54,6 +54,15 @@
       },
       "pages/ProfileDetail": {
         "component": "index"
+      },
+      "pages/Family": {
+        "component": "index"
+      },
+      "pages/FamilyJoin": {
+        "component": "index"
+      },
+      "pages/ChatRoom": {
+        "component": "index"
       }
     },
     "widgets": {
@@ -81,7 +90,7 @@
         "titleBarText": "详情页"
       },
       "pages/BreakIce": {
-        "titleBarText": "破冰对话"
+        "titleBarText": "家庭聊天"
       },
       "pages/Companion": {
         "titleBarText": "AI 陪伴"
@@ -94,6 +103,15 @@
       },
       "pages/ProfileDetail": {
         "titleBarText": "用户档案"
+      },
+      "pages/Family": {
+        "titleBarText": "家庭组"
+      },
+      "pages/FamilyJoin": {
+        "titleBarText": "加入家庭组"
+      },
+      "pages/ChatRoom": {
+        "titleBarText": "聊天"
       }
     }
   }
