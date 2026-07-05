@@ -14,6 +14,7 @@ export default {
    * @param {Object} params
    * @param {string}  params.message         - 用户消息（必填）
    * @param {number?} params.conversation_id - 会话 ID，首次传 null，后续传上次返回的 id
+   * @param {string?} params.family_id       - 家庭组 ID，用于检索家庭卡片和对话历史
    * @returns {Promise<{reply: string, conversation_id: number, message_id: number}>}
    */
   sendMessage(params) {

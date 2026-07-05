@@ -8,6 +8,9 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.utils.logger import logger
 
+# 数据库模型（确保建表时注册）  # noqa: F401
+import app.models.folder  # noqa: F401
+
 # 路由导入
 from app.api.chat import router as chat_router
 from app.api.memory import router as memory_router
@@ -15,7 +18,6 @@ from app.api.summarize import router as summarize_router
 from app.api.profile import router as profile_router
 from app.api.tts import router as tts_router
 from app.api.replica import router as replica_router
-from app.api.profile_ai import router as profile_ai_router
 from app.api.auth import router as auth_router
 from app.api.family import router as family_router
 from app.api.chatroom import router as chatroom_router
@@ -62,8 +64,6 @@ app.include_router(profile_router)
 app.include_router(tts_router)
 # 音色克隆（xia）
 app.include_router(replica_router)
-# AI 档案编写（独立模块）
-app.include_router(profile_ai_router)
 # 家庭组管理（独立模块）
 app.include_router(family_router)
 # 用户认证（注册/登录）

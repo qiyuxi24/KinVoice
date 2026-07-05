@@ -102,13 +102,11 @@
 
 ---
 
-### 7. apis/index.js 遗漏 profile_ai 导出
+### 7. ~~apis/index.js 遗漏 profile_ai 导出~~ ✅ 已删除（profile_ai 模块已整体移除）
 
 **位置**：`src/helper/apis/index.js`
 
-**问题**：聚合导出了 `cards, chat, config, convert, profiles`，但漏掉了新增的 `profile_ai`。虽然 `Companion/index.ux` 和 `Profile/index.ux` 直接 `import profileAI from '../../helper/apis/profile_ai'` 绕过了 index，但聚合导出不完整是维护隐患。
-
-**建议方案**：在 `index.js` 中补上 `profile_ai` 的导入和导出。
+**状态**：profile_ai 手动触发机制已被对话中自动触发取代，整个模块已删除，本条作废。
 
 ---
 
@@ -158,7 +156,7 @@
 | 第一批 | #3 favorite 接口清理 | 小 |
 | 第一批 | #5 删除未用函数 | 小 |
 | 第一批 | #6 删除 Demo 页面 | 小 |
-| 第一批 | #7 补 profile_ai 导出 | 小 |
+| 第一批 | ~~#7 补 profile_ai 导出~~ ✅ | - |
 | 第二批 | #4 chat_conversation 清理 | 中 |
 | 第二批 | #8 si 兼容分支标记 | 小 |
 | 第三批 | #2 Card 模型拆分 | **大** |

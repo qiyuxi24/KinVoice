@@ -72,6 +72,12 @@ class Card(Base):
     content = Column(Text, nullable=True, comment="卡片正文（自动拼接或单条消息）")
     original_text = Column(Text, nullable=True, comment="原始用户文本（可选）")
 
+    # 简化字段
+    author = Column(String(100), nullable=True, comment="作者/讲述人")
+
+    # 文件夹归属
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True, comment="所属文件夹")
+
     # 通用
     family_id = Column(String(8), default="1", comment="关联 family_groups.id，旧数据默认为 '1'")
     created_at = Column(DateTime, server_default=func.now())
@@ -80,6 +86,7 @@ class Card(Base):
     # 关系
     conversation = relationship("Conversation", foreign_keys=[conversation_id])
     message = relationship("ChatMessage", foreign_keys=[message_id])
+    folder = relationship("Folder", foreign_keys=[folder_id])
 
     def to_dict(self) -> dict:
         return {
@@ -96,6 +103,8 @@ class Card(Base):
             "title": self.title,
             "content": self.content,
             "original_text": self.original_text,
+            "author": self.author,
+            "folder_id": self.folder_id,
             "family_id": self.family_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

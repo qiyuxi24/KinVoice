@@ -2,10 +2,14 @@
 Chat 接口 —— 陪伴式 AI 对话
 兼容 si 无状态模式 + xia 会话持久化模式 + 历史记录管理
 """
+import asyncio
+import re
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy import select, delete
 from app.services.llm_service import call_llm, chat_with_system
-from app.services.cloudie_prompt import CLOUDIE_SYSTEM_PROMPT
+from app.services.cloudie_prompt import build_system_prompt
+from app.services.profile_writer import read_profiles, update_stable_profile
+from app.services.search_service import search_context
 from app.schemas.chat import (
     ChatRequest, ChatResponse,
     ConversationListOut, ConversationOut,
@@ -17,6 +21,9 @@ from app.middleware.user_identity import get_user_id
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/chat", tags=["陪伴对话"])
+
+# 匹配 [MEMORY_UPDATE] 标记
+MEMORY_TRIGGER = re.compile(r'\[MEMORY_UPDATE\]')
 
 
 # ── xia 分支辅助函数 ──
@@ -62,14 +69,31 @@ async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
     - 续接对话：传上次返回的 conversation_id → 加载历史，追加新消息
     - 兼容 si：传 history 时仍走无状态模式（旧前端过渡期保留）
     """
-    logger.info(f"收到对话: user_id={user_id}, msg_len={len(req.message)}, conv_id={req.conversation_id}")
+    logger.info(f"收到对话: user_id={user_id}, msg_len={len(req.message)}, conv_id={req.conversation_id}, family_id={req.family_id}")
+
+    # ① 加载用户画像（始终注入）
+    user_profile = read_profiles(user_id)
+
+    # ② FTS5 检索家庭卡片 + 对话历史
+    ctx = ""
+    if req.family_id:
+        try:
+            async with AsyncSessionLocal() as search_session:
+                ctx = await search_context(search_session, req.message, user_id, req.family_id)
+        except Exception as e:
+            logger.warning(f"FTS 检索异常（降级忽略）: {e}")
+
+    # ③ 拼接 system prompt（画像 + 检索上下文）
+    system_prompt = build_system_prompt(user_profile, ctx)
 
     # si 兼容：如果显式传了 history 且没有 conversation_id，走无状态模式
     if req.history and req.conversation_id is None:
         reply = await chat_with_system(
             user_message=req.message,
             history=req.history,
+            system_prompt=system_prompt,
         )
+        # si 模式不支持记忆提取（无会话持久化）
         return ChatResponse(
             reply=reply,
             emotion=req.emotion_state,
@@ -89,9 +113,9 @@ async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
             session.add(user_msg)
             await session.flush()
 
-            # 构建历史（含系统提示词）
+            # 构建历史（含系统提示词 + 用户画像 + 检索上下文）
             history = await build_history(session, conv.id)
-            full_messages = [{"role": "system", "content": CLOUDIE_SYSTEM_PROMPT}] + history
+            full_messages = [{"role": "system", "content": system_prompt}] + history
 
             try:
                 reply_text = await call_llm(full_messages)
@@ -99,14 +123,23 @@ async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
                 logger.error(f"LLM 调用失败: {e}")
                 reply_text = "我暂时无法回复，请稍后再试。"
 
-            # 保存 AI 回复
-            asst_msg = ChatMessage(conversation_id=conv.id, role="assistant", content=reply_text)
+            # 检测记忆更新标记
+            should_extract = bool(MEMORY_TRIGGER.search(reply_text))
+            # 去掉标记，用户看不到
+            clean_reply = MEMORY_TRIGGER.sub("", reply_text).strip()
+
+            # 保存 AI 回复（干净版本）
+            asst_msg = ChatMessage(conversation_id=conv.id, role="assistant", content=clean_reply)
             session.add(asst_msg)
             await session.commit()
             await session.refresh(asst_msg)
 
+            # 异步触发记忆提取（不阻塞回复）
+            if should_extract:
+                asyncio.create_task(_run_memory_extraction(conv.id, history, user_id))
+
             return ChatResponse(
-                reply=reply_text,
+                reply=clean_reply,
                 conversation_id=conv.id,
                 message_id=asst_msg.id,
                 tokens_used=0,
@@ -196,3 +229,18 @@ async def delete_conversation(conv_id: int, user_id: str = Depends(get_user_id))
 
         logger.info(f"已删除会话 {conv_id} 及其消息")
         return {"ok": True, "deleted_id": conv_id}
+
+
+# ── 后台记忆提取 ──
+
+async def _run_memory_extraction(conv_id: int, history: list[dict], user_id: str):
+    """后台任务：从当前对话提取记忆，更新固定档案"""
+    try:
+        logger.info(f"开始记忆提取: conv_id={conv_id}, user_id={user_id}")
+        result = await update_stable_profile(user_id, history)
+        if result.get("ok"):
+            logger.info(f"记忆提取完成: user_id={user_id}, preview={result.get('content_preview', '')[:100]}")
+        else:
+            logger.warning(f"记忆提取未成功: user_id={user_id}, preview={result.get('content_preview', '')}")
+    except Exception as e:
+        logger.error(f"记忆提取后台任务异常: conv_id={conv_id}, {e}")

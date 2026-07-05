@@ -73,6 +73,55 @@ export default {
     })
   },
 
+  // ==================== 独立初始化（供 Family/BreakIce/ChatRoom 等页面使用） ====================
+
+  /**
+   * 从本地存储读取 user_id 并缓存。
+   * 与 init() 不同：不等待 nickname，适合只需要 user_id 的场景。
+   * @returns {Promise<string|null>}
+   */
+  initUserId() {
+    return new Promise((resolve) => {
+      storage.get({
+        key: KEYS.USER_ID,
+        success: (data) => {
+          this._cachedUserId = data || null
+          resolve(this._cachedUserId)
+        },
+        fail: () => {
+          this._cachedUserId = null
+          resolve(null)
+        },
+      })
+    })
+  },
+
+  /**
+   * 从本地存储读取 nickname 并缓存。
+   * @returns {Promise<string>}
+   */
+  initNickname() {
+    return new Promise((resolve) => {
+      storage.get({
+        key: KEYS.NICKNAME,
+        success: (data) => {
+          this._cachedNickname = data || ''
+          resolve(this._cachedNickname)
+        },
+        fail: () => {
+          this._cachedNickname = ''
+          resolve('')
+        },
+      })
+    })
+  },
+
+  /** 设置昵称（同时更新缓存 + 持久化到本地存储） */
+  setNickname(nickname) {
+    this._cachedNickname = nickname || ''
+    storage.set({ key: KEYS.NICKNAME, value: this._cachedNickname })
+  },
+
   // ==================== 同步读取 ====================
 
   /** 获取当前 user_id（未登录返回 null） */

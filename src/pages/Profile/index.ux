@@ -70,11 +70,6 @@
         <text class="menu-text">我的文档</text>
         <text class="menu-arrow">›</text>
       </div>
-      <div class="menu-item" onclick="updateStableProfile">
-        <text class="menu-icon">🤖</text>
-        <text class="menu-text">{{ updatingStable ? 'AI 分析中...' : 'AI 更新固定档案' }}</text>
-        <text class="menu-arrow">›</text>
-      </div>
       <div class="menu-item" onclick="showSettings">
         <text class="menu-icon">⚙️</text>
         <text class="menu-text">设置</text>
@@ -117,7 +112,6 @@
 <script>
 import $utils from '../../helper/utils'
 import userIdentity from '../../helper/userIdentity'
-import profileAI from '../../helper/apis/profile_ai'
 import familyAPI from '../../helper/apis/family'
 import { safePush, safeReplace } from '../../helper/navigate'
 
@@ -143,8 +137,6 @@ export default {
     regNickname: '',
     regging: false,
 
-    // 其他
-    updatingStable: false,
   },
 
   computed: {
@@ -308,27 +300,6 @@ export default {
 
   goFamily() {
     safePush('/pages/Family')
-  },
-
-  updateStableProfile() {
-    if (this.updatingStable) return
-    this.updatingStable = true
-    $utils.showToast('AI 正在分析你的对话...')
-
-    profileAI.updateStable()
-      .then((res) => {
-        this.updatingStable = false
-        if (res.ok) {
-          $utils.showToast('固定档案已更新！')
-        } else {
-          $utils.showToast(res.content_preview || '更新失败，请稍后重试')
-        }
-      })
-      .catch((err) => {
-        this.updatingStable = false
-        console.log('固定档案更新失败:', err)
-        $utils.showToast('更新失败，请检查网络')
-      })
   },
 
   showSettings() {

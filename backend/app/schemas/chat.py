@@ -14,6 +14,8 @@ class ChatRequest(BaseModel):
     emotion_state: str | None = Field(None, description="当前情绪状态")
     # xia 新字段
     conversation_id: int | None = Field(None, description="会话 ID, 不传则新建会话")
+    # 家庭组 ID（用于检索卡片等家庭数据）
+    family_id: str | None = Field(None, description="家庭组 ID，用于检索家庭卡片和对话历史")
 
 
 class ChatResponse(BaseModel):
