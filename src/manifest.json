@@ -29,13 +29,53 @@
     "logLevel": "debug"
   },
   "router": {
+<<<<<<< Updated upstream
     "entry": "pages/Demo",
+=======
+    "entry": "pages/Main",
+>>>>>>> Stashed changes
     "pages": {
+      "pages/Main": {
+        "component": "index"
+      },
       "pages/Demo": {
         "component": "index"
       },
       "pages/DemoDetail": {
         "component": "index"
+<<<<<<< Updated upstream
+=======
+      },
+      "pages/BreakIce": {
+        "component": "index"
+      },
+      "pages/Companion": {
+        "component": "index"
+      },
+      "pages/Memory": {
+        "component": "index"
+      },
+      "pages/Profile": {
+        "component": "index"
+      },
+      "pages/About": {
+        "component": "index"
+      },
+      "pages/Help": {
+        "component": "index"
+      },
+      "pages/ProfileDetail": {
+        "component": "index"
+      },
+      "pages/Family": {
+        "component": "index"
+      },
+      "pages/FamilyJoin": {
+        "component": "index"
+      },
+      "pages/ChatRoom": {
+        "component": "index"
+>>>>>>> Stashed changes
       }
     },
     "widgets": {
@@ -56,11 +96,47 @@
     "titleBarBackgroundColor": "#f2f2f2",
     "titleBarTextColor": "#414141",
     "pages": {
+      "pages/Main": {
+        "titleBarText": "Cloudie"
+      },
       "pages/Demo": {
         "titleBarText": "快应用示例模版"
       },
       "pages/DemoDetail": {
         "titleBarText": "详情页"
+<<<<<<< Updated upstream
+=======
+      },
+      "pages/BreakIce": {
+        "titleBarText": "家庭聊天"
+      },
+      "pages/Companion": {
+        "titleBarText": "AI 陪伴"
+      },
+      "pages/Memory": {
+        "titleBarText": "传承页"
+      },
+      "pages/Profile": {
+        "titleBarText": "我的"
+      },
+      "pages/About": {
+        "titleBarText": "关于我们"
+      },
+      "pages/Help": {
+        "titleBarText": "帮助与反馈"
+      },
+      "pages/ProfileDetail": {
+        "titleBarText": "用户档案"
+      },
+      "pages/Family": {
+        "titleBarText": "家庭组"
+      },
+      "pages/FamilyJoin": {
+        "titleBarText": "加入家庭组"
+      },
+      "pages/ChatRoom": {
+        "titleBarText": "聊天"
+>>>>>>> Stashed changes
       }
     }
   }
