@@ -670,7 +670,6 @@ export default {
 .content-scroll {
   flex: 1;
   padding: 0 24px 120px;
-  overflow: scroll;
 }
 
 .card-list {
