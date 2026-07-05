@@ -38,11 +38,17 @@ export default {
   },
 
   /**
-   * 删除会话及其所有消息（硬删除）
+   * 删除会话及其所有消息（全部删除）
    * @param {number} conversationId
    * @returns {Promise<{ok: boolean, deleted_id: number}>}
    */
   deleteConversation(conversationId) {
     return $ajax.delete(`${baseUrl}/chat/conversations/${conversationId}`)
   },
+
+  // 删除单次对话
+  deleteMessage(messageId) {
+    return $ajax.delete(`${baseUrl}/messages/${messageId}`)
+  }
+
 }

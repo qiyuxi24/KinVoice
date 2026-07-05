@@ -194,6 +194,32 @@ function requestHandle(params, timeout = TIMEOUT) {
   }
 }
 
+// 支持二进制请求
+function rawRequest({ url, method, data, header, responseType = 'text' }) {
+  return new Promise((resolve, reject) => {
+    const fetchOptions = { url, method, header: header || {} }
+    const uid = userIdentity.getUserId()
+    if (uid) fetchOptions.header['X-User-Id'] = uid
+    if (data !== undefined && data !== null) {
+      fetchOptions.data = typeof data === 'string' ? data : JSON.stringify(data)
+      fetchOptions.header['Content-Type'] = 'application/json'
+    }
+    fetchOptions.responseType = responseType
+    $fetch.fetch(fetchOptions)
+      .then(response => {
+        if (responseType === 'arraybuffer') {
+          resolve(response.data)  // ArrayBuffer
+        } else {
+          resolve(response.data)  // string
+        }
+      })
+      .catch((err, code) => {
+        reject({ error: err, code })
+      })
+  })
+}
+
+
 // ── 导出的 HTTP 方法 ──
 
 export default {

@@ -63,6 +63,15 @@
       },
       "pages/ChatRoom": {
         "component": "index"
+      },
+      "pages/Settings": {
+        "component": "index"
+      },
+      "pages/VoiceSelect": {
+        "component": "index"
+      },
+      "pages/CustomVoice": {
+        "component": "index"
       }
     },
     "widgets": {

@@ -1,0 +1,84 @@
+<template>
+  <div class="page">
+    <div class="header" onclick="goBack"><text class="back-icon">‹</text><text class="title">音色选择</text></div>
+    <div class="voice-list">
+      <block for="v in voices">
+        <div class="voice-item {{ selectedVoice === v.code ? 'selected' : '' }}" 
+             onclick="selectVoice(v.code)"
+             @longpress="showContextMenu(v, $event)">
+          <text class="voice-name">{{ v.name }}</text>
+          <text class="voice-type">{{ v.type === 'system' ? '系统' : '自定义' }}</text>
+        </div>
+      </block>
+    </div>
+    <context-menu if="contextMenu.visible" top="{{contextMenu.top}}" left="{{contextMenu.left}}"
+                  menu-items="{{contextMenuItems}}" @action="handleContextAction" @close="closeContextMenu"></context-menu>
+  </div>
+</template>
+<script>
+import tts from '../../helper/apis/tts'
+import replica from '../../helper/apis/replica'
+import { safeBack } from '../../helper/navigate'
+import ContextMenu from '../../components/ContextMenu/index.ux'
+
+export default {
+  components: { ContextMenu },
+  private: {
+    voices: [],
+    selectedVoice: '',
+    contextMenu: { visible: false, top:0, left:0, voice: null }
+  },
+  computed: {
+    contextMenuItems() {
+      if (!this.contextMenu.voice || this.contextMenu.voice.type === 'system') return []
+      return [
+        { action: 'listen', icon: '👂', text: '试听' },
+        { action: 'rename', icon: '✏️', text: '重命名' },
+        { action: 'delete', icon: '🗑️', text: '删除' }
+      ]
+    }
+  },
+  async onInit() {
+    const res = await tts.getVoices()
+    this.voices = res
+    this.selectedVoice = this.readSelectedVoice()
+  },
+  selectVoice(code) {
+    this.selectedVoice = code
+    storage.set({ key: 'selected_voice', value: code })
+  },
+  readSelectedVoice() {
+    let v = ''
+    storage.get({ key: 'selected_voice', success: d => { v = d || '' }, fail: ()=>{} })
+    return v
+  },
+  showContextMenu(voice, e) {
+    this.contextMenu.voice = voice
+    this.contextMenu.visible = true
+    this.contextMenu.top = e.touches[0].clientY
+    this.contextMenu.left = e.touches[0].clientX
+  },
+  closeContextMenu() { this.contextMenu.visible = false },
+  async handleContextAction(action) {
+    const voice = this.contextMenu.voice
+    if (action === 'listen') {
+      try {
+        await tts.synthesize('欢迎来到情绪树洞', voice.code).then(buffer => {
+          const audio = require('@system.audio').default
+          audio.play({ src: buffer, format: 'wav' })
+        })
+      } catch(e) { this.$utils.showToast('试听失败') }
+    } else if (action === 'rename') {
+      // 弹出输入框，调用 replica.rename(voice.vcn, newName)
+    } else if (action === 'delete') {
+      await replica.deleteVoice(voice.vcn)
+      this.voices = this.voices.filter(v => v.code !== voice.code)
+    }
+    this.closeContextMenu()
+  },
+  goBack() { safeBack() }
+}
+</script>
+<style>
+/* 保持莫兰迪风格 */
+</style>
