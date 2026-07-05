@@ -216,7 +216,7 @@ export default {
    * 关键：_resetState() 放在最前面，消除多次打开的状态残留。
    */
   onInit() {
-    this.$page.setTitleBar({ text: '' })
+    this.$page.setTitleBar({ text: '', menu: false })
 
     // ★ 核心：先完整重置，再初始化
     this._resetState()

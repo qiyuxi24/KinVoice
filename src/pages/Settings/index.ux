@@ -1,5 +1,6 @@
 <template>
   <div class="page">
+    <!-- 自定义标题栏（不动） -->
     <div class="title-bar">
       <div class="title-left" onclick="goBack">
         <text class="back-arrow">‹</text>
@@ -7,16 +8,56 @@
       <text class="title-text">设置</text>
       <div class="title-right"></div>
     </div>
-    <div class="menu-list">
-      <div class="menu-item" onclick="goVoiceSelect">
-        <text class="menu-icon">🎤</text>
-        <text class="menu-text">声音音色选择</text>
-        <text class="menu-arrow">›</text>
+
+    <div class="content">
+      <!-- 语音 -->
+      <text class="section-label">语音</text>
+      <div class="menu-group">
+        <div class="menu-item" onclick="goVoiceSelect">
+          <div class="menu-icon-box icon-voice">
+            <text class="menu-icon">🎤</text>
+          </div>
+          <div class="menu-body">
+            <text class="menu-title">音色选择</text>
+            <text class="menu-desc">选择系统内置或自定义音色</text>
+          </div>
+          <text class="menu-arrow">›</text>
+        </div>
+        <div class="menu-item menu-item-last" onclick="goCustomVoice">
+          <div class="menu-icon-box icon-custom">
+            <text class="menu-icon">🎙️</text>
+          </div>
+          <div class="menu-body">
+            <text class="menu-title">自定义音色</text>
+            <text class="menu-desc">录制声音样本创建个人音色</text>
+          </div>
+          <text class="menu-arrow">›</text>
+        </div>
       </div>
-      <div class="menu-item" onclick="goCustomVoice">
-        <text class="menu-icon">🎙️</text>
-        <text class="menu-text">自定义音色</text>
-        <text class="menu-arrow">›</text>
+
+      <!-- 其他 -->
+      <text class="section-label">其他</text>
+      <div class="menu-group">
+        <div class="menu-item" onclick="goHelp">
+          <div class="menu-icon-box icon-help">
+            <text class="menu-icon">❓</text>
+          </div>
+          <div class="menu-body">
+            <text class="menu-title">帮助</text>
+            <text class="menu-desc">使用指南与常见问题</text>
+          </div>
+          <text class="menu-arrow">›</text>
+        </div>
+        <div class="menu-item menu-item-last" onclick="goAbout">
+          <div class="menu-icon-box icon-about">
+            <text class="menu-icon">ℹ️</text>
+          </div>
+          <div class="menu-body">
+            <text class="menu-title">关于</text>
+            <text class="menu-desc">KinVoice 版本信息</text>
+          </div>
+          <text class="menu-arrow">›</text>
+        </div>
       </div>
     </div>
   </div>
@@ -27,7 +68,7 @@ import { safeBack, safePush } from '../../helper/navigate'
 
 export default {
   onInit() {
-    this.$page.setTitleBar({ text: '' })
+    this.$page.setTitleBar({ text: '', menu: false })
   },
   goVoiceSelect() {
     safePush('/pages/VoiceSelect')
@@ -35,19 +76,29 @@ export default {
   goCustomVoice() {
     safePush('/pages/CustomVoice')
   },
+  goHelp() {
+    safePush('/pages/Help')
+  },
+  goAbout() {
+    safePush('/pages/About')
+  },
   goBack() {
     safeBack()
   }
 }
 </script>
 
-<style>
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
 .page {
   flex: 1;
   flex-direction: column;
-  background-color: #e8e4df;
+  background-color: #f5f0e9;
 }
 
+/* ========== 自定义标题栏 ========== */
 .title-bar {
   flex-direction: row;
   align-items: center;
@@ -83,33 +134,94 @@ export default {
   height: 70px;
 }
 
+/* ========== 内容区 ========== */
+.content {
+  flex: 1;
+  flex-direction: column;
+  padding: 28px 24px;
+}
 
-.menu-list {
-  padding: 24px;
+/* ========== 分组标签 ========== */
+.section-label {
+  font-size: 24px;
+  color: #b5a899;
+  font-weight: 500;
+  margin-bottom: 10px;
+  margin-left: 4px;
+}
+
+/* ========== 菜单组 ========== */
+.menu-group {
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 16px;
+  margin-bottom: 28px;
 }
 
 .menu-item {
   flex-direction: row;
   align-items: center;
-  background-color: #ffffff;
+  padding: 22px 20px;
+  border-bottom: 1px solid #f5f0e9;
+}
+
+.menu-item-last {
+  border-bottom: none;
+}
+
+/* ========== 图标 ========== */
+.menu-icon-box {
+  width: 64px;
+  height: 64px;
   border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 12px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-voice {
+  background-color: #e8f0f5;
+}
+
+.icon-custom {
+  background-color: #f5ece8;
+}
+
+.icon-help {
+  background-color: #f2f0e8;
+}
+
+.icon-about {
+  background-color: #e8edf0;
 }
 
 .menu-icon {
-  font-size: 40px;
+  font-size: 32px;
 }
 
-.menu-text {
+/* ========== 文字 ========== */
+.menu-body {
   flex: 1;
-  font-size: 30px;
-  color: #5c5c5c;
+  flex-direction: column;
   margin-left: 16px;
 }
 
+.menu-title {
+  font-size: 28px;
+  color: #4a3728;
+  font-weight: 500;
+}
+
+.menu-desc {
+  font-size: 22px;
+  color: #b5a899;
+  margin-top: 4px;
+}
+
 .menu-arrow {
-  font-size: 36px;
-  color: #c9b8ad;
+  font-size: 32px;
+  color: #d4c8b8;
+  flex-shrink: 0;
 }
 </style>

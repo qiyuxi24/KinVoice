@@ -114,7 +114,6 @@ import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
 import familyAPI from '../../helper/apis/family'
 import ttsAPI from '../../helper/apis/tts'
-import profileAI from '../../helper/apis/profile_ai'
 
 // 本地存储 key
 const CONV_ID_KEY = 'companion_conv_id'
@@ -183,7 +182,8 @@ export default {
 
   onHide() {
     this.isActive = false
-    this.triggerProfileUpdate()
+    // 后台档案 + 卡片提取已在后端 chat.py 中自动编排（每 3/5 轮 fire-and-forget）
+    // 无需前端额外调用
   },
 
   onDestroy() {
@@ -669,14 +669,6 @@ export default {
       try { await chatAPI.deleteMessage(msg.id) } catch (e) {}
     }
     this.cacheCurrentConv()
-  },
-
-  // ==================== 后台档案更新 ====================
-
-  triggerProfileUpdate() {
-    profileAI.updateDynamic()
-      .then(res => console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息'))
-      .catch(() => {})
   },
 }
 </script>

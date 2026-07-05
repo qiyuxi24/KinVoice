@@ -1,5 +1,14 @@
 <template>
   <div class="page">
+    <!-- 自定义标题栏 -->
+    <div class="title-bar">
+      <div class="title-left" onclick="goBack">
+        <text class="back-arrow">‹</text>
+      </div>
+      <text class="title-text">家庭组</text>
+      <div class="title-right"></div>
+    </div>
+
     <!-- ========== 已加入家庭组 ========== -->
     <div class="section" if="familyId">
       <div class="card info-card">
@@ -120,7 +129,7 @@ import $utils from '../../helper/utils'
 import userIdentity from '../../helper/userIdentity'
 import authAPI from '../../helper/apis/auth'
 import familyAPI from '../../helper/apis/family'
-import { safePush } from '../../helper/navigate'
+import { safePush, safeBack } from '../../helper/navigate'
 
 export default {
   private: {
@@ -150,7 +159,7 @@ export default {
   },
 
   async onInit() {
-    this.$page.setTitleBar({ text: '家庭组' })
+    this.$page.setTitleBar({ text: '', menu: false })
     this.myUserId = await userIdentity.initUserId()
     await userIdentity.initNickname()
     await userIdentity.initLogin()
@@ -300,6 +309,10 @@ export default {
 
   // ==================== 路由 ====================
 
+  goBack() {
+    safeBack()
+  },
+
   goJoin() {
     safePush('/pages/FamilyJoin')
   },
@@ -314,11 +327,47 @@ export default {
   flex: 1;
   flex-direction: column;
   background-color: #f5ebe0;
-  padding: 30px 24px;
+}
+
+/* ========== 自定义标题栏 ========== */
+.title-bar {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 90px;
+  padding: 0 20px;
+  background-color: #fffbf7;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0e8dd;
+}
+
+.title-left {
+  width: 70px;
+  height: 70px;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-arrow {
+  font-size: 50px;
+  color: #d4874b;
+  font-weight: 300;
+}
+
+.title-text {
+  font-size: 34px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.title-right {
+  width: 70px;
+  height: 70px;
 }
 
 .section {
   flex-direction: column;
+  padding: 30px 24px;
 }
 
 .center-box {

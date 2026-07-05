@@ -1,6 +1,9 @@
 """
 大模型调用封装 —— 含超时、降级、Mock 模式
-兼容 xia 分支的 call_llm/chat + si 分支的 chat_completion/chat_with_system
+
+外部调用：
+- call_llm(messages) → str           : 通用 LLM 调用（chat.py / nvc.py）
+- chat_completion(messages, ...) → str: 带参数透传的调用（nvc_service.py）
 """
 import asyncio
 import uuid
@@ -13,12 +16,6 @@ TIMEOUT_SECONDS = 3600
 
 # 需要 request_id 的 vivo 模型列表
 VIVO_MODELS = ["qwen3.5-plus", "Volc-DeepSeek-V3.2", "Doubao-Seed-2.0-mini", "Doubao-Seed-2.0-lite", "Doubao-Seed-2.0-pro"]
-
-SYSTEM_PROMPT_CHAT = (
-    "你是一个温柔、善解人意的陪伴者。你擅长用温和的方式倾听和回应。"
-    "你会关注对方的感受和需要，用温暖的语气给予回应。"
-    "回复长度控制在 80-200 字之间，语气自然亲切。"
-)
 
 
 async def call_llm(messages: list[dict]) -> str:
@@ -74,49 +71,13 @@ def _mock_response(user_input: str) -> str:
         return "我理解你想表达的意思。让我们用更温和的方式沟通，好吗？"
 
 
-async def chat(prompt: str, system_prompt: str | None = None) -> str:
-    """xia 风格：带系统提示的单轮对话"""
-    messages = []
-    if system_prompt:
-        messages.append({"role": "system", "content": system_prompt})
-    messages.append({"role": "user", "content": prompt})
-
-    try:
-        result = await call_llm(messages)
-        logger.info("LLM 调用成功")
-        return result
-    except httpx.TimeoutException:
-        logger.error(f"LLM 超时（>{TIMEOUT_SECONDS}秒）")
-        return FALLBACK_MESSAGE
-    except Exception as e:
-        logger.error(f"LLM 调用失败: {str(e)}")
-        return FALLBACK_MESSAGE
-
-
-# ── 以下为 si 分支兼容接口 ──
-
 async def chat_completion(
     messages: list[dict],
     temperature: float = 0.7,
     max_tokens: int = 512,
 ) -> str:
     """
-    si 风格：调用 LLM 对话接口，返回模型回复文本
+    调用 LLM 对话接口，返回模型回复文本。
+    用于 NVC 破冰转换等需要透传 temperature / max_tokens 参数的场景。
     """
     return await call_llm(messages)
-
-
-async def chat_with_system(
-    user_message: str,
-    history: list[dict] | None = None,
-    system_prompt: str = SYSTEM_PROMPT_CHAT,
-) -> str:
-    """
-    si 风格：携带系统提示的对话
-    """
-    messages = [{"role": "system", "content": system_prompt}]
-    if history:
-        messages.extend(history)
-    messages.append({"role": "user", "content": user_message})
-
-    return await chat_completion(messages)

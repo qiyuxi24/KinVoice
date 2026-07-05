@@ -40,12 +40,6 @@
       "pages/About": {
         "component": "index"
       },
-      "pages/Demo": {
-        "component": "index"
-      },
-      "pages/DemoDetail": {
-        "component": "index"
-      },
       "pages/BreakIce": {
         "component": "index"
       },
@@ -105,12 +99,6 @@
       "pages/Main": {
         "titleBarText": ""
       },
-      "pages/Demo": {
-        "titleBarText": "快应用示例模版"
-      },
-      "pages/DemoDetail": {
-        "titleBarText": "详情页"
-      },
       "pages/BreakIce": {
         "titleBarText": "家庭聊天"
       },
@@ -123,21 +111,21 @@
       },
       "pages/ProfileDetail": {},
       "pages/Family": {
-        "titleBarText": "家庭组"
+        "titleBarText": ""
       },
       "pages/FamilyJoin": {},
       "pages/ChatRoom": {
-        "titleBarText": "聊天"
+        "titleBarText": ""
       },
       "pages/Help": {},
       "pages/Settings": {
-        "titleBarText": "设置"
+        "titleBarText": ""
       },
       "pages/CustomVoice": {
-        "titleBarText": "自定义音色"
+        "titleBarText": ""
       },
       "pages/VoiceSelect": {
-        "titleBarText": "音色选择"
+        "titleBarText": ""
       }
     }
   }

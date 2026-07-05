@@ -33,7 +33,7 @@ export default {
   },
 
   async onInit() {
-    this.$page.setTitleBar({ text: '' })
+    this.$page.setTitleBar({ text: '', menu: false })
     try {
       const res = await replica.getSampleTexts()
       if (res && res.samples && res.samples.length > 0) {
