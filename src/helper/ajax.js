@@ -1,90 +1,234 @@
 /**
- * 封装了一些网络请求方法，方便通过 Promise 的形式请求接口
+ * 封装了网络请求方法，集成错误码体系
+ * - 自动解析 HTTP 状态码 → 业务错误码
+ * - 统一错误格式：{ code, message, detail, level, raw }
+ * - 支持 GET / POST / PUT / DELETE
  */
 import $fetch from '@system.fetch'
 import $utils from './utils'
+import { getErrorInfo, mapDetailToCode, httpStatusToCode, fetchErrorToCode } from './errorCodes'
+import userIdentity from './userIdentity'
 
 const TIMEOUT = 20000
 
-Promise.prototype.finally = function(callback) {
-  const P = this.constructor
-  return this.then(
-    value => P.resolve(callback()).then(() => value),
-    reason =>
-      P.resolve(callback()).then(() => {
-        throw reason
-      })
-  )
+if (!Promise.prototype.finally) {
+  Promise.prototype.finally = function(callback) {
+    const P = this.constructor
+    return this.then(
+      value => P.resolve(callback()).then(() => value),
+      reason =>
+        P.resolve(callback()).then(() => {
+          throw reason
+        })
+    )
+  }
+}
+
+/**
+ * 构造统一错误对象
+ * @param {number} code     - 错误码
+ * @param {*}      raw      - 原始数据（响应体 / Error 对象）
+ * @param {string} extraMsg - 额外补充消息（后端 detail）
+ * @returns {{ code: number, message: string, detail: string, level: string, raw: * }}
+ */
+function buildError(code, raw, extraMsg) {
+  const info = getErrorInfo(code)
+  return {
+    code: code,
+    message: extraMsg || info.message,
+    detail: info.detail,
+    level: info.level,
+    raw: raw,
+    isError: true,                  // 快速判断标记
+  }
+}
+
+/**
+ * 解析后端 JSON 响应，提取可能的错误信息
+ * @param {object} responseData - 已 parse 的 JSON 对象
+ * @param {number} statusCode   - HTTP 状态码
+ * @returns {{ code: number, message: string, detail: string, level: string }|null}
+ *         返回 null 表示成功（2xx），否则返回错误对象
+ */
+function parseBackendError(responseData, statusCode) {
+  // 2xx 视为成功
+  if (statusCode >= 200 && statusCode < 300) {
+    return null
+  }
+
+  // 尝试从后端 detail 字段映射业务错误码
+  const backendDetail = (responseData && responseData.detail) || ''
+  const bizCode = mapDetailToCode(backendDetail)
+
+  if (bizCode) {
+    return buildError(bizCode, responseData, backendDetail)
+  }
+
+  // 兜底：HTTP 状态码 → 通用错误码
+  return buildError(httpStatusToCode(statusCode), responseData, backendDetail)
 }
 
 /**
  * 调用快应用 fetch 接口做网络请求
- * @param params
+ * 成功 → resolve(后端 JSON)
+ * 失败 → reject({ code, message, detail, level, raw, isError })
  */
 function fetchPromise(params) {
   return new Promise((resolve, reject) => {
+    // 构建请求配置
+    const fetchOptions = {
+      url: params.url,
+      method: params.method,
+      header: params.header || {},
+    }
+
+    // 自动注入 X-User-Id Header（统一用户身份传递方式）
+    const uid = userIdentity.getUserId()
+    if (uid) {
+      fetchOptions.header['X-User-Id'] = uid
+    }
+
+    // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
+    // 快应用 @system.fetch 对 data 的自动处理行为不一致，
+    // 有的版本会转成 form-urlencoded 导致 FastAPI 收到非 JSON body → 422
+    if (params.data !== undefined && params.data !== null) {
+      if (typeof params.data === 'string') {
+        fetchOptions.data = params.data
+      } else {
+        fetchOptions.data = JSON.stringify(params.data)
+        fetchOptions.header['Content-Type'] = 'application/json'
+      }
+    }
+
     $fetch
-      .fetch({
-        url: params.url,
-        method: params.method,
-        data: params.data
-      })
+      .fetch(fetchOptions)
       .then(response => {
-        const result = response.data
-        const content = JSON.parse(result.data)
-        /* @desc: 可跟具体不同业务接口数据，返回你所需要的部分，使得使用尽可能便捷 */
-        content.success ? resolve(content.value) : resolve(content.message)
+        // 快应用 @system.fetch 返回: { code: 200, data: "JSON字符串", headers: {} }
+        const rawText = response.data
+        let parsed = null
+
+        try {
+          parsed = JSON.parse(rawText)
+        } catch (e) {
+          // JSON 解析失败 → 视为成功（可能是二进制数据，如 TTS）
+          console.log('[ajax] 响应非 JSON，可能是二进制数据')
+          resolve(rawText)
+          return
+        }
+
+        // 处理 Quick App Studio 代理包装：
+        // /api/proxy/xxx 会返回 { code: 200, headers: {}, data: "原响应JSON字符串" }
+        // 需要解包并返回真正的后端响应体
+        console.log('[ajax] parsed keys:', Object.keys(parsed), 'has headers:', !!parsed.headers, 'data type:', typeof parsed.data)
+        if (parsed && typeof parsed === 'object' &&
+            typeof parsed.data === 'string' &&
+            parsed.headers && typeof parsed.headers === 'object') {
+          try {
+            console.log('[ajax] 检测到代理包装，解包 data 字段')
+            parsed = JSON.parse(parsed.data)
+            console.log('[ajax] 解包后:', JSON.stringify(parsed).substring(0, 120))
+          } catch (e) {
+            // 内层 data 不是 JSON，保留外层对象
+            console.log('[ajax] 代理响应 data 字段非 JSON，保留外层:', e)
+          }
+        } else {
+          console.log('[ajax] 非代理包装响应，直接返回')
+        }
+
+        // 检查后端是否返回了错误
+        const err = parseBackendError(parsed, response.code)
+        if (err) {
+          reject(err)
+        } else {
+          resolve(parsed)
+        }
       })
       .catch((error, code) => {
-        console.log(`🐛 request fail, code = ${code}`)
-        reject(error)
+        // 快应用 fetch 层错误（网络层）
+        const errCode = fetchErrorToCode(code)
+        const err = buildError(errCode, error)
+        console.log(`🐛 [${errCode}] ${err.message} | code=${code}`)
+        reject(err)
       })
       .finally(() => {
-        console.log(`✔️ request @${params.url} has been completed.`)
-        resolve()
+        console.log(`✔️ ${params.method} @${params.url} 完成`)
       })
   })
 }
 
 /**
- * 处理网络请求，timeout 是网络请求超时之后返回，默认 20s 可自行修改
- * @param params
+ * 处理网络请求，带超时保护
+ *
+ * 【重要】超时定时器在 fetch 完成后会被清除，防止定时器泄漏。
+ * 在快应用资源受限环境中，未清理的定时器累积会导致定时器池耗尽，
+ * 进而引发「点击无反应」的假死现象。
+ *
+ * @param {object} params  - { url, method, data }
+ * @param {number} timeout - 超时时间 ms
+ * @returns {Promise}
  */
 function requestHandle(params, timeout = TIMEOUT) {
   try {
+    let timerId = null
+
+    const timeoutPromise = new Promise((resolve, reject) => {
+      timerId = setTimeout(() => {
+        timerId = null
+        reject(buildError(1001, null, '请求超时（' + (timeout / 1000) + 's）'))
+      }, timeout)
+    })
+
     return Promise.race([
       fetchPromise(params),
-      new Promise((resolve, reject) => {
-        setTimeout(() => {
-          reject(new Error('网络状况不太好，再刷新一次？'))
-        }, timeout)
-      })
-    ])
+      timeoutPromise,
+    ]).finally(() => {
+      // 无论 fetch 先完成还是超时先触发，都要清理定时器
+      if (timerId) {
+        clearTimeout(timerId)
+        timerId = null
+      }
+    })
   } catch (error) {
-    console.log(error)
+    console.log('[ajax] requestHandle 异常:', error)
+    return Promise.reject(buildError(1099, error))
   }
 }
 
+// ── 导出的 HTTP 方法 ──
+
 export default {
+  /** POST 请求 */
   post: function(url, params) {
     return requestHandle({
       method: 'post',
       url: url,
-      data: params
+      data: params,
     })
   },
+
+  /** GET 请求 */
   get: function(url, params) {
     return requestHandle({
       method: 'get',
-      url: $utils.queryString(url, params)
+      url: $utils.queryString(url, params),
     })
   },
+
+  /** PUT 请求 */
   put: function(url, params) {
     return requestHandle({
       method: 'put',
       url: url,
-      data: params
+      data: params,
     })
-  }
-  // 如果，method 您需要更多类型，可自行添加更多方法；
+  },
+
+  /** DELETE 请求 */
+  delete: function(url, params) {
+    return requestHandle({
+      method: 'delete',
+      url: url,
+      data: params,
+    })
+  },
 }

@@ -1,0 +1,990 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <text class="page-title">📚 传承</text>
+      <text class="page-subtitle">家族记忆，随手保存</text>
+    </div>
+
+    <div class="category-tabs">
+      <div 
+        class="tab tab-first {{ activeCategory === '人生阅历' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('人生阅历')" 
+      >
+        <text>👤 人生阅历</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '家庭菜谱' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('家庭菜谱')" 
+      >
+        <text>🍳 家庭菜谱</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '成长故事' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('成长故事')" 
+      >
+        <text>🌱 成长故事</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '相处感悟' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('相处感悟')" 
+      >
+        <text>💭 相处感悟</text>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <text class="section-title">{{ activeCategory }}</text>
+      <div class="add-btn" onclick="showModal">
+        <text class="add-icon">+</text>
+        <text class="add-text">新经验</text>
+      </div>
+    </div>
+
+    <div class="content-scroll">
+      <div class="card-list">
+        <div class="memory-card" for="(index, item) in currentCards">
+          <div class="card-header">
+            <div class="card-tag">
+              <text class="tag-text">#{{ item.tag }}</text>
+            </div>
+            <text class="card-date">{{ item.date }}</text>
+          </div>
+          <text class="card-title">{{ item.title }}</text>
+          <text class="card-content">{{ item.content }}</text>
+          <div class="card-footer">
+            <text class="author-text">👤 {{ item.author }}</text>
+            <div class="card-actions">
+              <div class="action-btn edit-btn" onclick="editCard(item, index)">
+                <text class="action-icon">✏️</text>
+              </div>
+              <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
+                <text class="action-icon">🗑️</text>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item tab-active">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+
+    <div class="modal-overlay" if="showModalFlag">
+      <div class="modal-content">
+        <div class="modal-header">
+          <text class="modal-title">{{ editMode ? '✏️ 编辑经验' : '📝 录入新经验' }}</text>
+          <div class="modal-close" onclick="hideModal">
+            <text>×</text>
+          </div>
+        </div>
+        
+        <div class="modal-body">
+          <text class="form-label">分类</text>
+          <div class="category-options">
+            <div 
+              class="category-option option-first {{ formData.category === '人生阅历' ? 'option-active' : '' }}" 
+              onclick="selectCategory('人生阅历')" 
+            >
+              <text>👤 人生阅历</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '家庭菜谱' ? 'option-active' : '' }}" 
+              onclick="selectCategory('家庭菜谱')" 
+            >
+              <text>🍳 家庭菜谱</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '成长故事' ? 'option-active' : '' }}" 
+              onclick="selectCategory('成长故事')" 
+            >
+              <text>🌱 成长故事</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '相处感悟' ? 'option-active' : '' }}" 
+              onclick="selectCategory('相处感悟')" 
+            >
+              <text>💭 相处感悟</text>
+            </div>
+          </div>
+
+          <text class="form-label">标题</text>
+          <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
+
+          <text class="form-label">内容</text>
+          <textarea class="form-textarea" placeholder="记录下你的故事或感悟" onchange="onContentChange">{{ formData.content }}</textarea>
+
+          <text class="form-label">作者</text>
+          <input class="form-input" type="text" placeholder="谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
+        </div>
+
+        <div class="modal-submit" onclick="saveCard">
+          <text>保存</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
+import { safeReplace } from '../../helper/navigate'
+
+// ── 常量 ────────────────────────────────────────────
+const STORAGE_KEY = 'memory_cards'
+const CATEGORIES = ['人生阅历', '家庭菜谱', '成长故事', '相处感悟']
+// 后端同步最小间隔（ms）：防止快速切页导致请求堆积卡死
+const SYNC_MIN_INTERVAL = 30000
+// 全局对象上共享的上次同步时间戳 key
+const SYNC_TS_KEY = '__kv_mem_sync_ts'
+const hook2global = global.__proto__ || global
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+// ── 初始 mock 数据（首次使用时填充缓存）───────────
+const INITIAL_MOCK_CARDS = {
+  '人生阅历': [
+    { tag: '人生阅历', date: '2023.10.15', title: '关于工作与选择', author: '爸爸', content: '刚工作时别怕吃亏，所有的经历都是财富。当年我第一次去深圳的时候，兜里只有几百块钱。找工作碰壁了无数次，但每一次失败都让我更清楚自己想要什么。', emotion: '感慨', need: '被理解和指引' },
+    { tag: '人生阅历', date: '2022.05.12', title: '买房子的学问', author: '爷爷', content: '买房地段永远是第一位的。当年我们单位分房，很多人图大选了郊区，我选了市中心的小破房。事实证明，便利性比面积更重要。', emotion: '笃定', need: '传承生活智慧' },
+    { tag: '人生阅历', date: '2024.01.05', title: '面对失败的勇气', author: '妈妈', content: '你考研失利那段时间，总把自己关在房间里。我想告诉你，失败并不可怕，重要的是要有重新站起来的勇气。', emotion: '心疼', need: '给予鼓励和支持' }
+  ],
+  '家庭菜谱': [
+    { tag: '家庭菜谱', date: '2024.01.02', title: '祖传红烧肉秘方', author: '妈妈', content: '咱们家的红烧肉，关键在于炒糖色。一定不能用老抽上色！锅里放少许油，放入冰糖小火慢熬，起密集小泡后倒入肉块翻炒。', emotion: '自豪', need: '传承家族味道' },
+    { tag: '家庭菜谱', date: '2023.12.20', title: '冬日驱寒羊肉汤', author: '奶奶', content: '羊肉去膻味，不用大料，只需要放几片白萝卜一起煮。煮出来的萝卜捞出扔掉，汤就会变得清甜无比。', emotion: '温暖', need: '关爱家人健康' },
+    { tag: '家庭菜谱', date: '2024.03.11', title: '秘制糖醋排骨', author: '爸爸', content: '记住口诀：一酒二酱三糖四醋。料酒一勺，生抽两勺，白糖三勺，陈醋四勺，这样调出来的味道最正宗。', emotion: '得意', need: '记录家庭配方' }
+  ],
+  '成长故事': [
+    { tag: '成长故事', date: '2023.06.15', title: '第一次独自旅行', author: '姐姐', content: '18岁那年，我一个人去了云南。在大理的客栈里，我遇到了很多有趣的人，学会了独立和坚强。那是我人生中最宝贵的经历。', emotion: '怀念', need: '记录成长里程碑' },
+    { tag: '成长故事', date: '2022.09.01', title: '学会骑自行车', author: '爸爸', content: '你小时候学骑车，摔了很多次都不哭。这种坚持的精神，爸爸很为你骄傲。记住，遇到困难不要轻易放弃。', emotion: '骄傲', need: '鼓励孩子成长' }
+  ],
+  '相处感悟': [
+    { tag: '相处感悟', date: '2024.02.14', title: '沟通的艺术', author: '妈妈', content: '和家人相处，最重要的是倾听。有时候，不需要急着给出建议，安静地听对方说完，就是最好的陪伴。', emotion: '平静', need: '改善家庭沟通' },
+    { tag: '相处感悟', date: '2023.11.20', title: '换位思考', author: '爷爷', content: '年纪大了才明白，每个人都有自己的难处。多站在对方的角度想想，很多矛盾就化解了。', emotion: '通透', need: '减少家庭矛盾' }
+  ]
+}
+
+// ── 工具函数 ────────────────────────────────────────
+
+/** 分组卡片 → 平铺列表 */
+function flattenCards(grouped) {
+  const list = []
+  Object.keys(grouped).forEach(key => {
+    grouped[key].forEach(c => list.push(c))
+  })
+  return list
+}
+
+/** 平铺列表 → 分组卡片 */
+function groupCards(list) {
+  const grouped = {}
+  CATEGORIES.forEach(cat => { grouped[cat] = [] })
+  list.forEach(item => {
+    const key = grouped[item.tag] ? item.tag : '人生阅历'
+    if (grouped[key]) grouped[key].push(item)
+  })
+  return grouped
+}
+
+/** 本地缓存卡片 → 后端同步格式（用于 POST /cards 创建） */
+function localToBackendCreate(item) {
+  return {
+    category: item.tag || '人生阅历',
+    emotion: item.emotion || '感慨',
+    observation: item.title || '',
+    feeling: item.content || '',
+    need: item.need || '记录与传承',
+    request: item.author && item.author !== '我' ? '来自' + item.author : null,
+    title: item.title || '',
+    content: item.content || '',
+    author: item.author || '我',
+    tag: item.tag || '人生阅历'
+  }
+}
+
+/** 本地缓存卡片 → 后端更新格式 */
+function localToBackendUpdate(item) {
+  return {
+    category: item.tag,
+    emotion: item.emotion,
+    observation: item.title,
+    feeling: item.content,
+    need: item.need,
+    request: item.author && item.author !== '我' ? '来自' + item.author : null
+  }
+}
+
+export default {
+  private: {
+    activeCategory: '人生阅历',
+    showModalFlag: false,
+    editMode: false,          // true=编辑模式，false=新增模式
+    editingCard: null,        // 正在编辑的卡片对象
+    editingCardIndex: -1,     // 正在编辑的卡片在当前分类数组中的索引
+    formData: {
+      category: '人生阅历',
+      title: '',
+      content: '',
+      emotion: '感慨',
+      need: '记录与传承',
+      author: '我'
+    },
+    cards: {
+      '人生阅历': [],
+      '家庭菜谱': [],
+      '成长故事': [],
+      '相处感悟': []
+    },
+    isActive: false,
+    syncing: false,
+    loadingLocal: false,  // 防抖：防止 loadFromLocal 并发
+    timers: []            // 定时器引用，onDestroy 时统一清理
+
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+    // 只加载本地缓存，不触发后端同步（同步移至 onShow + 全局时间间隔保护）
+    this.loadFromLocal()
+  },
+
+  onShow() {
+    this.isActive = true
+    // 每次切回时刷新本地缓存
+    this.loadFromLocal()
+    // 全局时间间隔保护：距上次同步 ≥ 30 秒才触发后端同步
+    // 防止用户快速在页面间切换时，每次创建新实例都发起 HTTP 请求导致连接池耗尽
+    this.trySync()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+    // 清理所有未完成的定时器
+    if (Array.isArray(this.timers)) {
+      this.timers.forEach((timer) => {
+        if (timer) clearTimeout(timer)
+      })
+    }
+    this.timers = []
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 本地缓存操作
+  // ═══════════════════════════════════════════════════
+
+  /** 从本地缓存加载卡片（首次使用时用 mock 数据初始化） */
+  loadFromLocal(callback) {
+    if (!checkActive(this)) return
+    // 防抖：防止快速切页导致的并发加载
+    if (this.loadingLocal) {
+      if (callback) callback()
+      return
+    }
+    this.loadingLocal = true
+
+    storage.get({
+      key: STORAGE_KEY,
+      success: (data) => {
+        if (!checkActive(this)) { this.loadingLocal = false; return }
+        let loaded = false
+        if (data) {
+          try {
+            const saved = JSON.parse(data)
+            if (saved && typeof saved === 'object' && !Array.isArray(saved)) {
+              // 分组格式
+              CATEGORIES.forEach(cat => {
+                if (saved[cat] && saved[cat].length > 0) {
+                  this.cards[cat] = saved[cat]
+                  loaded = true
+                }
+              })
+            }
+            if (!loaded) {
+              this.initWithMockData()
+            }
+          } catch (e) {
+            console.log('解析本地缓存失败，使用初始数据:', e)
+            this.initWithMockData()
+          }
+        } else {
+          // 首次使用，写入 mock 数据
+          this.initWithMockData()
+        }
+        this.loadingLocal = false
+        if (callback) callback()
+      },
+      fail: () => {
+        if (checkActive(this)) {
+          // 存储读取失败，用 mock 兜底
+          console.log('本地存储读取失败，使用 mock 数据')
+          this.initWithMockData()
+        }
+        this.loadingLocal = false
+        if (callback) callback()
+      }
+    })
+  },
+
+  /** 用初始 mock 数据填充缓存和内存 */
+  initWithMockData() {
+    if (!checkActive(this)) return
+    this.cards = JSON.parse(JSON.stringify(INITIAL_MOCK_CARDS))
+    this.saveToLocal()
+  },
+
+  /** 保存当前内存中的卡片到本地缓存 */
+  saveToLocal() {
+    storage.set({
+      key: STORAGE_KEY,
+      value: JSON.stringify(this.cards),
+      success: () => {},
+      fail: (err) => console.log('保存本地缓存失败:', err)
+    })
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 双向同步
+  // ═══════════════════════════════════════════════════
+
+  /** 与后端双向同步（只增不减，防止并发请求） */
+  syncWithBackend() {
+    if (!checkActive(this)) return
+    const flatList = flattenCards(this.cards)
+    if (flatList.length === 0) return
+    if (this.syncing) return
+
+    this.syncing = true
+    $apis.cards.sync(flatList)
+      .then((resp) => {
+        if (!checkActive(this)) return
+        console.log(`同步完成: +${resp.added_to_backend}到后端, +${resp.added_to_local}到本地`)
+        if (resp.cards && resp.cards.length > 0) {
+          // 用后端返回的合并结果更新本地（保证 id 一致）
+          this.cards = groupCards(resp.cards)
+          this.saveToLocal()
+        }
+      })
+      .catch((err) => {
+        console.log('同步失败（网络不可用）:', err)
+      })
+      .finally(() => {
+        if (checkActive(this)) {
+          this.syncing = false
+        }
+      })
+  },
+
+  /** 按需触发后端同步，全局时间间隔保护（防止快速切页导致请求堆积） */
+  trySync() {
+    if (!checkActive(this)) return
+    // 全局时间戳：跨实例共享，即使旧实例被 router.replace 销毁，新实例也能读取到上次同步时间
+    const now = Date.now()
+    const lastSync = hook2global[SYNC_TS_KEY] || 0
+    if (now - lastSync < SYNC_MIN_INTERVAL) return
+    // 更新全局时间戳
+    hook2global[SYNC_TS_KEY] = now
+    // 延迟一小段，确保 loadFromLocal 已完成（storage 读取是异步的）
+    // 若 cards 为空（loadFromLocal 尚未完成），syncWithBackend 会自行跳过
+    const timer = setTimeout(() => {
+      // 从 timers 移除自身
+      const idx = this.timers ? this.timers.indexOf(timer) : -1
+      if (idx !== -1) this.timers.splice(idx, 1)
+      if (checkActive(this)) {
+        this.syncWithBackend()
+      }
+    }, 600)
+    if (Array.isArray(this.timers)) {
+      this.timers.push(timer)
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 计算属性
+  // ═══════════════════════════════════════════════════
+
+  computed: {
+    currentCards() {
+      return this.cards[this.activeCategory] || []
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 分类切换
+  // ═══════════════════════════════════════════════════
+
+  switchCategory(category) {
+    if (!checkActive(this)) return
+    this.activeCategory = category
+  },
+
+  selectCategory(category) {
+    if (!checkActive(this)) return
+    this.formData.category = category
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 弹窗：新增 / 编辑
+  // ═══════════════════════════════════════════════════
+
+  /** 打开新增弹窗 */
+  showModal() {
+    if (!checkActive(this)) return
+    this.editMode = false
+    this.editingCard = null
+    this.editingCardIndex = -1
+    this.formData = { category: '人生阅历', title: '', content: '', emotion: '感慨', need: '记录与传承', author: '我' }
+    this.showModalFlag = true
+  },
+
+  /** 打开编辑弹窗（传入卡片对象和索引） */
+  editCard(card, index) {
+    if (!checkActive(this)) return
+    this.editMode = true
+    this.editingCard = card
+    this.editingCardIndex = index
+    this.formData = {
+      category: card.tag || '人生阅历',
+      title: card.title || '',
+      content: card.content || '',
+      emotion: card.emotion || '感慨',
+      need: card.need || '记录与传承',
+      author: card.author || '我'
+    }
+    this.showModalFlag = true
+  },
+
+  hideModal() {
+    if (!checkActive(this)) return
+    this.showModalFlag = false
+    this.editMode = false
+    this.editingCard = null
+    this.editingCardIndex = -1
+  },
+
+  onTitleChange(event) {
+    if (!checkActive(this)) return
+    this.formData.title = event.value || ''
+  },
+
+  onContentChange(event) {
+    if (!checkActive(this)) return
+    // 快应用 textarea onchange 兼容：不同厂商可能是 event.text / event.value / event.detail.value
+    this.formData.content = event.text || event.value || (event.detail && event.detail.value) || ''
+  },
+
+  onAuthorChange(event) {
+    if (!checkActive(this)) return
+    this.formData.author = event.value || '我'
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 保存卡片（新增 / 编辑共用）
+  // ═══════════════════════════════════════════════════
+
+  saveCard() {
+    if (!checkActive(this)) return
+    if (!this.formData.title || !this.formData.content) {
+      $utils.showToast('请填写完整信息')
+      return
+    }
+
+    if (this.editMode) {
+      this.doUpdateCard()
+    } else {
+      this.doCreateCard()
+    }
+  },
+
+  /** 新增卡片 */
+  doCreateCard() {
+    if (!checkActive(this)) return
+    const newCard = {
+      tag: this.formData.category,
+      date: new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'),
+      title: this.formData.title,
+      author: this.formData.author || '我',
+      content: this.formData.content,
+      emotion: this.formData.emotion || '感慨',
+      need: this.formData.need || '记录与传承'
+    }
+
+    $apis.cards.create(localToBackendCreate(newCard))
+      .then((resp) => {
+        if (!checkActive(this)) return
+        newCard.id = resp.id
+        this.cards[this.formData.category].unshift(newCard)
+        this.saveToLocal()
+        this.hideModal()
+        $utils.showToast('✅ 保存成功')
+      })
+      .catch((err) => {
+        if (!checkActive(this)) return
+        console.log('后端创建失败，仅存本地:', err)
+        this.cards[this.formData.category].unshift(newCard)
+        this.saveToLocal()
+        this.hideModal()
+        $utils.showToast('✅ 已存本地（网络不可用）')
+      })
+  },
+
+  /** 更新卡片 */
+  doUpdateCard() {
+    if (!checkActive(this)) return
+    const card = this.editingCard
+    const index = this.editingCardIndex
+    if (!card || index < 0) return
+
+    const updated = {
+      tag: this.formData.category,
+      title: this.formData.title,
+      content: this.formData.content,
+      emotion: this.formData.emotion || '感慨',
+      need: this.formData.need || '记录与传承',
+      author: this.formData.author || '我',
+      date: card.date
+    }
+
+    const oldTag = card.tag
+
+    if (card.id) {
+      // 有后端 id → 调 PUT /cards/{id}
+      $apis.cards.update(card.id, localToBackendUpdate(updated))
+        .then(() => {
+          if (!checkActive(this)) return
+          Object.assign(card, updated)
+          // 如果分类变了，移动卡片
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
+            this.cards[updated.tag].unshift(card)
+          }
+          this.saveToLocal()
+          this.hideModal()
+          $utils.showToast('✅ 更新成功')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('后端更新失败，仅更新本地:', err)
+          Object.assign(card, updated)
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
+            this.cards[updated.tag].unshift(card)
+          }
+          this.saveToLocal()
+          this.hideModal()
+          $utils.showToast('✅ 已更新本地（网络不可用）')
+        })
+    } else {
+      // 无 id（离线创建的卡片）→ 调 POST /cards
+      $apis.cards.create(localToBackendCreate(updated))
+        .then((resp) => {
+          if (!checkActive(this)) return
+          Object.assign(card, updated, { id: resp.id })
+          if (updated.tag !== oldTag) {
+            this.cards[oldTag].splice(index, 1)
+            this.cards[updated.tag].unshift(card)
+          }
+          this.saveToLocal()
+          this.hideModal()
+          $utils.showToast('✅ 更新成功')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('后端创建失败:', err)
+          Object.assign(card, updated)
+          this.saveToLocal()
+          this.hideModal()
+          $utils.showToast('✅ 已更新本地（网络不可用）')
+        })
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 删除卡片
+  // ═══════════════════════════════════════════════════
+
+  deleteCard(card, index) {
+    if (!checkActive(this)) return
+    const cat = card.tag || '人生阅历'
+    const cardId = card.id
+
+    if (cardId) {
+      // 有后端 id → 调 DELETE /cards/{id}
+      $apis.cards.remove(cardId)
+        .then(() => {
+          if (!checkActive(this)) return
+          this.cards[cat].splice(index, 1)
+          this.saveToLocal()
+          $utils.showToast('🗑️ 已删除')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('后端删除失败，仅删本地:', err)
+          this.cards[cat].splice(index, 1)
+          this.saveToLocal()
+          $utils.showToast('🗑️ 已删除本地（网络不可用）')
+        })
+    } else {
+      // 无 id（离线创建的卡片）→ 直接删本地
+      this.cards[cat].splice(index, 1)
+      this.saveToLocal()
+      $utils.showToast('🗑️ 已删除')
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  // 路由导航
+  // ═══════════════════════════════════════════════════
+
+  goCompanion() {
+    safeReplace('/pages/Companion')
+  },
+
+  goBreakIce() {
+    safeReplace('/pages/BreakIce')
+  },
+
+  goMemory() {
+    safeReplace('/pages/Memory')
+  },
+
+  goProfile() {
+    safeReplace('/pages/Profile')
+  }
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 24px;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.page-subtitle {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+}
+
+.category-tabs {
+  flex-direction: row;
+  padding: 0 24px;
+  margin-bottom: 20px;
+}
+
+.tab {
+  flex: 1;
+  height: 72px;
+  background-color: #fff;
+  border-radius: 36px;
+  font-size: 24px;
+  color: #6b5a4a;
+  margin-left: 12px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-first {
+  margin-left: 0;
+}
+
+.tab-active {
+  background-color: #a8c5d9;
+  color: #fff;
+}
+
+.section-header {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 600;
+    color: #3d3025;
+  }
+
+  .add-btn {
+    flex-direction: row;
+    align-items: center;
+    height: 52px;
+    padding: 0 18px;
+    background-color: #d1d3d7;
+    border-radius: 26px;
+  }
+
+  .add-icon {
+    font-size: 28px;
+    color: #6f8da2;
+    margin-right: 6px;
+  }
+
+  .add-text {
+    font-size: 22px;
+    color: #6f8da2;
+  }
+
+  .memory-card {
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    flex-direction: column;
+    border-left: 4px solid #a8c5d9;
+    box-shadow: 0 10px 24px rgba(74, 55, 40, 0.06);
+  }
+
+  .card-header,
+  .card-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .card-tag {
+    background-color: #e8f0f5;
+    border-radius: 12px;
+    padding: 6px 12px;
+  }
+
+  .tag-text {
+    font-size: 20px;
+    color: #6f8da2;
+  }
+
+  .card-date {
+    font-size: 18px;
+    color: #b0a293;
+  }
+
+  .card-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #3d3025;
+    margin-bottom: 12px;
+  }
+
+  .author-text {
+    font-size: 20px;
+    color: #8a9caf;
+  }
+
+  .card-content {
+    font-size: 24px;
+    color: #5f503f;
+    line-height: 32px;
+    margin-bottom: 14px;
+  }
+
+  .card-actions {
+    flex-direction: row;
+  }
+
+  .action-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    margin-left: 8px;
+  }
+
+  .edit-btn {
+    background-color: #e8f0f5;
+  }
+
+  .delete-btn {
+    background-color: #f5e8e8;
+  }
+
+  .action-icon {
+    font-size: 24px;
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90px;
+    background-color: #fff;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .tab-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+  }
+
+  .tab-icon {
+    font-size: 36px;
+  }
+
+  .tab-label {
+    font-size: 22px;
+    color: #9a8b7a;
+    margin-top: 4px;
+  }
+
+  .tab-active .tab-label {
+    color: #d4874b;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .modal-content {
+    width: 100%;
+    background-color: #fff;
+    border-radius: 32px 32px 0 0;
+    padding: 26px 24px 48px;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .modal-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #3d3025;
+  }
+
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    font-size: 36px;
+    color: #9b8f86;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-body {
+    flex-direction: column;
+  }
+
+  .form-label {
+    font-size: 24px;
+    color: #5f503f;
+    margin-top: 18px;
+  }
+
+  .category-option {
+    flex: 1;
+    height: 72px;
+    background-color: #f5f0e8;
+    border-radius: 16px;
+    font-size: 24px;
+    color: #4a3728;
+    margin-left: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .option-first {
+    margin-left: 0;
+  }
+
+  .option-active {
+    background-color: #a8c5d9;
+    color: #fff;
+  }
+
+  .form-input {
+    width: 100%;
+    height: 76px;
+    margin-top: 10px;
+    padding: 0 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
+
+  .form-textarea {
+    width: 100%;
+    min-height: 160px;
+    margin-top: 10px;
+    padding: 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
+
+  .modal-submit {
+    width: 100%;
+    height: 86px;
+    margin-top: 28px;
+    background-color: #7d9bb8;
+    border-radius: 44px;
+    font-size: 28px;
+    color: #fff;
+    font-weight: 600;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

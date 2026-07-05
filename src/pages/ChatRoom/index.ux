@@ -1,0 +1,515 @@
+<template>
+  <div class="page">
+    <!-- 顶部标题栏 -->
+    <div class="title-bar">
+      <div class="back-btn" onclick="goBack">
+        <text class="back-icon">‹</text>
+      </div>
+      <text class="title-text">{{ chatTitle }}</text>
+    </div>
+
+    <!-- 消息列表 -->
+    <div class="chat-list" id="chatList">
+      <block for="(index, msg) in messages">
+        <!-- 自己的消息（右对齐） -->
+        <div class="msg-row msg-self" if="msg.sender_id === myUserId">
+          <div class="msg-body">
+            <div class="msg-sender">
+              <text class="msg-sender-name">{{ msg.sender_nickname || '我' }}</text>
+            </div>
+            <div class="msg-bubble msg-bubble-self">
+              <text class="msg-text">{{ msg.content }}</text>
+            </div>
+          </div>
+          <div class="msg-avatar msg-avatar-self">
+            <text class="avatar-text">{{ (msg.sender_nickname || '我').charAt(0).toUpperCase() }}</text>
+          </div>
+        </div>
+        <!-- 别人的消息（左对齐） -->
+        <div class="msg-row msg-other" else>
+          <div class="msg-avatar msg-avatar-other">
+            <text class="avatar-text">{{ (msg.sender_nickname || '?').charAt(0).toUpperCase() }}</text>
+          </div>
+          <div class="msg-body">
+            <div class="msg-sender">
+              <text class="msg-sender-name">{{ msg.sender_nickname || '未知' }}</text>
+            </div>
+            <div class="msg-bubble msg-bubble-other">
+              <text class="msg-text">{{ msg.content }}</text>
+            </div>
+          </div>
+        </div>
+      </block>
+
+      <!-- 空状态 -->
+      <div class="empty-hint" if="messages.length === 0 && !loading">
+        <text class="empty-text">暂无消息，开始聊天吧</text>
+      </div>
+
+      <!-- 加载中 -->
+      <div class="loading-hint" if="loading">
+        <text class="loading-text">加载中...</text>
+      </div>
+
+      <div class="chat-bottom-spacer"></div>
+    </div>
+
+    <!-- 底部输入区 -->
+    <div class="bottom-input-area">
+      <input class="message-input" type="text" placeholder="输入消息..." value="{{ inputText }}" onchange="onInputChange" />
+      <div class="send-btn" onclick="sendMessage">
+        <text class="send-text">{{ sending ? '...' : '发送' }}</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import $utils from '../../helper/utils'
+import userIdentity from '../../helper/userIdentity'
+import chatroomAPI from '../../helper/apis/chatroom'
+import { safeBack } from '../../helper/navigate'
+
+/** 获取页面存活标志 */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+export default {
+  private: {
+    // 路由参数
+    chatType: '',       // "private" | "group"
+    peerId: '',         // 私聊对方 user_id
+    peerName: '',       // 私聊对方昵称
+
+    // 状态
+    chatTitle: '聊天',
+    myUserId: '',
+    myNickname: '',
+    conversationId: null,
+    messages: [],
+    inputText: '',
+    loading: true,
+    sending: false,
+    isActive: false,
+
+    // 轮询
+    pollTimer: null,
+    lastMsgId: 0,
+  },
+
+  async onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+
+    // 解析路由参数
+    this.chatType = this.$page.query.type || 'group'
+    this.peerId = this.$page.query.peer_id || ''
+    this.peerName = decodeURIComponent(this.$page.query.peer_name || '') || '对方'
+
+    this.myUserId = await userIdentity.initUserId()
+    await userIdentity.initNickname()
+    this.myNickname = userIdentity.getNickname() || '我'
+
+    if (this.chatType === 'private') {
+      this.chatTitle = this.peerName || '私聊'
+    } else {
+      this.chatTitle = '家庭群聊'
+    }
+
+    // 先发送一条空消息来获取/创建 conversation_id
+    await this.ensureConversation()
+    // 加载消息
+    await this.loadMessages()
+    // 开始轮询
+    this.startPolling()
+  },
+
+  onHide() {
+    this.isActive = false
+    this.stopPolling()
+  },
+
+  onDestroy() {
+    this.isActive = false
+    this.stopPolling()
+  },
+
+  // ==================== 会话管理 ====================
+
+  /**
+   * 确保会话存在：通过发送一条特殊消息来创建/获取 conversation_id。
+   * 实际聊天室的 conversation 是在第一次发消息时自动创建的，
+   * 这里我们先拉取已有的会话列表来匹配。
+   */
+  async ensureConversation() {
+    try {
+      const res = await chatroomAPI.getConversations()
+      const convs = res.conversations || []
+
+      if (this.chatType === 'private') {
+        const found = convs.find(c => c.type === 'private' && c.peer_user_id === this.peerId)
+        if (found) {
+          this.conversationId = found.id
+        }
+        // 没找到也没关系，第一次发消息时会自动创建
+      } else {
+        const found = convs.find(c => c.type === 'group')
+        if (found) {
+          this.conversationId = found.id
+        }
+      }
+    } catch (e) {
+      console.log('获取会话失败:', e)
+    }
+  },
+
+  // ==================== 消息加载 ====================
+
+  async loadMessages() {
+    if (!this.conversationId) {
+      this.loading = false
+      return
+    }
+    this.loading = true
+    try {
+      const res = await chatroomAPI.getMessages(this.conversationId, 0)
+      if (!checkActive(this)) return
+      this.messages = res.messages || []
+      if (this.messages.length > 0) {
+        this.lastMsgId = this.messages[this.messages.length - 1].id
+      }
+    } catch (e) {
+      console.log('加载消息失败:', e)
+    } finally {
+      if (checkActive(this)) {
+        this.loading = false
+        this.scrollToBottom()
+      }
+    }
+  },
+
+  // ==================== 轮询 ====================
+
+  startPolling() {
+    this.stopPolling()
+    this.pollTimer = setInterval(() => {
+      if (!checkActive(this) || !this.conversationId) return
+      this.pollMessages()
+    }, 2000)
+  },
+
+  stopPolling() {
+    if (this.pollTimer) {
+      clearInterval(this.pollTimer)
+      this.pollTimer = null
+    }
+  },
+
+  async pollMessages() {
+    try {
+      const res = await chatroomAPI.getMessages(this.conversationId, this.lastMsgId)
+      if (!checkActive(this)) return
+      const newMsgs = res.messages || []
+      if (newMsgs.length > 0) {
+        // 去重后追加
+        const existingIds = new Set(this.messages.map(m => m.id))
+        const trulyNew = newMsgs.filter(m => !existingIds.has(m.id))
+        if (trulyNew.length > 0) {
+          this.messages = [...this.messages, ...trulyNew]
+          this.lastMsgId = trulyNew[trulyNew.length - 1].id
+          this.scrollToBottom()
+        }
+      }
+    } catch (e) {
+      // 轮询失败静默处理
+    }
+  },
+
+  // ==================== 发送消息 ====================
+
+  onInputChange(event) {
+    if (!checkActive(this)) return
+    this.inputText = event.value || ''
+  },
+
+  async sendMessage() {
+    if (!checkActive(this)) return
+    const content = (this.inputText || '').trim()
+    if (!content) return
+    if (this.sending) return
+
+    this.sending = true
+    this.inputText = ''
+
+    // 乐观更新：先显示在本地
+    const tempId = -Date.now()
+    this.messages.push({
+      id: tempId,
+      sender_id: this.myUserId,
+      sender_nickname: this.myNickname,
+      content: content,
+    })
+    this.scrollToBottom()
+
+    try {
+      const res = await chatroomAPI.sendMessage({
+        conversation_id: this.conversationId,
+        receiver_id: this.chatType === 'private' ? this.peerId : null,
+        chat_type: this.chatType,
+        content: content,
+      })
+      if (!checkActive(this)) return
+
+      // 更新 conversation_id（首次发送时创建）
+      if (!this.conversationId) {
+        this.conversationId = res.conversation_id
+        this.startPolling()
+      }
+
+      // 用服务器返回的真实消息替换临时消息
+      const idx = this.messages.findIndex(m => m.id === tempId)
+      if (idx >= 0) {
+        this.messages[idx] = {
+          id: res.message_id,
+          sender_id: this.myUserId,
+          sender_nickname: this.myNickname,
+          content: res.content,
+        }
+        this.lastMsgId = res.message_id
+      }
+    } catch (e) {
+      if (!checkActive(this)) return
+      // 发送失败：标记临时消息为失败
+      const idx = this.messages.findIndex(m => m.id === tempId)
+      if (idx >= 0) {
+        this.messages[idx].content = content + '（发送失败）'
+      }
+      $utils.showToast('发送失败，请重试')
+    } finally {
+      if (checkActive(this)) {
+        this.sending = false
+      }
+    }
+  },
+
+  // ==================== 工具 ====================
+
+  scrollToBottom() {
+    setTimeout(() => {
+      if (!checkActive(this)) return
+      try {
+        const el = this.$element('chatList')
+        if (el && el.scrollTo) {
+          el.scrollTo({ index: -1 })
+        }
+      } catch (e) { /* ignore */ }
+    }, 100)
+  },
+
+  goBack() {
+    this.stopPolling()
+    safeBack()
+  },
+}
+</script>
+
+<style lang="less">
+/* 莫兰迪色系 */
+@morandi-bg:        #f7f0e7;
+@morandi-white:     #faf8f5;
+@morandi-text:      #4a3728;
+@morandi-text-light:#9a8b7a;
+@morandi-border:    #d9d3cb;
+@morandi-self:      #b5c4b1;
+@morandi-other:     #d4c5c0;
+@morandi-blue:      #8ab4c9;
+@morandi-brown:     #d4874b;
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: @morandi-bg;
+}
+
+/* 标题栏 */
+.title-bar {
+  flex-direction: row;
+  align-items: center;
+  padding: 30px 20px 16px;
+  background-color: @morandi-white;
+  border-bottom-width: 1px;
+  border-bottom-color: @morandi-border;
+}
+
+.back-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-color: @morandi-bg;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  font-size: 42px;
+  color: @morandi-text;
+  font-weight: 300;
+}
+
+.title-text {
+  font-size: 32px;
+  font-weight: 600;
+  color: @morandi-text;
+  margin-left: 16px;
+}
+
+/* 消息列表 */
+.chat-list {
+  flex: 1;
+  flex-direction: column;
+  padding: 12px 16px;
+  padding-bottom: 100px;
+}
+
+.empty-hint, .loading-hint {
+  padding: 60px;
+  align-items: center;
+}
+
+.empty-text, .loading-text {
+  font-size: 26px;
+  color: @morandi-text-light;
+}
+
+/* 消息行 */
+.msg-row {
+  flex-direction: row;
+  margin-bottom: 16px;
+}
+
+.msg-self {
+  justify-content: flex-end;
+  padding-left: 80px;
+}
+
+.msg-other {
+  justify-content: flex-start;
+  padding-right: 80px;
+}
+
+/* 头像 */
+.msg-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.msg-avatar-self {
+  background-color: @morandi-brown;
+  margin-left: 10px;
+}
+
+.msg-avatar-other {
+  background-color: @morandi-blue;
+  margin-right: 10px;
+}
+
+.avatar-text {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 消息体 */
+.msg-body {
+  flex-direction: column;
+  max-width: 100%;
+}
+
+.msg-self .msg-body {
+  align-items: flex-end;
+}
+
+/* 发送者名称 */
+.msg-sender {
+  margin-bottom: 4px;
+}
+
+.msg-sender-name {
+  font-size: 22px;
+  color: @morandi-text-light;
+}
+
+/* 气泡 */
+.msg-bubble {
+  padding: 14px 18px;
+  border-radius: 8px;
+  max-width: 100%;
+}
+
+.msg-bubble-self {
+  background-color: @morandi-self;
+}
+
+.msg-bubble-other {
+  background-color: @morandi-other;
+}
+
+.msg-text {
+  font-size: 28px;
+  color: @morandi-text;
+  line-height: 36px;
+}
+
+.chat-bottom-spacer {
+  height: 20px;
+}
+
+/* 底部输入区 */
+.bottom-input-area {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px;
+  background-color: @morandi-white;
+  flex-direction: row;
+  align-items: center;
+  border-top-width: 1px;
+  border-top-color: @morandi-border;
+}
+
+.message-input {
+  flex: 1;
+  height: 68px;
+  padding: 0 20px;
+  background-color: @morandi-bg;
+  border-radius: 6px;
+  font-size: 28px;
+  color: @morandi-text;
+  placeholder-color: @morandi-text-light;
+}
+
+.send-btn {
+  width: 100px;
+  height: 68px;
+  background-color: @morandi-brown;
+  border-radius: 6px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 10px;
+}
+
+.send-text {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+}
+</style>

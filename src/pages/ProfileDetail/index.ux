@@ -1,0 +1,661 @@
+<template>
+  <div class="page">
+    <!-- 头部 -->
+    <div class="header">
+      <div class="header-top" onclick="goBack">
+        <text class="back-icon">‹</text>
+        <text class="header-title">我的文档</text>
+      </div>
+      <text class="header-desc">记录想法、笔记与重要信息</text>
+    </div>
+
+    <!-- 文档列表 -->
+    <div class="doc-list" if="documents.length > 0">
+      <div class="doc-card" for="(index, item) in documents" onclick="viewDocument(item)">
+        <div class="card-body">
+          <text class="card-name">{{ item.name }}</text>
+          <!-- 标签 -->
+          <div class="tags-row" if="item.tags">
+            <text class="tag-chip" for="(ti, tag) in splitTags(item.tags)">{{ tag }}</text>
+          </div>
+          <!-- 内容预览（截取前 80 字） -->
+          <text class="card-preview">{{ previewContent(item.content_md) }}</text>
+          <text class="card-time">{{ formatTime(item.updated_at) }}</text>
+        </div>
+        <div class="card-actions">
+          <text class="edit-btn" onclick="editDocument(item, $event)">✏️</text>
+          <text class="delete-btn" onclick="deleteDocument(item, $event)">🗑️</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" elif="!loading">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">还没有文档，点击下方按钮创建第一篇吧</text>
+    </div>
+
+    <!-- 加载中 -->
+    <div class="loading-state" if="loading">
+      <text class="loading-text">加载中...</text>
+    </div>
+
+    <!-- 底部添加按钮 -->
+    <div class="fab" onclick="showAddDialog">
+      <text class="fab-text">+ 新建文档</text>
+    </div>
+
+    <!-- ── 编辑/新增弹窗 ── -->
+    <div class="modal-mask" if="showDialog" onclick="closeDialog">
+      <div class="modal-body" onclick="stopBubble">
+        <text class="modal-title">{{ editingId ? '编辑文档' : '新建文档' }}</text>
+
+        <!-- 标题 -->
+        <div class="form-group">
+          <text class="form-label">标题 *</text>
+          <input class="form-input" type="text" placeholder="请输入标题" value="{{ formName }}" onchange="onNameChange" />
+        </div>
+
+        <!-- 标签 -->
+        <div class="form-group">
+          <text class="form-label">标签（逗号分隔）</text>
+          <input class="form-input" type="text" placeholder="如：工作, 健康, 想法" value="{{ formTags }}" onchange="onTagsChange" />
+        </div>
+
+        <!-- Markdown 正文 -->
+        <div class="form-group">
+          <text class="form-label">内容（支持 Markdown）</text>
+          <textarea class="form-textarea" placeholder="用 Markdown 写下你的想法、笔记..." onchange="onContentChange">{{ formContent }}</textarea>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="modal-actions">
+          <div class="btn-cancel" onclick="closeDialog">
+            <text class="btn-text">取消</text>
+          </div>
+          <div class="btn-confirm" onclick="saveDocument">
+            <text class="btn-text btn-text-white">{{ editingId ? '保存修改' : '创建' }}</text>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 查看文档详情弹窗 ── -->
+    <div class="modal-mask" if="showDetail" onclick="closeDetail">
+      <div class="detail-body" onclick="stopBubble">
+        <div class="detail-header">
+          <text class="detail-name">{{ viewingDocument.name }}</text>
+          <!-- 标签 -->
+          <div class="detail-tags-row" if="viewingDocument.tags">
+            <text class="tag-chip" for="(ti, tag) in splitTags(viewingDocument.tags)">{{ tag }}</text>
+          </div>
+          <text class="detail-time" if="viewingDocument.updated_at">{{ formatTime(viewingDocument.updated_at) }}</text>
+        </div>
+        <div class="detail-divider"></div>
+        <!-- Markdown 渲染区 -->
+        <div class="detail-content">
+          <richtext class="md-render">{{ viewingDocument.content_md || '暂无内容' }}</richtext>
+        </div>
+        <div class="detail-close" onclick="closeDetail">
+          <text class="detail-close-text">关闭</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { safeBack } from '../../helper/navigate'
+import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
+
+const CACHE_KEY = 'kinvoice_documents'
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+export default {
+  private: {
+    documents: [],          // 文档列表
+    loading: true,
+    showDialog: false,      // 编辑弹窗
+    editingId: null,        // 编辑中的文档 id（null = 新增模式）
+    // 表单字段
+    formName: '',
+    formTags: '',
+    formContent: '',
+    // 查看详情
+    showDetail: false,
+    viewingDocument: {},
+    isActive: false,
+    loadingDocuments: false  // 防抖：防止 loadDocuments 并发
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+  },
+
+  onShow() {
+    this.isActive = true
+    this.loadDocuments()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+  },
+
+  // ── 工具方法 ──
+
+  /** 按逗号拆分标签，去空格、去空串 */
+  splitTags(tagsStr) {
+    if (!tagsStr) return []
+    return tagsStr.split(',').map(t => t.trim()).filter(Boolean)
+  },
+
+  /** 内容预览：截取前 80 字符 */
+  previewContent(md) {
+    if (!md) return '暂无内容'
+    // 去掉 Markdown 标记符号，取纯文本预览
+    const plain = md.replace(/[#*_~`>\[\]()!-]/g, '').replace(/\s+/g, ' ').trim()
+    return plain.length > 80 ? plain.slice(0, 80) + '...' : plain
+  },
+
+  /** 格式化时间 */
+  formatTime(isoStr) {
+    if (!isoStr) return ''
+    try {
+      const d = new Date(isoStr)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    } catch (e) {
+      return isoStr.slice(0, 10)
+    }
+  },
+
+  // ── 数据加载 ──
+
+  async loadDocuments() {
+    if (!checkActive(this)) return
+    if (this.loadingDocuments) return
+    this.loadingDocuments = true
+    this.loading = true
+
+    try {
+      const result = await $apis.profiles.list()
+      const docs = (result && result.profiles) ? result.profiles : []
+      if (!checkActive(this)) return
+      this.documents = docs
+      this.saveToLocal(docs)
+    } catch (e) {
+      console.warn('从后端加载文档失败，尝试本地缓存:', e)
+      if (!checkActive(this)) return
+      this.loadFromLocal()
+    } finally {
+      if (checkActive(this)) {
+        this.loading = false
+        this.loadingDocuments = false
+      }
+    }
+  },
+
+  loadFromLocal() {
+    if (!checkActive(this)) return
+    storage.get({
+      key: CACHE_KEY,
+      success: (res) => {
+        if (!checkActive(this)) return
+        try {
+          const data = JSON.parse(res)
+          this.documents = data || []
+        } catch (e) {
+          this.documents = []
+        }
+      },
+      fail: () => {
+        if (checkActive(this)) {
+          this.documents = []
+        }
+      },
+    })
+  },
+
+  saveToLocal(docs) {
+    storage.set({
+      key: CACHE_KEY,
+      value: JSON.stringify(docs),
+      success: () => {},
+      fail: (e) => console.warn('缓存文档失败:', e),
+    })
+  },
+
+  // ── 弹窗控制 ──
+
+  showAddDialog() {
+    if (!checkActive(this)) return
+    this.editingId = null
+    this.formName = ''
+    this.formTags = ''
+    this.formContent = ''
+    this.showDialog = true
+  },
+
+  editDocument(item, e) {
+    if (!checkActive(this)) return
+    if (e) e.stopPropagation && e.stopPropagation()
+    this.editingId = item.id
+    this.formName = item.name || ''
+    this.formTags = item.tags || ''
+    this.formContent = item.content_md || ''
+    this.showDialog = true
+  },
+
+  closeDialog() {
+    if (!checkActive(this)) return
+    this.showDialog = false
+    this.editingId = null
+  },
+
+  stopBubble(e) {
+    if (e) e.stopPropagation && e.stopPropagation()
+  },
+
+  // ── 查看详情 ──
+
+  viewDocument(item) {
+    if (!checkActive(this)) return
+    this.viewingDocument = item
+    this.showDetail = true
+  },
+
+  closeDetail() {
+    if (!checkActive(this)) return
+    this.showDetail = false
+    this.viewingDocument = {}
+  },
+
+  // ── 表单字段绑定 ──
+
+  onNameChange(e) {
+    if (!checkActive(this)) return
+    this.formName = e.value || e.text || ''
+  },
+  onTagsChange(e) {
+    if (!checkActive(this)) return
+    this.formTags = e.value || e.text || ''
+  },
+  onContentChange(e) {
+    if (!checkActive(this)) return
+    this.formContent = e.value || e.text || ''
+  },
+
+  // ── 保存（新增/编辑）──
+
+  async saveDocument() {
+    if (!checkActive(this)) return
+    const name = (this.formName || '').trim()
+    if (!name) {
+      $utils.showToast('请输入标题')
+      return
+    }
+
+    const payload = {
+      name: name,
+      tags: (this.formTags || '').trim(),
+      content_md: this.formContent || '',
+    }
+
+    try {
+      if (this.editingId) {
+        await $apis.profiles.update(this.editingId, payload)
+        if (!checkActive(this)) return
+        $utils.showToast('文档已更新')
+      } else {
+        await $apis.profiles.create(payload)
+        if (!checkActive(this)) return
+        $utils.showToast('文档已创建')
+      }
+      if (!checkActive(this)) return
+      this.closeDialog()
+      await this.loadDocuments()
+    } catch (e) {
+      console.error('保存文档失败:', e)
+      if (checkActive(this)) {
+        $utils.showToast('保存失败，请检查网络')
+      }
+    }
+  },
+
+  // ── 删除 ──
+
+  async deleteDocument(item, e) {
+    if (!checkActive(this)) return
+    if (e) e.stopPropagation && e.stopPropagation()
+    try {
+      await $apis.profiles.remove(item.id)
+      if (!checkActive(this)) return
+      $utils.showToast('文档已删除')
+      await this.loadDocuments()
+    } catch (e) {
+      console.error('删除文档失败:', e)
+      if (checkActive(this)) {
+        $utils.showToast('删除失败，请检查网络')
+      }
+    }
+  },
+
+  // ── 返回 ──
+
+  goBack() {
+    if (!checkActive(this)) return
+    safeBack()
+  },
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f5ebe0;
+  padding-bottom: 140px;
+}
+
+/* ── 头部 ── */
+.header {
+  padding: 40px 30px 20px;
+  background: linear-gradient(180deg, #fffbf7 0%, #f5ebe0 100%);
+}
+.header-top {
+  flex-direction: row;
+  align-items: center;
+}
+.back-icon {
+  font-size: 50px;
+  color: #d4874b;
+  margin-right: 12px;
+}
+.header-title {
+  font-size: 38px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.header-desc {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+  margin-left: 62px;
+}
+
+/* ── 列表 ── */
+.doc-list {
+  flex-direction: column;
+  padding: 16px 24px;
+}
+.doc-card {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+.card-body {
+  flex-direction: column;
+  flex: 1;
+}
+.card-name {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.tags-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.tag-chip {
+  font-size: 20px;
+  color: #ffffff;
+  background-color: #8ab4c9;
+  border-radius: 8px;
+  padding: 4px 10px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+.card-preview {
+  font-size: 24px;
+  color: #9a8b7a;
+  margin-top: 8px;
+  line-height: 36px;
+  max-lines: 2;
+}
+.card-time {
+  font-size: 20px;
+  color: #b8a99a;
+  margin-top: 8px;
+}
+.card-actions {
+  flex-direction: row;
+  align-items: center;
+  margin-left: 12px;
+}
+.edit-btn {
+  font-size: 36px;
+  padding: 8px 12px;
+}
+.delete-btn {
+  font-size: 36px;
+  padding: 8px 12px;
+}
+
+/* ── 空状态 ── */
+.empty-state {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+}
+.empty-text {
+  font-size: 28px;
+  color: #9a8b7a;
+  text-align: center;
+  line-height: 42px;
+}
+
+/* ── 加载中 ── */
+.loading-state {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.loading-text {
+  font-size: 28px;
+  color: #9a8b7a;
+}
+
+/* ── FAB 按钮 ── */
+.fab {
+  position: fixed;
+  left: 30px;
+  right: 30px;
+  bottom: 40px;
+  height: 88px;
+  background-color: #d4874b;
+  border-radius: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.fab-text {
+  font-size: 32px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ── 弹窗 ── */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.modal-body {
+  width: 640px;
+  background-color: #fffbf7;
+  border-radius: 20px;
+  padding: 36px 30px 30px;
+  flex-direction: column;
+}
+.modal-title {
+  font-size: 34px;
+  font-weight: 600;
+  color: #4a3728;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* ── 表单 ── */
+.form-group {
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+.form-label {
+  font-size: 26px;
+  color: #4a3728;
+  margin-bottom: 8px;
+}
+.form-input {
+  height: 72px;
+  padding: 0 16px;
+  font-size: 28px;
+  background-color: #ffffff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+}
+.form-textarea {
+  height: 240px;
+  padding: 16px;
+  font-size: 26px;
+  background-color: #ffffff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+}
+
+/* ── 弹窗按钮 ── */
+.modal-actions {
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+.btn-cancel {
+  flex: 1;
+  height: 76px;
+  background-color: #e0d6cc;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+.btn-confirm {
+  flex: 1;
+  height: 76px;
+  background-color: #d4874b;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+}
+.btn-text {
+  font-size: 30px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.btn-text-white {
+  color: #ffffff;
+}
+
+/* ── 详情弹窗 ── */
+.detail-body {
+  width: 640px;
+  max-height: 800px;
+  background-color: #fffbf7;
+  border-radius: 20px;
+  padding: 36px 30px 30px;
+  flex-direction: column;
+}
+.detail-header {
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.detail-name {
+  font-size: 38px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.detail-tags-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+.detail-time {
+  font-size: 22px;
+  color: #8ab4c9;
+  margin-top: 6px;
+}
+.detail-divider {
+  height: 1px;
+  background-color: #e0d6cc;
+  margin: 16px 0;
+}
+.detail-content {
+  max-height: 420px;
+  padding: 8px 0;
+}
+.md-render {
+  font-size: 28px;
+  color: #4a3728;
+  line-height: 44px;
+}
+.detail-close {
+  margin-top: 20px;
+  height: 72px;
+  background-color: #e0d6cc;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.detail-close-text {
+  font-size: 28px;
+  color: #4a3728;
+}
+</style>

@@ -1,7 +1,4 @@
 """
-语音合成服务 —— 使用 vivo TTS
-"""
-"""
 TTS 文本转语音服务 —— vivo WebSocket + 自定义音色支持
 """
 import base64

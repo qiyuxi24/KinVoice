@@ -1,14 +1,62 @@
 """
-Chat 接口的 Pydantic 模型--数据校验
+Chat 接口的 Pydantic 模型 —— 数据校验
+兼容 si 旧字段 + xia 新字段
 """
+from datetime import datetime
 from pydantic import BaseModel, Field
 
+
 class ChatRequest(BaseModel):
-    message: str = Field(..., min_length=1,description="用户消息")
+    """对话请求（兼容两种模式）"""
+    message: str = Field(..., min_length=1, description="用户消息")
+    # si 旧字段（兼容）
+    history: list[dict] | None = Field(None, description="对话历史 [{role, content}, ...]")
+    emotion_state: str | None = Field(None, description="当前情绪状态")
+    # xia 新字段
     conversation_id: int | None = Field(None, description="会话 ID, 不传则新建会话")
 
+
 class ChatResponse(BaseModel):
-    reply: str
-    conversation_id: int
-    message_id: int | None = None       # 本次助手回复的消息 ID
+    """对话响应"""
+    reply: str = Field(..., description="AI 回复")
+    # si 旧字段（兼容）
+    emotion: str | None = Field(None, description="识别到的用户情绪")
+    need_hint: str | None = Field(None, description="推测的潜在需求")
+    # xia 新字段
+    conversation_id: int | None = None
+    message_id: int | None = None
     tokens_used: int = 0
+
+
+# ── 历史记录 / 会话管理 ──
+
+class ConversationOut(BaseModel):
+    """会话列表项"""
+    id: int
+    title: str | None = None
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationListOut(BaseModel):
+    """会话列表响应"""
+    conversations: list[ConversationOut]
+
+
+class MessageOut(BaseModel):
+    """单条消息"""
+    id: int
+    role: str
+    content: str
+    created_at: datetime | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class HistoryOut(BaseModel):
+    """历史消息响应"""
+    conversation_id: int
+    messages: list[MessageOut]

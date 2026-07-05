@@ -13,6 +13,8 @@ from app.models.card import Conversation, ChatMessage
 from app.db.session import AsyncSessionLocal
 from app.utils.logger import logger
 
+from app.middleware.user_identity import get_user_id
+
 router = APIRouter(tags=["陪伴对话"])
 
 

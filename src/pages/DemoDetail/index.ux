@@ -18,6 +18,8 @@
 </template>
 
 <script>
+import $utils from '../../helper/utils'
+
 export default {
   private: {
     text: '快应用是什么？',
@@ -30,7 +32,8 @@ export default {
 </script>
 
 <style lang="less">
-@import './../../assets/styles/style.less';
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
 
 .wrapper {
   .flex-box-mixins(column, center, center);

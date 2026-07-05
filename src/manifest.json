@@ -1,6 +1,6 @@
 {
-  "package": "com.example.demo",
-  "name": "demo",
+  "package": "com.kinvoice.app",
+  "name": "KinVoice",
   "versionName": "1.0.0",
   "versionCode": 1,
   "minPlatformVersion": 1070,
@@ -17,6 +17,9 @@
     },
     {
       "name": "system.fetch"
+    },
+    {
+      "name": "system.storage"
     }
   ],
   "permissions": [
@@ -29,12 +32,36 @@
     "logLevel": "debug"
   },
   "router": {
-    "entry": "pages/Demo",
+    "entry": "pages/Companion",
     "pages": {
       "pages/Demo": {
         "component": "index"
       },
       "pages/DemoDetail": {
+        "component": "index"
+      },
+      "pages/BreakIce": {
+        "component": "index"
+      },
+      "pages/Companion": {
+        "component": "index"
+      },
+      "pages/Memory": {
+        "component": "index"
+      },
+      "pages/Profile": {
+        "component": "index"
+      },
+      "pages/ProfileDetail": {
+        "component": "index"
+      },
+      "pages/Family": {
+        "component": "index"
+      },
+      "pages/FamilyJoin": {
+        "component": "index"
+      },
+      "pages/ChatRoom": {
         "component": "index"
       }
     },
@@ -61,6 +88,30 @@
       },
       "pages/DemoDetail": {
         "titleBarText": "详情页"
+      },
+      "pages/BreakIce": {
+        "titleBarText": "家庭聊天"
+      },
+      "pages/Companion": {
+        "titleBarText": "AI 陪伴"
+      },
+      "pages/Memory": {
+        "titleBarText": "传承页"
+      },
+      "pages/Profile": {
+        "titleBarText": "我的"
+      },
+      "pages/ProfileDetail": {
+        "titleBarText": "我的文档"
+      },
+      "pages/Family": {
+        "titleBarText": "家庭组"
+      },
+      "pages/FamilyJoin": {
+        "titleBarText": "加入家庭组"
+      },
+      "pages/ChatRoom": {
+        "titleBarText": "聊天"
       }
     }
   }

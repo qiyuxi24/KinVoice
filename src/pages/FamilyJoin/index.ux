@@ -1,0 +1,178 @@
+<template>
+  <div class="page">
+    <div class="card">
+      <text class="card-title">加入家庭组</text>
+      <text class="card-desc">输入家人分享给你的家庭组 ID 和密码</text>
+
+      <!-- 昵称 -->
+      <div class="form-group" if="!hasNickname">
+        <text class="form-label">你的昵称</text>
+        <input class="form-input" type="text" placeholder="输入昵称" value="{{ nickname }}" onchange="onNicknameChange" />
+      </div>
+
+      <!-- 家庭组 ID -->
+      <div class="form-group">
+        <text class="form-label">家庭组 ID</text>
+        <input class="form-input" type="text" placeholder="8位字母数字" maxlength="8" value="{{ familyIdInput }}" onchange="onFamilyIdChange" />
+      </div>
+
+      <!-- 密码 -->
+      <div class="form-group">
+        <text class="form-label">访问密码</text>
+        <input class="form-input" type="password" placeholder="6位数字密码" maxlength="6" value="{{ passwordInput }}" onchange="onPasswordChange" />
+      </div>
+
+      <div class="join-btn" onclick="handleJoin">
+        <text class="join-btn-text">{{ joining ? '加入中...' : '加入家庭组' }}</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import $utils from '../../helper/utils'
+import userIdentity from '../../helper/userIdentity'
+import familyAPI from '../../helper/apis/family'
+
+export default {
+  private: {
+    hasNickname: false,
+    nickname: '',
+    familyIdInput: '',
+    passwordInput: '',
+    joining: false,
+  },
+
+  async onInit() {
+    this.$page.setTitleBar({ text: '加入家庭组' })
+    await userIdentity.initUserId()
+    await userIdentity.initNickname()
+    this.hasNickname = !!userIdentity.getNickname()
+    this.nickname = userIdentity.getNickname()
+  },
+
+  onNicknameChange(e) {
+    this.nickname = e.value || e.text || ''
+  },
+
+  onFamilyIdChange(e) {
+    this.familyIdInput = (e.value || e.text || '').toUpperCase()
+  },
+
+  onPasswordChange(e) {
+    this.passwordInput = e.value || e.text || ''
+  },
+
+  async handleJoin() {
+    // 校验昵称
+    if (!this.hasNickname && !this.nickname.trim()) {
+      $utils.showToast('请输入昵称')
+      return
+    }
+
+    // 校验家庭组 ID
+    if (!this.familyIdInput || this.familyIdInput.length !== 8) {
+      $utils.showToast('请输入8位家庭组 ID')
+      return
+    }
+
+    // 校验密码
+    if (!this.passwordInput || this.passwordInput.length !== 6) {
+      $utils.showToast('请输入6位密码')
+      return
+    }
+
+    this.joining = true
+    try {
+      // 如果没有昵称，先注册
+      if (!this.hasNickname) {
+        await familyAPI.register(this.nickname.trim())
+        userIdentity.setNickname(this.nickname.trim())
+      }
+
+      // 加入家庭组
+      await familyAPI.joinGroup(
+        this.familyIdInput,
+        this.passwordInput,
+        this.nickname || userIdentity.getNickname(),
+      )
+
+      $utils.showToast('加入成功！')
+      // 返回上一页
+      this.$app && this.$app.back && this.$app.back()
+    } catch (e) {
+      const msg = (e && e.detail) || (e && e.message) || '加入失败，请检查 ID 和密码'
+      $utils.showToast(msg)
+    } finally {
+      this.joining = false
+    }
+  },
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f5ebe0;
+  padding: 30px 24px;
+}
+
+.card {
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 30px 24px;
+}
+
+.card-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 8px;
+}
+
+.card-desc {
+  font-size: 26px;
+  color: #9a8b7a;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.form-label {
+  font-size: 26px;
+  color: #9a8b7a;
+  margin-bottom: 8px;
+}
+
+.form-input {
+  height: 64px;
+  border: 1px solid #d4c8b8;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 30px;
+  color: #4a3728;
+  letter-spacing: 4px;
+}
+
+.join-btn {
+  background-color: #d4874b;
+  border-radius: 16px;
+  padding: 22px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.join-btn-text {
+  font-size: 30px;
+  color: #ffffff;
+  font-weight: 600;
+}
+</style>

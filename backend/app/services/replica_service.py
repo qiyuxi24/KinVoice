@@ -1,5 +1,5 @@
 """
-音色克隆服务
+音色克隆服务 —— vivo 声音复刻接口
 """
 import httpx
 from app.config import settings
@@ -85,7 +85,7 @@ async def delete_vcn(vcn: str) -> dict:
         if result.get("error_code") != 0:
             raise RuntimeError(f"删除音色失败: {result}")
         return result
-    
+
 
 def convert_audio_to_standard(audio_bytes: bytes) -> bytes:
     """

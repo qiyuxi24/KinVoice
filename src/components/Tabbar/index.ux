@@ -1,0 +1,102 @@
+<!--
+  全局底部导航栏组件
+  注册在 app.ux 中，所有页面共享，无需各页面重复编写
+
+  工作原理：
+    各页面在 onShow() 中设置 global.$activeTab = 'companion' | 'breakIce' | ...
+    Tabbar 组件读取 global.$activeTab 来高亮当前 tab
+-->
+<template>
+  <div class="tabbar">
+    <div
+      class="tab-item {{ $activeTab === tab.key ? 'tab-active' : '' }}"
+      for="{{ tabs }}"
+      onclick="onTabClick({{ tab.key }})"
+    >
+      <text class="tab-icon">{{ tab.icon }}</text>
+      <text class="tab-label">{{ tab.label }}</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import { TABS, onTabChange } from '../../helper/tabbar'
+
+export default {
+  private: {
+    tabs: TABS,
+    /** 当前活跃 tab，从 global.$activeTab 读取 */
+    $activeTab: 'companion',
+  },
+
+  onInit() {
+    this._watchTimer = null
+    this._startWatch()
+  },
+
+  onDestroy() {
+    if (this._watchTimer) {
+      clearInterval(this._watchTimer)
+      this._watchTimer = null
+    }
+  },
+
+  /**
+   * 轮询 global.$activeTab 变化
+   * 快应用组件间通信最简单的方式就是通过 global 对象
+   */
+  _startWatch() {
+    // 初始同步
+    if (global.$activeTab && global.$activeTab !== this.$activeTab) {
+      this.$activeTab = global.$activeTab
+    }
+    // 定时检查（200ms 间隔足够）
+    this._watchTimer = setInterval(() => {
+      const cur = global.$activeTab
+      if (cur && cur !== this.$activeTab) {
+        this.$activeTab = cur
+      }
+    }, 200)
+  },
+
+  onTabClick(key) {
+    onTabChange(this.$activeTab, key)
+  },
+}
+</script>
+
+<style>
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #f0e8df;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>
