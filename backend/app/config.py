@@ -12,6 +12,7 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+<<<<<<< HEAD
 
     # 应用基础配置
     APP_NAME: str = "KinVoice"
@@ -28,6 +29,31 @@ class Settings(BaseSettings):
 
     # 数据库
     database_url: str = "sqlite+aiosqlite:///./data/kinvoice.db"
+
+    # 日志
+    LOG_LEVEL: str = "INFO"
+
+    # vivo TTS
+    tts_app_id: str = ""
+    tts_app_key: str = ""
+=======
+>>>>>>> si
+
+    # 应用基础配置
+    APP_NAME: str = "KinVoice"
+    # 用 str 类型避免与系统环境变量 DEBUG=release 冲突
+    DEBUG: str = "true"
+
+    # CORS 允许的前端地址
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+
+    # 大模型配置
+    llm_api_key: str = ""       # 模型接口密钥
+    llm_api_base: str = ""      # 模型接口根地址
+    llm_model: str = ""         # 模型名称
+
+    # 数据库（留空则自动用 session.py 计算的绝对路径）
+    database_url: str = ""
 
     # 日志
     LOG_LEVEL: str = "INFO"

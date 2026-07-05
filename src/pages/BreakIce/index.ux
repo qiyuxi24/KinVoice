@@ -9,10 +9,17 @@
     <!-- Tab 切换 -->
     <div class="tab-bar">
       <div class="tab-item {{ activeTab === 'private' ? 'tab-active' : '' }}" onclick="switchTab('private')">
+<<<<<<< HEAD
         <text class="tab-text {{ activeTab === 'private' ? 'tab-text-active' : '' }}">私聊</text>
       </div>
       <div class="tab-item {{ activeTab === 'group' ? 'tab-active' : '' }}" onclick="switchTab('group')">
         <text class="tab-text {{ activeTab === 'group' ? 'tab-text-active' : '' }}">群聊</text>
+=======
+        <text class="tab-text">私聊</text>
+      </div>
+      <div class="tab-item {{ activeTab === 'group' ? 'tab-active' : '' }}" onclick="switchTab('group')">
+        <text class="tab-text">群聊</text>
+>>>>>>> si
       </div>
     </div>
 
@@ -126,7 +133,10 @@ export default {
     members: [],
     myUserId: '',
     loading: true,
+<<<<<<< HEAD
     _loading: false,
+=======
+>>>>>>> si
     // 聊天预览（最后一条消息）
     privatePreviews: {},  // { peer_user_id: "最后一条消息内容" }
     groupPreview: '',
@@ -138,16 +148,24 @@ export default {
     this.isActive = true
     this.myUserId = await userIdentity.initUserId()
     await userIdentity.initNickname()
+<<<<<<< HEAD
     // onInit 完成后立即加载数据（此时 myUserId 已就绪）
+=======
+>>>>>>> si
     await this.loadFamilyData()
   },
 
   onShow() {
     this.isActive = true
+<<<<<<< HEAD
     // 从其他页面返回时刷新（此时 myUserId 已在 onInit 中初始化完毕）
     if (this.myUserId && !this._loading) {
       this.loadFamilyData()
     }
+=======
+    // 每次回到页面刷新数据
+    this.loadFamilyData()
+>>>>>>> si
   },
 
   onHide() {
@@ -161,7 +179,10 @@ export default {
   // ==================== 数据加载 ====================
 
   async loadFamilyData() {
+<<<<<<< HEAD
     this._loading = true
+=======
+>>>>>>> si
     this.loading = true
     try {
       const res = await familyAPI.getMyGroup()
@@ -179,7 +200,10 @@ export default {
       console.log('加载家庭组数据失败:', e)
     } finally {
       this.loading = false
+<<<<<<< HEAD
       this._loading = false
+=======
+>>>>>>> si
     }
   },
 
@@ -406,7 +430,11 @@ export default {
 .chat-preview {
   font-size: 24px;
   color: #9a8b7a;
+<<<<<<< HEAD
   lines: 1;
+=======
+  max-lines: 1;
+>>>>>>> si
   text-overflow: ellipsis;
 }
 
@@ -458,6 +486,10 @@ export default {
 }
 
 .tab-active .tab-label {
+<<<<<<< HEAD
     color: #ffffff;
+=======
+  color: #d4874b;
+>>>>>>> si
 }
 </style>

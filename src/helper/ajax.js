@@ -7,6 +7,10 @@
 import $fetch from '@system.fetch'
 import $utils from './utils'
 import { getErrorInfo, mapDetailToCode, httpStatusToCode, fetchErrorToCode } from './errorCodes'
+<<<<<<< HEAD
+=======
+import userIdentity from './userIdentity'
+>>>>>>> si
 
 const TIMEOUT = 20000
 
@@ -81,6 +85,15 @@ function fetchPromise(params) {
       header: params.header || {},
     }
 
+<<<<<<< HEAD
+=======
+    // 自动注入 X-User-Id Header（统一用户身份传递方式）
+    const uid = userIdentity.getUserId()
+    if (uid) {
+      fetchOptions.header['X-User-Id'] = uid
+    }
+
+>>>>>>> si
     // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
     // 快应用 @system.fetch 对 data 的自动处理行为不一致，
     // 有的版本会转成 form-urlencoded 导致 FastAPI 收到非 JSON body → 422

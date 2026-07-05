@@ -30,16 +30,16 @@ copy .env.example .env
 # 4. 初始化数据库
 python init_db.py
 
-# 5. 启动服务
-uvicorn app.main:app --reload --port 8000
+# 5. 启动服务（⚠️ 默认 8000 端口会被 QuickApp Studio 占用，请改用 8001）
+uvicorn app.main:app --reload --port 8001
 ```
 
 ## API 文档
 
 启动后访问：
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:8001/docs
+- ReDoc: http://localhost:8001/redoc
 
 ## 接口列表
 

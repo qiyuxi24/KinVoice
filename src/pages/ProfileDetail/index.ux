@@ -4,6 +4,7 @@
     <div class="header">
       <div class="header-top" onclick="goBack">
         <text class="back-icon">‹</text>
+<<<<<<< HEAD
         <text class="header-title">用户档案</text>
       </div>
       <text class="header-desc">记录家庭成员的故事与记忆</text>
@@ -25,6 +26,29 @@
         <div class="card-right">
           <text class="edit-btn" onclick="editProfile(item, $event)">✏️</text>
           <text class="delete-btn" onclick="deleteProfile(item, $event)">🗑️</text>
+=======
+        <text class="header-title">我的文档</text>
+      </div>
+      <text class="header-desc">记录想法、笔记与重要信息</text>
+    </div>
+
+    <!-- 文档列表 -->
+    <div class="doc-list" if="documents.length > 0">
+      <div class="doc-card" for="(index, item) in documents" onclick="viewDocument(item)">
+        <div class="card-body">
+          <text class="card-name">{{ item.name }}</text>
+          <!-- 标签 -->
+          <div class="tags-row" if="item.tags">
+            <text class="tag-chip" for="(ti, tag) in splitTags(item.tags)">{{ tag }}</text>
+          </div>
+          <!-- 内容预览（截取前 80 字） -->
+          <text class="card-preview">{{ previewContent(item.content_md) }}</text>
+          <text class="card-time">{{ formatTime(item.updated_at) }}</text>
+        </div>
+        <div class="card-actions">
+          <text class="edit-btn" onclick="editDocument(item, $event)">✏️</text>
+          <text class="delete-btn" onclick="deleteDocument(item, $event)">🗑️</text>
+>>>>>>> si
         </div>
       </div>
     </div>
@@ -32,7 +56,11 @@
     <!-- 空状态 -->
     <div class="empty-state" elif="!loading">
       <text class="empty-icon">📋</text>
+<<<<<<< HEAD
       <text class="empty-text">还没有档案，点击下方按钮添加第一位家庭成员吧</text>
+=======
+      <text class="empty-text">还没有文档，点击下方按钮创建第一篇吧</text>
+>>>>>>> si
     </div>
 
     <!-- 加载中 -->
@@ -42,12 +70,17 @@
 
     <!-- 底部添加按钮 -->
     <div class="fab" onclick="showAddDialog">
+<<<<<<< HEAD
       <text class="fab-text">+ 添加成员</text>
+=======
+      <text class="fab-text">+ 新建文档</text>
+>>>>>>> si
     </div>
 
     <!-- ── 编辑/新增弹窗 ── -->
     <div class="modal-mask" if="showDialog" onclick="closeDialog">
       <div class="modal-body" onclick="stopBubble">
+<<<<<<< HEAD
         <text class="modal-title">{{ editingId ? '编辑档案' : '添加成员' }}</text>
 
         <!-- 姓名 -->
@@ -74,12 +107,31 @@
         <div class="form-group">
           <text class="form-label">生日</text>
           <input class="form-input" type="date" placeholder="YYYY-MM-DD" value="{{ formBirthDate }}" onchange="onBirthDateChange" />
+=======
+        <text class="modal-title">{{ editingId ? '编辑文档' : '新建文档' }}</text>
+
+        <!-- 标题 -->
+        <div class="form-group">
+          <text class="form-label">标题 *</text>
+          <input class="form-input" type="text" placeholder="请输入标题" value="{{ formName }}" onchange="onNameChange" />
+        </div>
+
+        <!-- 标签 -->
+        <div class="form-group">
+          <text class="form-label">标签（逗号分隔）</text>
+          <input class="form-input" type="text" placeholder="如：工作, 健康, 想法" value="{{ formTags }}" onchange="onTagsChange" />
+>>>>>>> si
         </div>
 
         <!-- Markdown 正文 -->
         <div class="form-group">
+<<<<<<< HEAD
           <text class="form-label">档案内容（支持 Markdown）</text>
           <textarea class="form-textarea" placeholder="用 Markdown 写下关于 ta 的故事、习惯、喜好..." onchange="onContentChange">{{ formContent }}</textarea>
+=======
+          <text class="form-label">内容（支持 Markdown）</text>
+          <textarea class="form-textarea" placeholder="用 Markdown 写下你的想法、笔记..." onchange="onContentChange">{{ formContent }}</textarea>
+>>>>>>> si
         </div>
 
         <!-- 操作按钮 -->
@@ -87,13 +139,19 @@
           <div class="btn-cancel" onclick="closeDialog">
             <text class="btn-text">取消</text>
           </div>
+<<<<<<< HEAD
           <div class="btn-confirm" onclick="saveProfile">
             <text class="btn-text btn-text-white">{{ editingId ? '保存修改' : '添加' }}</text>
+=======
+          <div class="btn-confirm" onclick="saveDocument">
+            <text class="btn-text btn-text-white">{{ editingId ? '保存修改' : '创建' }}</text>
+>>>>>>> si
           </div>
         </div>
       </div>
     </div>
 
+<<<<<<< HEAD
     <!-- ── 查看档案详情弹窗 ── -->
     <div class="modal-mask" if="showDetail" onclick="closeDetail">
       <div class="detail-body" onclick="stopBubble">
@@ -101,11 +159,27 @@
           <text class="detail-name">{{ viewingProfile.name }}</text>
           <text class="detail-relation">{{ viewingProfile.relation }}</text>
           <text class="detail-birth" if="viewingProfile.birth_date">🎂 {{ viewingProfile.birth_date }}</text>
+=======
+    <!-- ── 查看文档详情弹窗 ── -->
+    <div class="modal-mask" if="showDetail" onclick="closeDetail">
+      <div class="detail-body" onclick="stopBubble">
+        <div class="detail-header">
+          <text class="detail-name">{{ viewingDocument.name }}</text>
+          <!-- 标签 -->
+          <div class="detail-tags-row" if="viewingDocument.tags">
+            <text class="tag-chip" for="(ti, tag) in splitTags(viewingDocument.tags)">{{ tag }}</text>
+          </div>
+          <text class="detail-time" if="viewingDocument.updated_at">{{ formatTime(viewingDocument.updated_at) }}</text>
+>>>>>>> si
         </div>
         <div class="detail-divider"></div>
         <!-- Markdown 渲染区 -->
         <div class="detail-content">
+<<<<<<< HEAD
           <richtext class="md-render">{{ viewingProfile.content_md || '暂无详细内容' }}</richtext>
+=======
+          <richtext class="md-render">{{ viewingDocument.content_md || '暂无内容' }}</richtext>
+>>>>>>> si
         </div>
         <div class="detail-close" onclick="closeDetail">
           <text class="detail-close-text">关闭</text>
@@ -121,7 +195,11 @@ import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import $apis from '../../helper/apis'
 
+<<<<<<< HEAD
 const CACHE_KEY = 'kinvoice_profiles'
+=======
+const CACHE_KEY = 'kinvoice_documents'
+>>>>>>> si
 
 /** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
 function checkActive(vm) {
@@ -130,6 +208,7 @@ function checkActive(vm) {
 
 export default {
   private: {
+<<<<<<< HEAD
     profiles: [],           // 档案列表
     loading: true,
     showDialog: false,      // 编辑弹窗
@@ -144,6 +223,21 @@ export default {
     viewingProfile: {},
     isActive: false,
     loadingProfiles: false  // 防抖：防止 loadProfiles 并发
+=======
+    documents: [],          // 文档列表
+    loading: true,
+    showDialog: false,      // 编辑弹窗
+    editingId: null,        // 编辑中的文档 id（null = 新增模式）
+    // 表单字段
+    formName: '',
+    formTags: '',
+    formContent: '',
+    // 查看详情
+    showDetail: false,
+    viewingDocument: {},
+    isActive: false,
+    loadingDocuments: false  // 防抖：防止 loadDocuments 并发
+>>>>>>> si
   },
 
   onInit() {
@@ -153,7 +247,11 @@ export default {
 
   onShow() {
     this.isActive = true
+<<<<<<< HEAD
     this.loadProfiles()
+=======
+    this.loadDocuments()
+>>>>>>> si
   },
 
   onHide() {
@@ -164,16 +262,56 @@ export default {
     this.isActive = false
   },
 
+<<<<<<< HEAD
   // ── 数据加载 ──
   async loadProfiles() {
     if (!checkActive(this)) return
     // 防抖：防止快速切页导致的并发请求堆积
     if (this.loadingProfiles) return
     this.loadingProfiles = true
+=======
+  // ── 工具方法 ──
+
+  /** 按逗号拆分标签，去空格、去空串 */
+  splitTags(tagsStr) {
+    if (!tagsStr) return []
+    return tagsStr.split(',').map(t => t.trim()).filter(Boolean)
+  },
+
+  /** 内容预览：截取前 80 字符 */
+  previewContent(md) {
+    if (!md) return '暂无内容'
+    // 去掉 Markdown 标记符号，取纯文本预览
+    const plain = md.replace(/[#*_~`>\[\]()!-]/g, '').replace(/\s+/g, ' ').trim()
+    return plain.length > 80 ? plain.slice(0, 80) + '...' : plain
+  },
+
+  /** 格式化时间 */
+  formatTime(isoStr) {
+    if (!isoStr) return ''
+    try {
+      const d = new Date(isoStr)
+      const y = d.getFullYear()
+      const m = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${y}-${m}-${day}`
+    } catch (e) {
+      return isoStr.slice(0, 10)
+    }
+  },
+
+  // ── 数据加载 ──
+
+  async loadDocuments() {
+    if (!checkActive(this)) return
+    if (this.loadingDocuments) return
+    this.loadingDocuments = true
+>>>>>>> si
     this.loading = true
 
     try {
       const result = await $apis.profiles.list()
+<<<<<<< HEAD
       const profiles = (result && result.profiles) ? result.profiles : []
       if (!checkActive(this)) return
       this.profiles = profiles
@@ -181,12 +319,24 @@ export default {
       this.saveToLocal(profiles)
     } catch (e) {
       console.warn('从后端加载档案失败，尝试本地缓存:', e)
+=======
+      const docs = (result && result.profiles) ? result.profiles : []
+      if (!checkActive(this)) return
+      this.documents = docs
+      this.saveToLocal(docs)
+    } catch (e) {
+      console.warn('从后端加载文档失败，尝试本地缓存:', e)
+>>>>>>> si
       if (!checkActive(this)) return
       this.loadFromLocal()
     } finally {
       if (checkActive(this)) {
         this.loading = false
+<<<<<<< HEAD
         this.loadingProfiles = false
+=======
+        this.loadingDocuments = false
+>>>>>>> si
       }
     }
   },
@@ -199,46 +349,81 @@ export default {
         if (!checkActive(this)) return
         try {
           const data = JSON.parse(res)
+<<<<<<< HEAD
           this.profiles = data || []
         } catch (e) {
           this.profiles = []
+=======
+          this.documents = data || []
+        } catch (e) {
+          this.documents = []
+>>>>>>> si
         }
       },
       fail: () => {
         if (checkActive(this)) {
+<<<<<<< HEAD
           this.profiles = []
+=======
+          this.documents = []
+>>>>>>> si
         }
       },
     })
   },
 
+<<<<<<< HEAD
   saveToLocal(profiles) {
     storage.set({
       key: CACHE_KEY,
       value: JSON.stringify(profiles),
       success: () => {},
       fail: (e) => console.warn('缓存档案失败:', e),
+=======
+  saveToLocal(docs) {
+    storage.set({
+      key: CACHE_KEY,
+      value: JSON.stringify(docs),
+      success: () => {},
+      fail: (e) => console.warn('缓存文档失败:', e),
+>>>>>>> si
     })
   },
 
   // ── 弹窗控制 ──
+<<<<<<< HEAD
+=======
+
+>>>>>>> si
   showAddDialog() {
     if (!checkActive(this)) return
     this.editingId = null
     this.formName = ''
+<<<<<<< HEAD
     this.formRelation = '家人'
     this.formBirthDate = ''
+=======
+    this.formTags = ''
+>>>>>>> si
     this.formContent = ''
     this.showDialog = true
   },
 
+<<<<<<< HEAD
   editProfile(item, e) {
+=======
+  editDocument(item, e) {
+>>>>>>> si
     if (!checkActive(this)) return
     if (e) e.stopPropagation && e.stopPropagation()
     this.editingId = item.id
     this.formName = item.name || ''
+<<<<<<< HEAD
     this.formRelation = item.relation || '家人'
     this.formBirthDate = item.birth_date || ''
+=======
+    this.formTags = item.tags || ''
+>>>>>>> si
     this.formContent = item.content_md || ''
     this.showDialog = true
   },
@@ -254,23 +439,39 @@ export default {
   },
 
   // ── 查看详情 ──
+<<<<<<< HEAD
   viewProfile(item) {
     if (!checkActive(this)) return
     this.viewingProfile = item
+=======
+
+  viewDocument(item) {
+    if (!checkActive(this)) return
+    this.viewingDocument = item
+>>>>>>> si
     this.showDetail = true
   },
 
   closeDetail() {
     if (!checkActive(this)) return
     this.showDetail = false
+<<<<<<< HEAD
     this.viewingProfile = {}
   },
 
   // ── 表单字段绑定 ──
+=======
+    this.viewingDocument = {}
+  },
+
+  // ── 表单字段绑定 ──
+
+>>>>>>> si
   onNameChange(e) {
     if (!checkActive(this)) return
     this.formName = e.value || e.text || ''
   },
+<<<<<<< HEAD
   onRelationChange(e) {
     if (!checkActive(this)) return
     const val = e.value || (e.newSelected !== undefined ? e.newSelected : '')
@@ -279,6 +480,11 @@ export default {
   onBirthDateChange(e) {
     if (!checkActive(this)) return
     this.formBirthDate = e.value || e.text || ''
+=======
+  onTagsChange(e) {
+    if (!checkActive(this)) return
+    this.formTags = e.value || e.text || ''
+>>>>>>> si
   },
   onContentChange(e) {
     if (!checkActive(this)) return
@@ -286,23 +492,37 @@ export default {
   },
 
   // ── 保存（新增/编辑）──
+<<<<<<< HEAD
   async saveProfile() {
     if (!checkActive(this)) return
     const name = (this.formName || '').trim()
     if (!name) {
       $utils.showToast('请输入姓名')
+=======
+
+  async saveDocument() {
+    if (!checkActive(this)) return
+    const name = (this.formName || '').trim()
+    if (!name) {
+      $utils.showToast('请输入标题')
+>>>>>>> si
       return
     }
 
     const payload = {
       name: name,
+<<<<<<< HEAD
       relation: this.formRelation || '家人',
       birth_date: this.formBirthDate || null,
+=======
+      tags: (this.formTags || '').trim(),
+>>>>>>> si
       content_md: this.formContent || '',
     }
 
     try {
       if (this.editingId) {
+<<<<<<< HEAD
         // 更新
         await $apis.profiles.update(this.editingId, payload)
         if (!checkActive(this)) return
@@ -318,6 +538,21 @@ export default {
       await this.loadProfiles()
     } catch (e) {
       console.error('保存档案失败:', e)
+=======
+        await $apis.profiles.update(this.editingId, payload)
+        if (!checkActive(this)) return
+        $utils.showToast('文档已更新')
+      } else {
+        await $apis.profiles.create(payload)
+        if (!checkActive(this)) return
+        $utils.showToast('文档已创建')
+      }
+      if (!checkActive(this)) return
+      this.closeDialog()
+      await this.loadDocuments()
+    } catch (e) {
+      console.error('保存文档失败:', e)
+>>>>>>> si
       if (checkActive(this)) {
         $utils.showToast('保存失败，请检查网络')
       }
@@ -325,16 +560,28 @@ export default {
   },
 
   // ── 删除 ──
+<<<<<<< HEAD
   async deleteProfile(item, e) {
+=======
+
+  async deleteDocument(item, e) {
+>>>>>>> si
     if (!checkActive(this)) return
     if (e) e.stopPropagation && e.stopPropagation()
     try {
       await $apis.profiles.remove(item.id)
       if (!checkActive(this)) return
+<<<<<<< HEAD
       $utils.showToast('档案已删除')
       await this.loadProfiles()
     } catch (e) {
       console.error('删除档案失败:', e)
+=======
+      $utils.showToast('文档已删除')
+      await this.loadDocuments()
+    } catch (e) {
+      console.error('删除文档失败:', e)
+>>>>>>> si
       if (checkActive(this)) {
         $utils.showToast('删除失败，请检查网络')
       }
@@ -342,6 +589,10 @@ export default {
   },
 
   // ── 返回 ──
+<<<<<<< HEAD
+=======
+
+>>>>>>> si
   goBack() {
     if (!checkActive(this)) return
     safeBack()
@@ -387,6 +638,7 @@ export default {
 }
 
 /* ── 列表 ── */
+<<<<<<< HEAD
 .profile-list {
   flex-direction: column;
   padding: 16px 24px;
@@ -394,12 +646,22 @@ export default {
 .profile-card {
   flex-direction: row;
   align-items: center;
+=======
+.doc-list {
+  flex-direction: column;
+  padding: 16px 24px;
+}
+.doc-card {
+  flex-direction: row;
+  align-items: flex-start;
+>>>>>>> si
   justify-content: space-between;
   background-color: #ffffff;
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 12px;
 }
+<<<<<<< HEAD
 .card-left {
   flex-direction: row;
   align-items: center;
@@ -423,11 +685,18 @@ export default {
   flex-direction: column;
   margin-left: 20px;
 }
+=======
+.card-body {
+  flex-direction: column;
+  flex: 1;
+}
+>>>>>>> si
 .card-name {
   font-size: 32px;
   font-weight: 600;
   color: #4a3728;
 }
+<<<<<<< HEAD
 .card-relation {
   font-size: 24px;
   color: #9a8b7a;
@@ -441,6 +710,38 @@ export default {
 .card-right {
   flex-direction: row;
   align-items: center;
+=======
+.tags-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.tag-chip {
+  font-size: 20px;
+  color: #ffffff;
+  background-color: #8ab4c9;
+  border-radius: 8px;
+  padding: 4px 10px;
+  margin-right: 8px;
+  margin-bottom: 4px;
+}
+.card-preview {
+  font-size: 24px;
+  color: #9a8b7a;
+  margin-top: 8px;
+  line-height: 36px;
+  max-lines: 2;
+}
+.card-time {
+  font-size: 20px;
+  color: #b8a99a;
+  margin-top: 8px;
+}
+.card-actions {
+  flex-direction: row;
+  align-items: center;
+  margin-left: 12px;
+>>>>>>> si
 }
 .edit-btn {
   font-size: 36px;
@@ -546,6 +847,7 @@ export default {
   border: 1px solid #e0d6cc;
   border-radius: 10px;
 }
+<<<<<<< HEAD
 .form-select {
   height: 72px;
   padding: 0 16px;
@@ -554,6 +856,8 @@ export default {
   border: 1px solid #e0d6cc;
   border-radius: 10px;
 }
+=======
+>>>>>>> si
 .form-textarea {
   height: 240px;
   padding: 16px;
@@ -617,6 +921,7 @@ export default {
   font-weight: 600;
   color: #4a3728;
 }
+<<<<<<< HEAD
 .detail-relation {
   font-size: 26px;
   color: #9a8b7a;
@@ -626,6 +931,18 @@ export default {
   font-size: 24px;
   color: #8ab4c9;
   margin-top: 4px;
+=======
+.detail-tags-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+.detail-time {
+  font-size: 22px;
+  color: #8ab4c9;
+  margin-top: 6px;
+>>>>>>> si
 }
 .detail-divider {
   height: 1px;
@@ -634,7 +951,10 @@ export default {
 }
 .detail-content {
   max-height: 420px;
+<<<<<<< HEAD
   /* overflow-y 快应用不支持，用 scroll 代替 */
+=======
+>>>>>>> si
   padding: 8px 0;
 }
 .md-render {

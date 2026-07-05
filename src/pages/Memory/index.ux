@@ -1,8 +1,13 @@
 <template>
   <div class="page">
     <div class="header">
+<<<<<<< HEAD
       <text class="page-title">📚 家庭记忆库</text>
       <text class="page-subtitle">代代相传的专属回忆与智慧 💕</text>
+=======
+      <text class="page-title">📚 传承</text>
+      <text class="page-subtitle">家族记忆，随手保存</text>
+>>>>>>> si
     </div>
 
     <div class="category-tabs">
@@ -33,22 +38,34 @@
     </div>
 
     <div class="section-header">
+<<<<<<< HEAD
       <text class="section-title">[{{ activeCategory }}] 相关记录 ✨</text>
       <div class="add-btn" onclick="showModal">
         <text class="add-icon">+</text>
         <text class="add-text">录入新经验</text>
+=======
+      <text class="section-title">{{ activeCategory }}</text>
+      <div class="add-btn" onclick="showModal">
+        <text class="add-icon">+</text>
+        <text class="add-text">新经验</text>
+>>>>>>> si
       </div>
     </div>
 
     <div class="content-scroll">
       <div class="card-list">
         <div class="memory-card" for="(index, item) in currentCards">
+<<<<<<< HEAD
           <div class="card-left">
+=======
+          <div class="card-header">
+>>>>>>> si
             <div class="card-tag">
               <text class="tag-text">#{{ item.tag }}</text>
             </div>
             <text class="card-date">{{ item.date }}</text>
           </div>
+<<<<<<< HEAD
           <div class="card-center">
             <text class="card-title">{{ item.title }}</text>
           </div>
@@ -65,6 +82,19 @@
             </div>
             <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
               <text class="action-icon">🗑️</text>
+=======
+          <text class="card-title">{{ item.title }}</text>
+          <text class="card-content">{{ item.content }}</text>
+          <div class="card-footer">
+            <text class="author-text">👤 {{ item.author }}</text>
+            <div class="card-actions">
+              <div class="action-btn edit-btn" onclick="editCard(item, index)">
+                <text class="action-icon">✏️</text>
+              </div>
+              <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
+                <text class="action-icon">🗑️</text>
+              </div>
+>>>>>>> si
             </div>
           </div>
         </div>
@@ -78,7 +108,11 @@
       </div>
       <div class="tab-item" onclick="goBreakIce">
         <text class="tab-icon">💬</text>
+<<<<<<< HEAD
         <text class="tab-label">聊天</text>
+=======
+        <text class="tab-label">破冰</text>
+>>>>>>> si
       </div>
       <div class="tab-item tab-active">
         <text class="tab-icon">📚</text>
@@ -100,7 +134,11 @@
         </div>
         
         <div class="modal-body">
+<<<<<<< HEAD
           <text class="form-label">🏷️ 所属分类</text>
+=======
+          <text class="form-label">分类</text>
+>>>>>>> si
           <div class="category-options">
             <div 
               class="category-option option-first {{ formData.category === '人生阅历' ? 'option-active' : '' }}" 
@@ -128,6 +166,7 @@
             </div>
           </div>
 
+<<<<<<< HEAD
           <text class="form-label">📛 卡片标题</text>
           <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
 
@@ -140,6 +179,20 @@
 
         <div class="modal-submit" onclick="saveCard">
           <text>{{ editMode ? '✅ 保存修改' : '✅ 保存留存' }}</text>
+=======
+          <text class="form-label">标题</text>
+          <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
+
+          <text class="form-label">内容</text>
+          <textarea class="form-textarea" placeholder="记录下你的故事或感悟" onchange="onContentChange">{{ formData.content }}</textarea>
+
+          <text class="form-label">作者</text>
+          <input class="form-input" type="text" placeholder="谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
+        </div>
+
+        <div class="modal-submit" onclick="saveCard">
+          <text>保存</text>
+>>>>>>> si
         </div>
       </div>
     </div>
@@ -734,7 +787,12 @@ export default {
 }
 
 .tab-active {
+<<<<<<< HEAD
   background-color: #d4874b;
+=======
+  background-color: #a8c5d9;
+  color: #fff;
+>>>>>>> si
 }
 
 .section-header {
@@ -748,6 +806,7 @@ export default {
 .section-title {
   font-size: 28px;
   font-weight: 600;
+<<<<<<< HEAD
   color: #4a3728;
 }
 
@@ -1035,4 +1094,249 @@ export default {
   align-items: center;
   justify-content: center;
 }
+=======
+    color: #3d3025;
+  }
+
+  .add-btn {
+    flex-direction: row;
+    align-items: center;
+    height: 52px;
+    padding: 0 18px;
+    background-color: #d1d3d7;
+    border-radius: 26px;
+  }
+
+  .add-icon {
+    font-size: 28px;
+    color: #6f8da2;
+    margin-right: 6px;
+  }
+
+  .add-text {
+    font-size: 22px;
+    color: #6f8da2;
+  }
+
+  .memory-card {
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    flex-direction: column;
+    border-left: 4px solid #a8c5d9;
+    box-shadow: 0 10px 24px rgba(74, 55, 40, 0.06);
+  }
+
+  .card-header,
+  .card-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .card-tag {
+    background-color: #e8f0f5;
+    border-radius: 12px;
+    padding: 6px 12px;
+  }
+
+  .tag-text {
+    font-size: 20px;
+    color: #6f8da2;
+  }
+
+  .card-date {
+    font-size: 18px;
+    color: #b0a293;
+  }
+
+  .card-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #3d3025;
+    margin-bottom: 12px;
+  }
+
+  .author-text {
+    font-size: 20px;
+    color: #8a9caf;
+  }
+
+  .card-content {
+    font-size: 24px;
+    color: #5f503f;
+    line-height: 32px;
+    margin-bottom: 14px;
+  }
+
+  .card-actions {
+    flex-direction: row;
+  }
+
+  .action-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    margin-left: 8px;
+  }
+
+  .edit-btn {
+    background-color: #e8f0f5;
+  }
+
+  .delete-btn {
+    background-color: #f5e8e8;
+  }
+
+  .action-icon {
+    font-size: 24px;
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90px;
+    background-color: #fff;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .tab-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+  }
+
+  .tab-icon {
+    font-size: 36px;
+  }
+
+  .tab-label {
+    font-size: 22px;
+    color: #9a8b7a;
+    margin-top: 4px;
+  }
+
+  .tab-active .tab-label {
+    color: #d4874b;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .modal-content {
+    width: 100%;
+    background-color: #fff;
+    border-radius: 32px 32px 0 0;
+    padding: 26px 24px 48px;
+    flex-direction: column;
+  }
+
+  .modal-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+
+  .modal-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #3d3025;
+  }
+
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    font-size: 36px;
+    color: #9b8f86;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-body {
+    flex-direction: column;
+  }
+
+  .form-label {
+    font-size: 24px;
+    color: #5f503f;
+    margin-top: 18px;
+  }
+
+  .category-option {
+    flex: 1;
+    height: 72px;
+    background-color: #f5f0e8;
+    border-radius: 16px;
+    font-size: 24px;
+    color: #4a3728;
+    margin-left: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .option-first {
+    margin-left: 0;
+  }
+
+  .option-active {
+    background-color: #a8c5d9;
+    color: #fff;
+  }
+
+  .form-input {
+    width: 100%;
+    height: 76px;
+    margin-top: 10px;
+    padding: 0 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
+
+  .form-textarea {
+    width: 100%;
+    min-height: 160px;
+    margin-top: 10px;
+    padding: 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
+
+  .modal-submit {
+    width: 100%;
+    height: 86px;
+    margin-top: 28px;
+    background-color: #7d9bb8;
+    border-radius: 44px;
+    font-size: 28px;
+    color: #fff;
+    font-weight: 600;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+>>>>>>> si
 </style>

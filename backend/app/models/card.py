@@ -12,7 +12,12 @@ class Conversation(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=True, comment="会话标题（取第一条消息前50字）")
+<<<<<<< HEAD
     family_id = Column(Integer, default=1)
+=======
+    user_id = Column(String(64), nullable=True, index=True, comment="AI 对话所属用户；聊天室会话为 NULL")
+    family_id = Column(String(8), default="1", comment="关联 family_groups.id，旧数据默认为 '1'")
+>>>>>>> si
     # 聊天室扩展字段（家庭组成员互聊，与 AI 对话解耦）
     type = Column(String(20), default="ai", comment="会话类型: ai(默认)/private(私聊)/group(群聊)")
     sender_id = Column(String(36), nullable=True, comment="私聊发起者 user_id")
@@ -72,7 +77,11 @@ class Card(Base):
     original_text = Column(Text, nullable=True, comment="原始用户文本（可选）")
 
     # 通用
+<<<<<<< HEAD
     family_id = Column(Integer, default=1)
+=======
+    family_id = Column(String(8), default="1", comment="关联 family_groups.id，旧数据默认为 '1'")
+>>>>>>> si
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 

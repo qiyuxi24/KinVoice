@@ -26,7 +26,11 @@ class CardCreate(BaseModel):
     conversation_id: Optional[int] = None
     message_id: Optional[int] = None
     original_text: Optional[str] = None
+<<<<<<< HEAD
     family_id: int = Field(default=1)
+=======
+    family_id: str = Field(default="1")
+>>>>>>> si
 
 
 class CardUpdate(BaseModel):
@@ -59,7 +63,11 @@ class CardOut(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     original_text: Optional[str] = None
+<<<<<<< HEAD
     family_id: int = 1
+=======
+    family_id: str = "1"
+>>>>>>> si
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

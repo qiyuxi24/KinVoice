@@ -222,10 +222,19 @@ async def get_my_group(session: AsyncSession, user_id: str) -> dict:
 
 async def get_user_family_id(session: AsyncSession, user_id: str) -> str | None:
     """
+<<<<<<< HEAD
     查询用户的 family_id（供其他模块调用）。
 
     特殊处理：user_id="1" 返回 "1"（兼容现有数据）。
     """
+=======
+    查询用户的 family_id（供 memory/chatroom 等模块调用）。
+
+    注意：family_id 现在是 String(8) 类型，与 family_groups.id 对齐。
+    旧数据（user_id="1"）返回 "1" 作为兼容路径，后续接入真实身份后移除此分支。
+    """
+    # 兼容旧数据：user_id="1" → family_id="1"（后续废弃）
+>>>>>>> si
     if user_id == "1":
         return "1"
 

@@ -572,7 +572,11 @@ export default {
    * 失败不弹 toast，不影响用户正常使用。
    */
   triggerProfileUpdate() {
+<<<<<<< HEAD
     profileAI.updateDynamic('default')
+=======
+    profileAI.updateDynamic()
+>>>>>>> si
       .then((res) => {
         console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息')
       })
@@ -620,6 +624,10 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.3);
+<<<<<<< HEAD
+=======
+  z-index: 100;
+>>>>>>> si
 }
 
 /* ========== 侧边栏 ========== */
@@ -631,6 +639,10 @@ export default {
   width: 560px;
   background-color: @morandi-white;
   flex-direction: column;
+<<<<<<< HEAD
+=======
+  z-index: 101;
+>>>>>>> si
   transition: left 0.25s ease;
 }
 
@@ -672,6 +684,10 @@ export default {
 .sidebar-list {
   flex: 1;
   flex-direction: column;
+<<<<<<< HEAD
+=======
+  overflow-y: auto;
+>>>>>>> si
 }
 
 .sidebar-item {
@@ -694,7 +710,11 @@ export default {
 .sidebar-item-title {
   font-size: 26px;
   color: @morandi-text;
+<<<<<<< HEAD
   lines: 1;
+=======
+  max-lines: 1;
+>>>>>>> si
   text-overflow: ellipsis;
 }
 
@@ -934,6 +954,7 @@ export default {
   right: 0;
   bottom: 0;
   height: 90px;
+<<<<<<< HEAD
   background-color: #fff;
   flex-direction: row;
   justify-content: space-around;
@@ -950,6 +971,21 @@ export default {
   padding-left: 20px;
   border-radius: 10px;
   flex-direction: column;
+=======
+  background-color: @morandi-tabbar;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  border-top-width: 1px;
+  border-top-color: @morandi-border;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 16px;
+>>>>>>> si
 }
 
 .tab-icon {
@@ -957,6 +993,7 @@ export default {
 }
 
 .tab-label {
+<<<<<<< HEAD
   font-size: 22px;
   color: #9a8b7a;
   margin-top: 4px;
@@ -968,5 +1005,14 @@ export default {
 
 .tab-active .tab-label {
   color: #ffffff;
+=======
+  font-size: 20px;
+  color: @morandi-text-light;
+  margin-top: 2px;
+}
+
+.tab-active .tab-label {
+  color: @morandi-brown;
+>>>>>>> si
 }
 </style>
