@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <div class="header">
-      <text class="page-title">📚 家庭记忆库</text>
-      <text class="page-subtitle">代代相传的专属回忆与智慧 💕</text>
+      <text class="page-title">📚 传承</text>
+      <text class="page-subtitle">家族记忆，随手保存</text>
     </div>
 
     <div class="category-tabs">
@@ -33,38 +33,33 @@
     </div>
 
     <div class="section-header">
-      <text class="section-title">[{{ activeCategory }}] 相关记录 ✨</text>
+      <text class="section-title">{{ activeCategory }}</text>
       <div class="add-btn" onclick="showModal">
         <text class="add-icon">+</text>
-        <text class="add-text">录入新经验</text>
+        <text class="add-text">新经验</text>
       </div>
     </div>
 
     <div class="content-scroll">
       <div class="card-list">
         <div class="memory-card" for="(index, item) in currentCards">
-          <div class="card-left">
+          <div class="card-header">
             <div class="card-tag">
               <text class="tag-text">#{{ item.tag }}</text>
             </div>
             <text class="card-date">{{ item.date }}</text>
           </div>
-          <div class="card-center">
-            <text class="card-title">{{ item.title }}</text>
-          </div>
-          <div class="card-right">
-            <div class="card-author">
-              <text class="author-icon">👤</text>
-              <text class="author-text">来自 {{ item.author }}</text>
-            </div>
-            <text class="card-content">{{ item.content }}</text>
-          </div>
-          <div class="card-actions">
-            <div class="action-btn edit-btn" onclick="editCard(item, index)">
-              <text class="action-icon">✏️</text>
-            </div>
-            <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
-              <text class="action-icon">🗑️</text>
+          <text class="card-title">{{ item.title }}</text>
+          <text class="card-content">{{ item.content }}</text>
+          <div class="card-footer">
+            <text class="author-text">👤 {{ item.author }}</text>
+            <div class="card-actions">
+              <div class="action-btn edit-btn" onclick="editCard(item, index)">
+                <text class="action-icon">✏️</text>
+              </div>
+              <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
+                <text class="action-icon">🗑️</text>
+              </div>
             </div>
           </div>
         </div>
@@ -100,7 +95,7 @@
         </div>
         
         <div class="modal-body">
-          <text class="form-label">🏷️ 所属分类</text>
+          <text class="form-label">分类</text>
           <div class="category-options">
             <div 
               class="category-option option-first {{ formData.category === '人生阅历' ? 'option-active' : '' }}" 
@@ -128,18 +123,18 @@
             </div>
           </div>
 
-          <text class="form-label">📛 卡片标题</text>
+          <text class="form-label">标题</text>
           <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
 
-          <text class="form-label">📝 正文内容</text>
-          <textarea class="form-textarea" placeholder="记录下你的故事、经验或感悟..." onchange="onContentChange">{{ formData.content }}</textarea>
+          <text class="form-label">内容</text>
+          <textarea class="form-textarea" placeholder="记录下你的故事或感悟" onchange="onContentChange">{{ formData.content }}</textarea>
 
-          <text class="form-label">👤 作者</text>
-          <input class="form-input" type="text" placeholder="来自谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
+          <text class="form-label">作者</text>
+          <input class="form-input" type="text" placeholder="谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
         </div>
 
         <div class="modal-submit" onclick="saveCard">
-          <text>{{ editMode ? '✅ 保存修改' : '✅ 保存留存' }}</text>
+          <text>保存</text>
         </div>
       </div>
     </div>
@@ -749,286 +744,247 @@ export default {
 .section-title {
   font-size: 28px;
   font-weight: 600;
-  color: #4a3728;
-}
+    color: #3d3025;
+  }
 
-.add-btn {
-  flex-direction: row;
-  align-items: center;
-  height: 56px;
-  padding: 0 20px;
-  background-color: #e8e0d5;
-  border-radius: 28px;
-}
+  .add-btn {
+    flex-direction: row;
+    align-items: center;
+    height: 52px;
+    padding: 0 18px;
+    background-color: #d1d3d7;
+    border-radius: 26px;
+  }
 
-.add-icon {
-  font-size: 28px;
-  color: #7a9cb8;
-  margin-right: 6px;
-}
+  .add-icon {
+    font-size: 28px;
+    color: #6f8da2;
+    margin-right: 6px;
+  }
 
-.add-text {
-  font-size: 24px;
-  color: #7a9cb8;
-}
+  .add-text {
+    font-size: 22px;
+    color: #6f8da2;
+  }
 
-.content-scroll {
-  flex: 1;
-  padding: 0 24px;
-}
+  .memory-card {
+    background-color: #fff;
+    border-radius: 20px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+    flex-direction: column;
+    border-left: 4px solid #a8c5d9;
+    box-shadow: 0 10px 24px rgba(74, 55, 40, 0.06);
+  }
 
-.card-list {
-  flex-direction: column;
-}
+  .card-header,
+  .card-footer {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
 
-.memory-card {
-  background-color: #fff;
-  border-radius: 16px;
-  padding: 20px;
-  margin-bottom: 16px;
-  flex-direction: row;
-  border-left: 6px solid #a8c5d9;
-}
+  .card-tag {
+    background-color: #e8f0f5;
+    border-radius: 12px;
+    padding: 6px 12px;
+  }
 
-.card-left {
-  width: 100px;
-  flex-direction: column;
-  align-items: center;
-}
+  .tag-text {
+    font-size: 20px;
+    color: #6f8da2;
+  }
 
-.card-tag {
-  background-color: #e8f0f5;
-  border-radius: 12px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-}
+  .card-date {
+    font-size: 18px;
+    color: #b0a293;
+  }
 
-.tag-text {
-  font-size: 20px;
-  color: #8ab4c9;
-}
+  .card-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: #3d3025;
+    margin-bottom: 12px;
+  }
 
-.card-date {
-  font-size: 20px;
-  color: #a89a8a;
-}
+  .author-text {
+    font-size: 20px;
+    color: #8a9caf;
+  }
 
-.card-center {
-  flex: 1;
-  padding: 0 16px;
-  justify-content: center;
-}
+  .card-content {
+    font-size: 24px;
+    color: #5f503f;
+    line-height: 32px;
+    margin-bottom: 14px;
+  }
 
-.card-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: #4a3728;
-}
+  .card-actions {
+    flex-direction: row;
+  }
 
-.card-right {
-  flex: 2;
-  flex-direction: column;
-}
+  .action-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    margin-left: 8px;
+  }
 
-.card-author {
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 8px;
-}
+  .edit-btn {
+    background-color: #e8f0f5;
+  }
 
-.author-icon {
-  font-size: 22px;
-  margin-right: 6px;
-}
+  .delete-btn {
+    background-color: #f5e8e8;
+  }
 
-.author-text {
-  font-size: 22px;
-  color: #8ab4c9;
-}
+  .action-icon {
+    font-size: 24px;
+  }
 
-.card-content {
-  font-size: 26px;
-  color: #5a4a3a;
-  line-height: 32px;
-}
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 90px;
+    background-color: #fff;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
 
-.card-actions {
-  flex-direction: column;
-  justify-content: center;
-  margin-left: 8px;
-  width: 60px;
-}
+  .tab-item {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 20px;
+  }
 
-.action-btn {
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
+  .tab-icon {
+    font-size: 36px;
+  }
 
-.edit-btn {
-  background-color: #e8f0f5;
-}
+  .tab-label {
+    font-size: 22px;
+    color: #9a8b7a;
+    margin-top: 4px;
+  }
 
-.delete-btn {
-  background-color: #f5e8e8;
-}
+  .tab-active .tab-label {
+    color: #d4874b;
+  }
 
-.action-icon {
-  font-size: 24px;
-}
+  .modal-overlay {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    flex-direction: column;
+    justify-content: flex-end;
+  }
 
-.tabbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 90px;
-  background-color: #fff;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
-}
+  .modal-content {
+    width: 100%;
+    background-color: #fff;
+    border-radius: 32px 32px 0 0;
+    padding: 26px 24px 48px;
+    flex-direction: column;
+  }
 
-.tab-item {
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 20px;
-}
+  .modal-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
 
-.tab-icon {
-  font-size: 36px;
-}
+  .modal-title {
+    font-size: 30px;
+    font-weight: 600;
+    color: #3d3025;
+  }
 
-.tab-label {
-  font-size: 22px;
-  color: #9a8b7a;
-  margin-top: 4px;
-}
+  .modal-close {
+    width: 44px;
+    height: 44px;
+    font-size: 36px;
+    color: #9b8f86;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 
-.tab-active .tab-label {
-  color: #d4874b;
-}
+  .modal-body {
+    flex-direction: column;
+  }
 
-.modal-overlay {
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  flex-direction: column;
-  justify-content: flex-end;
-}
+  .form-label {
+    font-size: 24px;
+    color: #5f503f;
+    margin-top: 18px;
+  }
 
-.modal-content {
-  width: 100%;
-  background-color: #fff;
-  border-radius: 32px;
-  padding: 32px;
-  padding-bottom: 64px;
-  flex-direction: column;
-}
+  .category-option {
+    flex: 1;
+    height: 72px;
+    background-color: #f5f0e8;
+    border-radius: 16px;
+    font-size: 24px;
+    color: #4a3728;
+    margin-left: 12px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 
-.modal-header {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
+  .option-first {
+    margin-left: 0;
+  }
 
-.modal-title {
-  font-size: 36px;
-  font-weight: 600;
-  color: #4a3728;
-}
+  .option-active {
+    background-color: #a8c5d9;
+    color: #fff;
+  }
 
-.modal-close {
-  width: 56px;
-  height: 56px;
-  font-size: 48px;
-  color: #a89a8a;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+  .form-input {
+    width: 100%;
+    height: 76px;
+    margin-top: 10px;
+    padding: 0 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
 
-.modal-body {
-  flex-direction: column;
-}
+  .form-textarea {
+    width: 100%;
+    min-height: 160px;
+    margin-top: 10px;
+    padding: 18px;
+    background-color: #f6f2eb;
+    border-radius: 16px;
+    font-size: 24px;
+  }
 
-.form-label {
-  font-size: 28px;
-  color: #4a3728;
-  margin-top: 24px;
-}
-
-.category-options {
-  flex-direction: row;
-  margin-top: 12px;
-}
-
-.category-option {
-  flex: 1;
-  height: 72px;
-  background-color: #f5f0e8;
-  border-radius: 16px;
-  font-size: 24px;
-  color: #4a3728;
-  margin-left: 12px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.option-first {
-  margin-left: 0;
-}
-
-.option-active {
-  background-color: #a8c5d9;
-  color: #fff;
-}
-
-.form-input {
-  width: 100%;
-  height: 88px;
-  margin-top: 12px;
-  padding: 0 24px;
-  background-color: #f5f0e8;
-  border-radius: 16px;
-  font-size: 28px;
-  color: #4a3728;
-  placeholder-color: #b5a899;
-}
-
-.form-textarea {
-  width: 100%;
-  min-height: 200px;
-  margin-top: 12px;
-  padding: 20px 24px;
-  background-color: #f5f0e8;
-  border-radius: 16px;
-  font-size: 28px;
-  color: #4a3728;
-  placeholder-color: #b5a899;
-}
-
-.modal-submit {
-  width: 100%;
-  height: 96px;
-  margin-top: 32px;
-  background-color: #a8c5d9;
-  border-radius: 48px;
-  font-size: 32px;
-  color: #fff;
-  font-weight: 600;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+  .modal-submit {
+    width: 100%;
+    height: 86px;
+    margin-top: 28px;
+    background-color: #7d9bb8;
+    border-radius: 44px;
+    font-size: 28px;
+    color: #fff;
+    font-weight: 600;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 </style>

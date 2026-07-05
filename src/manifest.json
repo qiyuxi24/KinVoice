@@ -102,7 +102,7 @@
         "titleBarText": "我的"
       },
       "pages/ProfileDetail": {
-        "titleBarText": "用户档案"
+        "titleBarText": "我的文档"
       },
       "pages/Family": {
         "titleBarText": "家庭组"

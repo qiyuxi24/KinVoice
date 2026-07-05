@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session, AsyncSessionLocal
-from app.models.card import Card, ChatMessage
+from app.models.card import Card, ChatMessage, Conversation
 from app.schemas.memory import CardCreate, CardUpdate, CardOut, CardListOut, DeleteResponse
 from app.middleware.user_identity import get_user_id
 from app.services.family_service import get_user_family_id
@@ -96,7 +96,7 @@ async def create_card(
         payload["type"] = "nvc"
 
     # 动态注入 family_id（覆盖前端可能传的值）
-    payload["family_id"] = family_id if family_id is not None else 1
+    payload["family_id"] = family_id if family_id is not None else "1"
 
     card = Card(**payload)
     session.add(card)
@@ -197,7 +197,7 @@ async def sync_cards(
     3. 后端有但本地没有的卡片 → 返回给前端（仅限同 family_id）
     """
     family_id = await resolve_family_id(user_id)
-    resolved_fid = family_id if family_id is not None else 1
+    resolved_fid = family_id if family_id is not None else "1"
 
     # 只查询同 family_id 的卡片
     result = await session.execute(
@@ -282,17 +282,24 @@ async def favorite_message(
 ):
     """
     将一条对话消息收藏为卡片（xia 新增）
-    自动关联用户消息和 AI 回复
+    自动关联用户消息和 AI 回复，按 user_id 验证消息归属。
     """
     family_id = await resolve_family_id(user_id)
-    resolved_fid = family_id if family_id is not None else 1
+    resolved_fid = family_id if family_id is not None else "1"
 
     async with AsyncSessionLocal() as session:
-        # 查询目标消息
-        result = await session.execute(select(ChatMessage).where(ChatMessage.id == req.message_id))
+        # 查询目标消息，JOIN conversations 验证归属
+        result = await session.execute(
+            select(ChatMessage)
+            .join(Conversation, ChatMessage.conversation_id == Conversation.id)
+            .where(
+                ChatMessage.id == req.message_id,
+                Conversation.user_id == user_id,
+            )
+        )
         msg = result.scalar_one_or_none()
         if not msg:
-            raise HTTPException(status_code=404, detail="消息不存在")
+            raise HTTPException(status_code=404, detail="消息不存在或不属于当前用户")
         if msg.role != "assistant":
             raise HTTPException(status_code=400, detail="只能收藏 AI 回复")
 

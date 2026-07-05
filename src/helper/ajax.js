@@ -7,6 +7,7 @@
 import $fetch from '@system.fetch'
 import $utils from './utils'
 import { getErrorInfo, mapDetailToCode, httpStatusToCode, fetchErrorToCode } from './errorCodes'
+import userIdentity from './userIdentity'
 
 const TIMEOUT = 20000
 
@@ -79,6 +80,12 @@ function fetchPromise(params) {
       url: params.url,
       method: params.method,
       header: params.header || {},
+    }
+
+    // 自动注入 X-User-Id Header（统一用户身份传递方式）
+    const uid = userIdentity.getUserId()
+    if (uid) {
+      fetchOptions.header['X-User-Id'] = uid
     }
 
     // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
