@@ -14,11 +14,7 @@ async def get_user_id(x_user_id: str | None = Header(None, alias="X-User-Id")) -
     从请求头提取用户 ID。
 
     当前阶段不强制登录，未传则默认为 "1"（兼容现有数据）。
-<<<<<<< HEAD
     后续可改为强制要求并返回 401。
-=======
-    后续 P0#2-#4 完成后可改为强制要求并返回 401。
->>>>>>> si
     """
     if not x_user_id:
         # 兼容模式：未传 user_id 时使用默认用户

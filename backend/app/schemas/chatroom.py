@@ -11,12 +11,8 @@ from pydantic import BaseModel, Field
 # ── 发送消息 ──
 
 class SendMessageRequest(BaseModel):
-<<<<<<< HEAD
     """发送消息请求"""
     user_id: str = Field(..., description="发送者 user_id（UUID）")
-=======
-    """发送消息请求（user_id 由 X-User-Id Header 传递，不在此模型中）"""
->>>>>>> si
     conversation_id: int | None = Field(None, description="已有会话 ID，不传则新建")
     receiver_id: str | None = Field(None, description="私聊接收者 user_id（新建私聊时必传）")
     chat_type: str = Field(default="group", description="会话类型: private / group")

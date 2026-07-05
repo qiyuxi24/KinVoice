@@ -5,13 +5,8 @@ from pydantic import BaseModel, Field
 
 
 class ProfileUpdateRequest(BaseModel):
-<<<<<<< HEAD
     """AI 档案更新请求"""
     user_id: str = Field(default="default", description="用户标识")
-=======
-    """AI 档案更新请求（user_id 由 X-User-Id Header 传递，不在此模型中）"""
-    pass
->>>>>>> si
 
 
 class ProfileUpdateResponse(BaseModel):

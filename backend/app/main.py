@@ -16,10 +16,6 @@ from app.api.profile import router as profile_router
 from app.api.tts import router as tts_router
 from app.api.replica import router as replica_router
 from app.api.profile_ai import router as profile_ai_router
-<<<<<<< HEAD
-=======
-from app.api.auth import router as auth_router
->>>>>>> si
 from app.api.family import router as family_router
 from app.api.chatroom import router as chatroom_router
 
@@ -59,11 +55,7 @@ app.include_router(chat_router)
 app.include_router(memory_router)
 # 对话总结（si 保留）
 app.include_router(summarize_router)
-<<<<<<< HEAD
 # 家庭成员档案（si 保留）
-=======
-# 用户个人文档
->>>>>>> si
 app.include_router(profile_router)
 # TTS 文本转语音（xia）
 app.include_router(tts_router)
@@ -73,11 +65,6 @@ app.include_router(replica_router)
 app.include_router(profile_ai_router)
 # 家庭组管理（独立模块）
 app.include_router(family_router)
-<<<<<<< HEAD
-=======
-# 用户认证（注册/登录）
-app.include_router(auth_router)
->>>>>>> si
 # 家庭聊天室（独立模块）
 app.include_router(chatroom_router)
 
