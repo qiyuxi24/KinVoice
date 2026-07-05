@@ -4,137 +4,117 @@
       <text class="back-icon">‹</text>
       <text class="title">自定义音色</text>
     </div>
-    <!-- 录音文本展示 -->
+
     <div class="sample-box">
-      <text class="sample-text">朗读下面这句话：</text>
-      <text class="sample-content">{{ sampleText }}</text>
+      <text class="sample-label">朗读下面这句话：</text>
+      <text class="sample-text">{{ sampleText }}</text>
     </div>
 
-    <!-- 操作区 -->
     <div class="action-area">
-      <div class="btn" if="!recording && !uploading" onclick="startRecord">🎙️ 开始录音</div>
-      <div class="btn" if="recording" onclick="stopRecord">⏹ 停止录音</div>
-      <div class="btn" if="audioPath && !uploading" onclick="uploadVoice">📤 上传音色</div>
+      <div class="btn" onclick="handleRecord">
+        <text class="btn-text">🎙️ 开始录音</text>
+      </div>
     </div>
 
-    <!-- 状态提示 -->
-    <div class="status" if="uploading">
-      <text class="status-text">音色生成中，请稍候...</text>
-    </div>
-    <div class="status" if="vcn && !uploading">
-      <text class="status-text">音色创建成功！可在音色列表中查看</text>
+    <div class="tip-box">
+      <text class="tip-text">录音功能需要真机环境，模拟器暂不支持</text>
     </div>
   </div>
 </template>
 
 <script>
 import replica from '../../helper/apis/replica'
+import $utils from '../../helper/utils'
 import { safeBack } from '../../helper/navigate'
 
 export default {
   private: {
     sampleText: '欢迎来到情绪树洞',
-    recording: false,
-    audioPath: '',
-    uploading: false,
-    vcn: '',
-    pollTimer: null
   },
 
   async onInit() {
     try {
       const res = await replica.getSampleTexts()
-      if (res.samples && res.samples.length > 0) {
+      if (res && res.samples && res.samples.length > 0) {
         this.sampleText = res.samples[0]
       }
-    } catch (e) { console.log('获取文本失败', e) }
-  },
-
-  startRecord() {
-    const recorder = require('@system.recorder')
-    recorder.start({ format: 'wav', sampleRate: 24000, channel: 1 })
-    this.recording = true
-  },
-
-  stopRecord() {
-    const recorder = require('@system.recorder')
-    recorder.stop({
-      success: (res) => {
-        this.audioPath = res.uri
-        this.recording = false
-      },
-      fail: () => {
-        this.recording = false
-        this.$utils.showToast('录音失败')
-      }
-    })
-  },
-
-  async uploadVoice() {
-    if (!this.audioPath) return
-    this.uploading = true
-    try {
-      // 调用 replica.create，需传入文件 URI 和文本
-      // 由于快应用文件上传限制，此处可能不可用，暂时使用模拟
-      // const result = await replica.create(this.audioPath, this.sampleText)
-      // this.vcn = result.vcn
-      // 模拟
-      throw new Error('文件上传功能尚未实现')
     } catch (e) {
-      this.uploading = false
-      this.$utils.showToast('上传失败，请稍后重试')
+      console.log('获取示例文本失败:', e)
     }
   },
 
-  onDestroy() {
-    if (this.pollTimer) clearInterval(this.pollTimer)
+  handleRecord() {
+    $utils.showToast('录音功能需真机调试')
   },
 
-  goBack() { safeBack() }
+  goBack() {
+    safeBack()
+  }
 }
 </script>
 
-<style lang="less">
-@import '../../assets/styles/variables.less';
-
+<style>
 .page {
   flex: 1;
   flex-direction: column;
-  background-color: @bg;
-  align-items: center;
+  background-color: #e8e4df;
   padding: 30px;
 }
 .header {
   flex-direction: row;
   align-items: center;
-  width: 100%;
   margin-bottom: 40px;
 }
-.back-icon { font-size: 50px; color: @brand; margin-right: 12px; }
-.title { font-size: 38px; font-weight: 600; color: @black; }
+.back-icon {
+  font-size: 50px;
+  color: #c4b7a6;
+  margin-right: 12px;
+}
+.title {
+  font-size: 38px;
+  font-weight: 600;
+  color: #5c5c5c;
+}
 
 .sample-box {
   background-color: #ffffff;
   border-radius: 16px;
   padding: 30px;
-  width: 100%;
   margin-bottom: 40px;
 }
-.sample-text { font-size: 28px; color: #9a8b7a; margin-bottom: 12px; }
-.sample-content { font-size: 32px; color: @black; font-weight: 500; }
+.sample-label {
+  font-size: 28px;
+  color: #9a9490;
+  margin-bottom: 12px;
+}
+.sample-text {
+  font-size: 32px;
+  color: #5c5c5c;
+  font-weight: 500;
+  line-height: 44px;
+}
 
 .action-area {
+  align-items: center;
   margin-bottom: 30px;
 }
 .btn {
-  background-color: @brand;
+  background-color: #c4b7a6;
   border-radius: 12px;
-  padding: 20px 40px;
-  margin: 10px 0;
+  padding: 20px 50px;
+}
+.btn-text {
+  font-size: 30px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tip-box {
   align-items: center;
 }
-.status-text {
-  font-size: 26px;
-  color: #9a8b7a;
+.tip-text {
+  font-size: 24px;
+  color: #9a9490;
+  text-align: center;
 }
 </style>

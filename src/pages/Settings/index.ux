@@ -23,40 +23,48 @@
 import { safeBack, safePush } from '../../helper/navigate'
 
 export default {
-  goVoiceSelect() { safePush('/pages/VoiceSelect') },
-  goCustomVoice() { safePush('/pages/CustomVoice') },
-  goBack() { safeBack() }
+  goVoiceSelect() {
+    safePush('/pages/VoiceSelect')
+  },
+  goCustomVoice() {
+    safePush('/pages/CustomVoice')
+  },
+  goBack() {
+    safeBack()
+  }
 }
 </script>
 
-<style lang="less">
-@import '../../assets/styles/variables.less';
-
+<style>
 .page {
   flex: 1;
   flex-direction: column;
-  background-color: @bg;
-  padding-bottom: 180px;
+  background-color: #e8e4df;
 }
+
 .header {
   flex-direction: row;
   align-items: center;
   padding: 40px 30px 20px;
-  background-color: #fffbf7;
+  background-color: #faf8f5;
 }
+
 .back-icon {
   font-size: 50px;
-  color: @brand;
+  color: #c4b7a6;
   margin-right: 12px;
 }
+
 .header-title {
   font-size: 38px;
   font-weight: 600;
-  color: @black;
+  color: #5c5c5c;
 }
+
 .menu-list {
   padding: 24px;
 }
+
 .menu-item {
   flex-direction: row;
   align-items: center;
@@ -65,7 +73,20 @@ export default {
   padding: 24px;
   margin-bottom: 12px;
 }
-.menu-icon { font-size: 40px; }
-.menu-text { flex: 1; font-size: 30px; color: @black; margin-left: 16px; }
-.menu-arrow { font-size: 36px; color: #c9b8ad; }
+
+.menu-icon {
+  font-size: 40px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30px;
+  color: #5c5c5c;
+  margin-left: 16px;
+}
+
+.menu-arrow {
+  font-size: 36px;
+  color: #c9b8ad;
+}
 </style>

@@ -1,19 +1,17 @@
+<import src="../../components/ContextMenu/index.ux" name="context-menu"></import>
 <template>
   <div class="page">
-    <!-- ========== 侧边栏遮罩 ========== -->
+    <!-- 侧边栏遮罩 -->
     <div class="sidebar-overlay" if="showSidebar" onclick="closeSidebar"></div>
 
-    <!-- ========== 侧边栏 ========== -->
+    <!-- 侧边栏 -->
     <div class="sidebar {{ showSidebar ? 'sidebar-open' : '' }}">
-      <!-- 侧边栏头部 -->
       <div class="sidebar-header">
         <text class="sidebar-title">对话记录</text>
         <div class="sidebar-new-btn" onclick="newConversation">
           <text class="sidebar-new-icon">+</text>
         </div>
       </div>
-
-      <!-- 对话列表 -->
       <div class="sidebar-list">
         <block for="conv in conversationList">
           <div class="sidebar-item {{ conv.id === conversationId ? 'sidebar-item-active' : '' }}"
@@ -27,16 +25,14 @@
             </div>
           </div>
         </block>
-        <!-- 空状态 -->
         <div class="sidebar-empty" if="conversationList.length === 0">
           <text class="sidebar-empty-text">暂无对话记录</text>
         </div>
       </div>
     </div>
 
-    <!-- ========== 主聊天区 ========== -->
+    <!-- 主聊天区 -->
     <div class="main-area">
-      <!-- 顶部标题栏 -->
       <div class="title-bar">
         <div class="hamburger" onclick="toggleSidebar">
           <text class="hamburger-line"></text>
@@ -47,11 +43,10 @@
         <text class="title-sub">你的家庭情绪树洞</text>
       </div>
 
-      <!-- 对话消息列表 -->
+      <!-- 对话消息列表（双击弹出菜单） -->
       <div class="chat-list" id="chatList">
         <block for="(index, msg) in messages">
-          <!-- AI 消息（左对齐） -->
-          <div class="msg-row msg-ai" if="msg.role === 'assistant'">
+          <div class="msg-row msg-ai" if="msg.role === 'assistant'" onclick="handleMessageClick(index, $event)">
             <image class="msg-avatar" src="../../assets/images/logo.png" />
             <div class="msg-body">
               <div class="msg-bubble msg-bubble-ai">
@@ -59,8 +54,7 @@
               </div>
             </div>
           </div>
-          <!-- 用户消息（右对齐） -->
-          <div class="msg-row msg-user" elif="msg.role === 'user'">
+          <div class="msg-row msg-user" elif="msg.role === 'user'" onclick="handleMessageClick(index, $event)">
             <div class="msg-body">
               <div class="msg-bubble msg-bubble-user">
                 <text class="msg-text">{{ msg.content }}</text>
@@ -70,13 +64,11 @@
               <text class="avatar-placeholder">我</text>
             </div>
           </div>
-          <!-- 系统提示（居中） -->
           <div class="msg-row msg-system" else>
             <text class="msg-system-text">{{ msg.content }}</text>
           </div>
         </block>
 
-        <!-- 正在输入指示器 -->
         <div class="msg-row msg-ai" if="isThinking">
           <image class="msg-avatar" src="../../assets/images/logo.png" />
           <div class="msg-body">
@@ -85,16 +77,27 @@
             </div>
           </div>
         </div>
-
-        <!-- 底部占位 -->
         <div class="chat-bottom-spacer"></div>
       </div>
 
-      <!-- 底部输入区 -->
       <div class="bottom-input-area">
         <input class="message-input" type="text" placeholder="告诉小云你的心事吧..." value="{{ messageText }}" onchange="onMessageChange" />
         <div class="send-btn" onclick="sendMessage">
           <text class="send-icon">→</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 内联菜单（播放/删除） -->
+    <div class="context-menu-bg" if="{{contextMenu.visible}}" onclick="closeContextMenu">
+      <div class="context-menu" style="top: {{contextMenu.top}}px; left: {{contextMenu.left}}px;">
+        <div class="menu-item" onclick="handlePlayClick">
+          <text class="menu-icon">🔊</text>
+          <text class="menu-text">播放消息</text>
+        </div>
+        <div class="menu-item" onclick="handleDeleteClick">
+          <text class="menu-icon">🗑️</text>
+          <text class="menu-text">删除消息</text>
         </div>
       </div>
     </div>
@@ -125,84 +128,48 @@
 import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
+import ttsAPI from '../../helper/apis/tts'
 import profileAI from '../../helper/apis/profile_ai'
 import { safeReplace } from '../../helper/navigate'
 
-// 本地存储 key
-const CONV_ID_KEY = 'companion_conv_id'       // 当前会话 ID
-const CONV_LIST_KEY = 'companion_conv_list'   // 会话列表 [{ id, title, createdAt }]
-const CONV_MSG_PREFIX = 'conv_msgs_'          // 会话消息前缀，完整 key = conv_msgs_{id}
+const CONV_ID_KEY = 'companion_conv_id'
+const CONV_LIST_KEY = 'companion_conv_list'
+const CONV_MSG_PREFIX = 'conv_msgs_'
+const DOUBLE_CLICK_DELAY = 500
 
-/** 获取页面存活标志 */
-function checkActive(vm) {
-  return vm && vm.isActive === true
-}
-
-/** 生成本地会话 ID */
-function generateLocalId() {
-  return Date.now()
-}
-
-/** 格式化日期 */
-function formatDate(ts) {
-  const d = new Date(ts)
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}`
-}
-
-/** 截取会话标题（取第一条用户消息前20字） */
-function makeTitle(messages) {
-  const firstUser = messages.find(m => m.role === 'user')
-  if (firstUser) {
-    return firstUser.content.length > 20
-      ? firstUser.content.substring(0, 20) + '...'
-      : firstUser.content
-  }
-  return '新对话'
-}
+function checkActive(vm) { return vm && vm.isActive === true }
+function generateLocalId() { return Date.now() }
+function formatDate(ts) { const d = new Date(ts); const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const day = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${day}` }
+function makeTitle(messages) { const firstUser = messages.find(m => m.role === 'user'); if (firstUser) { return firstUser.content.length > 20 ? firstUser.content.substring(0, 20) + '...' : firstUser.content } return '新对话' }
 
 export default {
   private: {
     messageText: '',
-    // 消息列表：{ role: 'user'|'assistant'|'system', content: string }
     messages: [],
-    // 是否正在等待 AI 回复
     isThinking: false,
-    // 当前会话 ID（前端本地生成）
     conversationId: null,
-    // 侧边栏开关
     showSidebar: false,
-    // 会话列表：[{ id, title, createdAt }]
     conversationList: [],
-    // 页面存活标志
     isActive: false,
-    // 定时器句柄列表
     timers: [],
+    contextMenu: { visible: false, top: 0, left: 0, msg: null },
+    lastClickTime: 0,
+    lastClickIndex: -1,
   },
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
     this.isActive = true
-    // 1. 恢复会话列表
     this.restoreConvList()
-    // 2. 恢复当前会话 ID + 消息
     this.restoreCurrentConv()
-    // 3. 静默从后端同步（失败不影响）
     this.syncFromBackend()
   },
 
-  onShow() {
-    this.isActive = true
-  },
-
+  onShow() { this.isActive = true },
   onHide() {
     this.isActive = false
-    // 离开页面时静默触发动态档案更新（不阻塞、不弹 toast）
     this.triggerProfileUpdate()
   },
-
   onDestroy() {
     this.isActive = false
     this.clearTimers()
@@ -210,379 +177,271 @@ export default {
 
   clearTimers() {
     if (Array.isArray(this.timers)) {
-      this.timers.forEach((timer) => {
-        if (timer) clearTimeout(timer)
-      })
+      this.timers.forEach(t => { if (t) clearTimeout(t) })
     }
     this.timers = []
   },
 
-  // ==================== 本地存储：会话列表 ====================
-
-  /** 恢复会话列表 */
+  // ========== 本地存储：会话列表 ==========
   restoreConvList() {
-    if (!checkActive(this)) return
     storage.get({
       key: CONV_LIST_KEY,
       success: (data) => {
         if (!checkActive(this)) return
         if (data) {
-          try {
-            const list = JSON.parse(data)
-            if (Array.isArray(list)) {
-              this.conversationList = list
-            }
-          } catch (e) { /* ignore */ }
+          try { const list = JSON.parse(data); if (Array.isArray(list)) this.conversationList = list } catch (e) {}
         }
       },
       fail: () => {}
     })
   },
-
-  /** 持久化会话列表 */
   saveConvList() {
-    storage.set({
-      key: CONV_LIST_KEY,
-      value: JSON.stringify(this.conversationList),
-      success: () => {},
-      fail: (err) => console.log('[Companion] 保存会话列表失败:', err)
-    })
+    storage.set({ key: CONV_LIST_KEY, value: JSON.stringify(this.conversationList), success: () => {}, fail: () => {} })
   },
-
-  /** 在会话列表中新增/更新一条记录 */
   upsertConvInList(convId, title, createdAt) {
     const existing = this.conversationList.find(c => c.id === convId)
-    if (existing) {
-      existing.title = title || existing.title
-    } else {
-      this.conversationList.unshift({ id: convId, title: title || '新对话', createdAt: createdAt || formatDate(Date.now()) })
-    }
+    if (existing) { existing.title = title || existing.title }
+    else { this.conversationList.unshift({ id: convId, title: title || '新对话', createdAt: createdAt || formatDate(Date.now()) }) }
     this.saveConvList()
   },
 
-  // ==================== 本地存储：会话消息 ====================
-
-  /** 构建某个会话的消息存储 key */
-  msgKey(convId) {
-    return CONV_MSG_PREFIX + convId
-  },
-
-  /** 从本地存储加载某个会话的消息 */
+  // ========== 本地存储：会话消息 ==========
+  msgKey(convId) { return CONV_MSG_PREFIX + convId },
   loadConvMessages(convId, callback) {
     storage.get({
       key: this.msgKey(convId),
       success: (data) => {
-        if (data) {
-          try {
-            const msgs = JSON.parse(data)
-            if (Array.isArray(msgs)) {
-              callback(msgs)
-              return
-            }
-          } catch (e) { /* ignore */ }
-        }
+        if (data) { try { const msgs = JSON.parse(data); if (Array.isArray(msgs)) { callback(msgs); return } } catch (e) {} }
         callback(null)
       },
       fail: () => callback(null)
     })
   },
-
-  /** 将当前消息列表保存到当前会话的存储中 */
   cacheCurrentConv() {
-    if (!this.conversationId) return
-    if (!this.messages || this.messages.length === 0) return
-    storage.set({
-      key: this.msgKey(this.conversationId),
-      value: JSON.stringify(this.messages),
-      success: () => {},
-      fail: (err) => console.log('[Companion] 缓存消息失败:', err)
-    })
+    if (!this.conversationId || !this.messages || this.messages.length === 0) return
+    storage.set({ key: this.msgKey(this.conversationId), value: JSON.stringify(this.messages), success: () => {}, fail: () => {} })
   },
+  deleteConvMessages(convId) { storage.delete({ key: this.msgKey(convId), success: () => {}, fail: () => {} }) },
 
-  /** 删除某个会话的本地消息缓存 */
-  deleteConvMessages(convId) {
-    storage.delete({
-      key: this.msgKey(convId),
-      success: () => {},
-      fail: () => {}
-    })
-  },
-
-  // ==================== 当前会话恢复 ====================
-
-  /** 恢复上次的会话 ID，并加载对应消息 */
   restoreCurrentConv() {
-    if (!checkActive(this)) return
     storage.get({
       key: CONV_ID_KEY,
       success: (data) => {
         if (!checkActive(this)) return
         let savedId = null
-        if (data) {
-          try {
-            const parsed = JSON.parse(data)
-            if (typeof parsed === 'number' && parsed > 0) {
-              savedId = parsed
-            }
-          } catch (e) { /* ignore */ }
-        }
+        if (data) { try { const parsed = JSON.parse(data); if (typeof parsed === 'number' && parsed > 0) savedId = parsed } catch (e) {} }
         if (savedId) {
           this.conversationId = savedId
           this.loadConvMessages(savedId, (msgs) => {
             if (!checkActive(this)) return
-            if (msgs && msgs.length > 0) {
-              this.messages = msgs
-            } else {
-              this.messages = [this.welcomeMsg()]
-            }
+            if (msgs && msgs.length > 0) { this.messages = msgs }
+            else { this.messages = [this.welcomeMsg()] }
             this.scrollToBottom()
           })
         } else {
-          // 无历史会话，新建一个
           this.createNewConversation(false)
         }
       },
-      fail: () => {
-        if (checkActive(this)) {
-          this.createNewConversation(false)
-        }
-      }
+      fail: () => { if (checkActive(this)) { this.createNewConversation(false) } }
     })
   },
-
-  /** 持久化当前会话 ID */
   saveCurrentConvId(id) {
-    storage.set({
-      key: CONV_ID_KEY,
-      value: JSON.stringify(id),
-      success: () => {},
-      fail: (err) => console.log('保存会话 ID 失败:', err)
-    })
+    storage.set({ key: CONV_ID_KEY, value: JSON.stringify(id), success: () => {}, fail: () => {} })
   },
+  welcomeMsg() { return { role: 'assistant', content: '今天过得开心吗？戳戳我，或者直接跟我说说话吧！' } },
 
-  /** 欢迎语模板 */
-  welcomeMsg() {
-    return { role: 'assistant', content: '今天过得开心吗？戳戳我，或者直接跟我说说话吧！' }
-  },
-
-  // ==================== 后端静默同步 ====================
-
-  /** 静默从后端同步（失败不影响前端） */
   syncFromBackend() {
-    if (!checkActive(this)) return
-    chatAPI.listConversations().then((raw) => {
+    chatAPI.listConversations().then(raw => {
       if (!checkActive(this)) return
-      let data = this.unwrapProxy(raw)
+      let data = raw
+      if (raw && typeof raw === 'object' && raw.headers && typeof raw.data === 'string') { try { data = JSON.parse(raw.data) } catch (e) {} }
       if (data && Array.isArray(data.conversations)) {
-        // 合并后端数据到本地列表（以后端为准更新 title）
         data.conversations.forEach(c => {
           const local = this.conversationList.find(l => l.id === c.id)
-          if (local) {
-            local.title = c.title || local.title
-          }
+          if (local) { local.title = c.title || local.title }
         })
         this.saveConvList()
       }
-    }).catch(() => {
-      // 静默失败
-    })
+    }).catch(() => {})
   },
 
-  // ==================== 代理解包 ====================
-
-  unwrapProxy(raw) {
-    let data = raw
-    if (raw && typeof raw === 'object' && raw.headers && typeof raw.data === 'string') {
-      try {
-        data = JSON.parse(raw.data)
-      } catch (e) { /* ignore */ }
-    }
-    return data
-  },
-
-  // ==================== 侧边栏 ====================
-
-  toggleSidebar() {
-    this.showSidebar = !this.showSidebar
-  },
-
-  closeSidebar() {
-    this.showSidebar = false
-  },
-
-  /** 新建对话（先保存当前会话，再开新的） */
-  newConversation() {
-    // 先保存当前会话
-    this.cacheCurrentConv()
-    this.createNewConversation(true)
-  },
-
-  /** 内部：创建新会话
-   *  @param {boolean} closeSidebar - 是否关闭侧边栏 */
+  // ========== 侧边栏 ==========
+  toggleSidebar() { this.showSidebar = !this.showSidebar },
+  closeSidebar() { this.showSidebar = false },
+  newConversation() { this.cacheCurrentConv(); this.createNewConversation(true) },
   createNewConversation(closeSidebar) {
     const newId = generateLocalId()
     this.conversationId = newId
     this.saveCurrentConvId(newId)
     this.messages = [this.welcomeMsg()]
-    // 注册到会话列表
     this.upsertConvInList(newId, '新对话', formatDate(Date.now()))
     this.cacheCurrentConv()
-    if (closeSidebar) {
-      this.showSidebar = false
-    }
+    if (closeSidebar) this.showSidebar = false
     this.scrollToBottom()
   },
-
-  /** 切换对话：先保存当前会话，再加载目标会话 */
   switchConversation(targetId) {
-    if (targetId === this.conversationId) {
-      this.showSidebar = false
-      return
-    }
-    // 1. 保存当前会话
+    if (targetId === this.conversationId) { this.showSidebar = false; return }
     this.cacheCurrentConv()
-    // 2. 切换到目标会话
     this.conversationId = targetId
     this.saveCurrentConvId(targetId)
     this.showSidebar = false
     this.loadConvMessages(targetId, (msgs) => {
       if (!checkActive(this)) return
-      if (msgs && msgs.length > 0) {
-        this.messages = msgs
-      } else {
-        this.messages = [this.welcomeMsg()]
-      }
+      if (msgs && msgs.length > 0) { this.messages = msgs }
+      else { this.messages = [this.welcomeMsg()] }
       this.scrollToBottom()
     })
   },
-
-  /** 删除对话 */
   deleteConversation(convId, event) {
-    if (event && event.stopPropagation) {
-      event.stopPropagation()
-    }
-    // 1. 从本地列表移除
+    if (event && event.stopPropagation) event.stopPropagation()
     this.conversationList = this.conversationList.filter(c => c.id !== convId)
     this.saveConvList()
-    // 2. 删除本地消息缓存
     this.deleteConvMessages(convId)
-    // 3. 静默通知后端删除
     chatAPI.deleteConversation(convId).catch(() => {})
-    // 4. 如果删除的是当前对话，新建一个
-    if (this.conversationId === convId) {
-      this.createNewConversation(false)
-    }
+    if (this.conversationId === convId) { this.createNewConversation(false) }
     $utils.showToast('已删除')
   },
 
-  // ==================== 聊天 ====================
-
-  onMessageChange(event) {
-    if (!checkActive(this)) return
-    this.messageText = event.value || ''
-  },
-
+  // ========== 聊天 ==========
+  onMessageChange(event) { this.messageText = event.value || '' },
   sendMessage() {
     if (!checkActive(this)) return
     const content = (this.messageText || '').trim()
-    if (!content) {
-      $utils.showToast('请输入内容')
-      return
-    }
-
-    // 首次发送消息：更新会话标题
-    const isFirstMessage = !this.messages.some(m => m.role === 'user')
-    this.messages.push({ role: 'user', content: content })
+    if (!content) { $utils.showToast('请输入内容'); return }
+    const tempId = 'temp_' + Date.now()
+    this.messages.push({ id: tempId, role: 'user', content: content })
     this.messageText = ''
-
-    if (isFirstMessage) {
-      this.upsertConvInList(this.conversationId, makeTitle(this.messages), formatDate(Date.now()))
-    }
+    const isFirstMessage = !this.messages.some(m => m.role === 'user' && m.id !== tempId)
     this.cacheCurrentConv()
-
     this.isThinking = true
     this.scrollToBottom()
 
-    this.callCloudieAPI(content)
-  },
-
-  scrollToBottom() {
-    const timer = setTimeout(() => {
-      if (!checkActive(this)) return
-      try {
-        const el = this.$element('chatList')
-        if (el && el.scrollTo) {
-          el.scrollTo({ index: -1 })
-        }
-      } catch (e) { /* ignore */ }
-    }, 100)
-    this.timers.push(timer)
-  },
-
-  callCloudieAPI(message) {
-    // 后端仍传 conversation_id（如果有的话），后端可据此关联
     chatAPI.sendMessage({
-      message: message,
+      message: content,
       conversation_id: this.conversationId || null,
-    }).then((raw) => {
+    }).then(raw => {
       if (!checkActive(this)) return
       this.isThinking = false
-
-      let data = this.unwrapProxy(raw)
-
+      let data = raw
+      if (raw && typeof raw === 'object' && raw.headers && typeof raw.data === 'string') { try { data = JSON.parse(raw.data) } catch (e) {} }
       if (data && data.reply) {
-        this.messages.push({ role: 'assistant', content: data.reply })
-        // AI 回复后立即缓存到本地
+        const userMsg = this.messages.find(m => m.id === tempId)
+        if (userMsg && data.message_id) { userMsg.id = data.message_id }
+        this.messages.push({ id: data.message_id || Date.now(), role: 'assistant', content: data.reply })
+        if (isFirstMessage) { this.upsertConvInList(this.conversationId, makeTitle(this.messages), formatDate(Date.now())) }
         this.cacheCurrentConv()
       } else {
         $utils.showToast('AI 回复为空，请重试')
       }
       this.scrollToBottom()
-    }).catch((error) => {
+    }).catch(error => {
       if (!checkActive(this)) return
-      console.log('[Companion] API Error:', error)
       this.isThinking = false
       $utils.showToast('AI 回复失败，请重试')
       this.scrollToBottom()
     })
   },
-
-  // ==================== 路由 ====================
-
-  goCompanion() {
-    safeReplace('/pages/Companion')
+  scrollToBottom() {
+    const timer = setTimeout(() => {
+      if (!checkActive(this)) return
+      try { const el = this.$element('chatList'); if (el && el.scrollTo) el.scrollTo({ index: -1 }) } catch (e) {}
+    }, 100)
+    this.timers.push(timer)
   },
 
-  goBreakIce() {
-    safeReplace('/pages/BreakIce')
+  // ========== 双击菜单 ==========
+  handleMessageClick(index, evt) {
+    const now = Date.now()
+    if (this.lastClickIndex === index && (now - this.lastClickTime < DOUBLE_CLICK_DELAY)) {
+      this.lastClickTime = 0
+      this.lastClickIndex = -1
+      this.showContextMenu(index, evt)
+    } else {
+      this.lastClickTime = now
+      this.lastClickIndex = index
+    }
   },
 
-  goMemory() {
-    safeReplace('/pages/Memory')
+  showContextMenu(index, evt) {
+    const msg = this.messages[index]
+    if (!msg) return
+    let clientX = 200, clientY = 400
+    if (evt && evt.touches && evt.touches.length > 0) {
+      clientX = evt.touches[0].clientX
+      clientY = evt.touches[0].clientY
+    } else if (evt && typeof evt.clientX !== 'undefined') {
+      clientX = evt.clientX
+      clientY = evt.clientY
+    }
+    this.contextMenu.visible = true
+    this.contextMenu.top = clientY
+    this.contextMenu.left = clientX
+    this.contextMenu.msg = msg
   },
 
-  goProfile() {
-    safeReplace('/pages/Profile')
+  closeContextMenu() {
+    this.contextMenu.visible = false
+    this.contextMenu.msg = null
   },
 
-  // ==================== 档案更新 ====================
+  handlePlayClick() {
+    console.log('handlePlayClick 执行')
+    if (this.contextMenu.msg) {
+      this.playMessage(this.contextMenu.msg.content)
+    }
+    this.closeContextMenu()
+  },
 
-  /**
-   * 离开 Companion 页面时静默触发动态档案更新。
-   * 失败不弹 toast，不影响用户正常使用。
-   */
+  handleDeleteClick() {
+    console.log('handleDeleteClick 执行')
+    if (this.contextMenu.msg) {
+      this.deleteMessage(this.contextMenu.msg)
+    }
+    this.closeContextMenu()
+  },
+
+  async playMessage(text) {
+    console.log('playMessage 调用, text:', text)
+    const voice = (await this.getSelectedVoice()) || 'yunye'
+    console.log('使用音色:', voice)
+    try {
+      await ttsAPI.play(text, voice)
+      console.log('播放成功')
+    } catch (e) {
+      console.error('播放失败:', e)
+      $utils.showToast('播放失败')
+    }
+  },
+
+  getSelectedVoice() {
+    return new Promise((resolve) => {
+      storage.get({ key: 'selected_voice', success: (data) => resolve(data || ''), fail: () => resolve('') })
+    })
+  },
+
+  async deleteMessage(msg) {
+    const idx = this.messages.indexOf(msg)
+    if (idx > -1) this.messages.splice(idx, 1)  // 1. 先从界面移除
+    if (msg.id && !String(msg.id).startsWith('temp_')) {
+      try { await chatAPI.deleteMessage(msg.id) } catch (e) {}  // 2. 再调用后端删除
+    }
+    this.cacheCurrentConv()
+  },
+
+  // ========== 路由 ==========
+  goCompanion() { safeReplace('/pages/Companion') },
+  goBreakIce() { safeReplace('/pages/BreakIce') },
+  goMemory() { safeReplace('/pages/Memory') },
+  goProfile() { safeReplace('/pages/Profile') },
+
   triggerProfileUpdate() {
     profileAI.updateDynamic()
-      .then((res) => {
-        console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息')
-      })
-      .catch((err) => {
-        // 静默失败，仅日志记录
-        console.log('[Companion] 动态档案更新失败（静默）:', err)
-      })
+      .then(res => console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息'))
+      .catch(() => {})
   }
 }
 </script>
+
 
 <style lang="less">
 /* ================================================================
@@ -965,4 +824,41 @@ export default {
 .tab-active .tab-label {
   color: @morandi-brown;
 }
+
+
+
+/* 菜单样式 */
+.context-menu-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.context-menu {
+  position: fixed;
+  z-index: 1001;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 200px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.menu-item {
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 20px;
+}
+.menu-icon {
+  font-size: 28px;
+  margin-right: 12px;
+}
+.menu-text {
+  font-size: 26px;
+  color: #4a3728;
+}
+</style>
+
 </style>
