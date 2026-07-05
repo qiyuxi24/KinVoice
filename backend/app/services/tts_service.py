@@ -58,7 +58,7 @@ def _pcm2wav(pcm_data: bytes, sample_rate=24000, channels=1, bits=16) -> io.Byte
 
 
 async def text_to_pcm(text: str, voice: str = DEFAULT_VOICE,
-                      speed: int = 50, volume: int = 40) -> bytes:
+                      speed: int = 50, volume: int = 40, user_id: str = None) -> bytes:
     """
     核心合成：连接 vivo WebSocket,返回 PCM 音频
     自动识别自定义音色(从数据库查找 vcn)
@@ -66,23 +66,22 @@ async def text_to_pcm(text: str, voice: str = DEFAULT_VOICE,
     if not text or not text.strip():
         raise ValueError("文本不能为空")
 
-    # 如果是自定义音色，从数据库获取真实 vcn
     final_voice = voice
     if voice not in VOICES:
         from sqlalchemy import select
         from app.db.session import AsyncSessionLocal
         from app.models.voice import CustomVoice
-
         async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(CustomVoice).where(
-                    CustomVoice.name == voice,
-                    CustomVoice.status == 3   # 仅已完成
-                )
+            stmt = select(CustomVoice).where(
+                CustomVoice.name == voice,
+                CustomVoice.status == 3,
             )
+            if user_id:                                    # 如果提供了用户 ID，则限定所属用户
+                stmt = stmt.where(CustomVoice.user_id == user_id)
+            result = await session.execute(stmt)
             custom = result.scalar_one_or_none()
             if not custom:
-                raise ValueError(f"音色 '{voice}' 不存在或尚未完成")
+                raise ValueError(f"音色 '{voice}' 不存在、尚未完成或无权使用")
             final_voice = custom.vcn
 
     # 鉴权
@@ -147,14 +146,16 @@ async def text_to_pcm(text: str, voice: str = DEFAULT_VOICE,
 
 
 async def text_to_speech(text: str, voice: str = DEFAULT_VOICE,
-                         speed: int = 50, volume: int = 40) -> bytes:
+                         speed: int = 50, volume: int = 40,
+                         user_id: str = None) -> bytes:
     """文本 → WAV 音频字节"""
-    pcm = await text_to_pcm(text, voice, speed, volume)
+    pcm = await text_to_pcm(text, voice, speed, volume, user_id=user_id)
     return _pcm2wav(pcm).read()
 
 
 async def text_to_base64(text: str, voice: str = DEFAULT_VOICE,
-                         speed: int = 50, volume: int = 40) -> str:
+                         speed: int = 50, volume: int = 40,
+                         user_id: str = None) -> str:
     """文本 → base64 编码的 WAV"""
-    wav_bytes = await text_to_speech(text, voice, speed, volume)
+    wav_bytes = await text_to_speech(text, voice, speed, volume, user_id=user_id)
     return base64.b64encode(wav_bytes).decode("utf-8")

@@ -145,7 +145,7 @@ async def get_history(conversation_id: int = Query(...), user_id: str = Depends(
 # ── DELETE /chat/conversations/{conversation_id} ──
 @router.delete("/conversations/{conversation_id}")
 async def delete_conversation(conversation_id: int, user_id: str = Depends(get_user_id)):
-    """删除指定会话及其所有消息（硬删除）"""
+    """删除指定会话及其所有消息（会话内容全部删除）"""
     async with AsyncSessionLocal() as session:
         result = await session.execute(
             select(Conversation).where(
@@ -165,3 +165,22 @@ async def delete_conversation(conversation_id: int, user_id: str = Depends(get_u
         await session.commit()
         logger.info(f"用户 {user_id} 删除会话 {conversation_id}")
         return {"ok": True, "deleted_id": conversation_id}
+    
+# 单条消息删除
+@router.delete("/messages/{message_id}")
+async def delete_message(message_id: int, user_id: str = Depends(get_user_id)):
+    """删除单条聊天消息（仅允许删除自己会话中的消息）"""
+    async with AsyncSessionLocal() as session:
+        # 查询消息
+        msg = await session.get(ChatMessage, message_id)
+        if not msg:
+            raise HTTPException(status_code=404, detail="消息不存在")
+
+        # 验证消息所属会话是否属于当前用户
+        conv = await session.get(Conversation, msg.conversation_id)
+        if not conv or conv.user_id != user_id:
+            raise HTTPException(status_code=403, detail="无权操作此消息")
+
+        await session.delete(msg)
+        await session.commit()
+        return {"ok": True}

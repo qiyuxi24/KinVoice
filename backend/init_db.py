@@ -5,7 +5,7 @@
 import asyncio
 import os
 from app.db.session import engine, Base, BASE_DIR
-from app.models.card import Card  # 导入 Card 会自动加载 Conversation, ChatMessage
+import app.models
 
 async def init_db():
     data_dir = os.path.join(BASE_DIR, "data")
