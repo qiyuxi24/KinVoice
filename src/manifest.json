@@ -101,6 +101,7 @@
     "titleBarBackgroundColor": "#f2f2f2",
     "titleBarTextColor": "#414141",
     "pages": {
+      "pages/About": {},
       "pages/Main": {
         "titleBarText": ""
       },
@@ -116,27 +117,19 @@
       "pages/Companion": {
         "titleBarText": "AI 陪伴"
       },
-      "pages/Memory": {
-        "titleBarText": "传承页"
-      },
+      "pages/Memory": {},
       "pages/Profile": {
         "titleBarText": "我的"
       },
-      "pages/ProfileDetail": {
-        "titleBarText": "用户档案"
-      },
+      "pages/ProfileDetail": {},
       "pages/Family": {
         "titleBarText": "家庭组"
       },
-      "pages/FamilyJoin": {
-        "titleBarText": "加入家庭组"
-      },
+      "pages/FamilyJoin": {},
       "pages/ChatRoom": {
         "titleBarText": "聊天"
       },
-      "pages/Help": {
-        "titleBarText": "帮助与反馈"
-      },
+      "pages/Help": {},
       "pages/Settings": {
         "titleBarText": "设置"
       },

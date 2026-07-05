@@ -44,10 +44,10 @@
         <text class="title-sub">你的家庭情绪树洞</text>
       </div>
 
-      <!-- 对话消息列表 -->
+      <!-- 对话消息列表（双击弹出菜单） -->
       <div class="chat-list" id="chatList">
         <block for="(index, msg) in messages">
-          <div class="msg-row msg-ai" if="msg.role === 'assistant'">
+          <div class="msg-row msg-ai" if="msg.role === 'assistant'" onclick="handleMessageClick(index, $event)">
             <image class="msg-avatar" src="../../assets/images/logo.png" />
             <div class="msg-body">
               <div class="msg-bubble msg-bubble-ai">
@@ -55,7 +55,7 @@
               </div>
             </div>
           </div>
-          <div class="msg-row msg-user" elif="msg.role === 'user'">
+          <div class="msg-row msg-user" elif="msg.role === 'user'" onclick="handleMessageClick(index, $event)">
             <div class="msg-body">
               <div class="msg-bubble msg-bubble-user">
                 <text class="msg-text">{{ msg.content }}</text>
@@ -91,6 +91,20 @@
         </div>
       </div>
     </div>
+
+    <!-- 内联菜单（双击消息：播放/删除） -->
+    <div class="context-menu-bg" if="{{contextMenu.visible}}" onclick="closeContextMenu">
+      <div class="context-menu" style="top: {{contextMenu.top}}px; left: {{contextMenu.left}}px;">
+        <div class="menu-item" onclick="handlePlayClick">
+          <text class="ctx-menu-icon">🔊</text>
+          <text class="ctx-menu-text">播放消息</text>
+        </div>
+        <div class="menu-item" onclick="handleDeleteClick">
+          <text class="ctx-menu-icon">🗑️</text>
+          <text class="ctx-menu-text">删除消息</text>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -99,9 +113,12 @@ import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
 import familyAPI from '../../helper/apis/family'
+import ttsAPI from '../../helper/apis/tts'
+import profileAI from '../../helper/apis/profile_ai'
 
 // 本地存储 key
 const CONV_ID_KEY = 'companion_conv_id'
+const DOUBLE_CLICK_DELAY = 500
 const CONV_LIST_KEY = 'companion_conv_list'
 const CONV_MSG_PREFIX = 'conv_msgs_'
 
@@ -149,6 +166,9 @@ export default {
     timers: [],
     familyId: null,
     familyIdPromise: null,
+    contextMenu: { visible: false, top: 0, left: 0, msg: null },
+    lastClickTime: 0,
+    lastClickIndex: -1,
   },
 
   /**
@@ -182,6 +202,7 @@ export default {
     this.mounted = false
     this.clearTimers()
     this.cacheCurrentConv()
+    this.triggerProfileUpdate()
   },
 
   /**
@@ -590,6 +611,93 @@ export default {
     this.conversationId = newId
     this.saveCurrentConvId(newId)
   },
+
+  // ==================== 双击菜单（播放 / 删除消息） ====================
+
+  handleMessageClick(index, evt) {
+    const now = Date.now()
+    if (this.lastClickIndex === index && (now - this.lastClickTime < DOUBLE_CLICK_DELAY)) {
+      this.lastClickTime = 0
+      this.lastClickIndex = -1
+      this.showContextMenu(index, evt)
+    } else {
+      this.lastClickTime = now
+      this.lastClickIndex = index
+    }
+  },
+
+  showContextMenu(index, evt) {
+    const msg = this.messages[index]
+    if (!msg) return
+    let clientX = 200, clientY = 400
+    if (evt && evt.touches && evt.touches.length > 0) {
+      clientX = evt.touches[0].clientX
+      clientY = evt.touches[0].clientY
+    } else if (evt && typeof evt.clientX !== 'undefined') {
+      clientX = evt.clientX
+      clientY = evt.clientY
+    }
+    this.contextMenu.visible = true
+    this.contextMenu.top = clientY
+    this.contextMenu.left = clientX
+    this.contextMenu.msg = msg
+  },
+
+  closeContextMenu() {
+    this.contextMenu.visible = false
+    this.contextMenu.msg = null
+  },
+
+  handlePlayClick() {
+    if (this.contextMenu.msg) {
+      this.playMessage(this.contextMenu.msg.content)
+    }
+    this.closeContextMenu()
+  },
+
+  handleDeleteClick() {
+    if (this.contextMenu.msg) {
+      this.deleteMessage(this.contextMenu.msg)
+    }
+    this.closeContextMenu()
+  },
+
+  async playMessage(text) {
+    const voice = (await this.getSelectedVoice()) || 'yunye'
+    try {
+      await ttsAPI.play(text, voice)
+    } catch (e) {
+      console.error('[Companion] 播放失败:', e)
+      $utils.showToast('播放失败')
+    }
+  },
+
+  getSelectedVoice() {
+    return new Promise((resolve) => {
+      storage.get({
+        key: 'selected_voice',
+        success: (data) => resolve(data || ''),
+        fail: () => resolve('')
+      })
+    })
+  },
+
+  async deleteMessage(msg) {
+    const idx = this.messages.indexOf(msg)
+    if (idx > -1) this.messages.splice(idx, 1)
+    if (msg.id && !String(msg.id).startsWith('temp_')) {
+      try { await chatAPI.deleteMessage(msg.id) } catch (e) {}
+    }
+    this.cacheCurrentConv()
+  },
+
+  // ==================== 后台档案更新 ====================
+
+  triggerProfileUpdate() {
+    profileAI.updateDynamic()
+      .then(res => console.log('[CompanionTab] 动态档案更新完成'))
+      .catch(() => {})
+  },
 }
 </script>
 
@@ -922,5 +1030,39 @@ export default {
   font-size: 32px;
   color: @morandi-white;
   font-weight: bold;
+}
+.context-menu-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 1001;
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 0;
+  min-width: 200px;
+}
+
+.context-menu .menu-item {
+  flex-direction: row;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+.ctx-menu-icon {
+  font-size: 28px;
+  margin-right: 12px;
+}
+
+.ctx-menu-text {
+  font-size: 26px;
+  color: #4a3728;
 }
 </style>

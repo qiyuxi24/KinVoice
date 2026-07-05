@@ -956,7 +956,7 @@ export default {
 /* ═══════════════════════════════════════════════════ */
 
 .navbar {
-  padding: 52px 20px 0;
+  padding: 0 20px;
   height: 90px;
   flex-direction: row;
   align-items: center;
@@ -1141,7 +1141,6 @@ export default {
   background-color: @surface;
   border-radius: 16px;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
 

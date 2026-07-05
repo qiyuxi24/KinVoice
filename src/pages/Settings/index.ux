@@ -1,8 +1,11 @@
 <template>
   <div class="page">
-    <div class="header" onclick="goBack">
-      <text class="back-icon">‹</text>
-      <text class="header-title">设置</text>
+    <div class="title-bar">
+      <div class="title-left" onclick="goBack">
+        <text class="back-arrow">‹</text>
+      </div>
+      <text class="title-text">设置</text>
+      <div class="title-right"></div>
     </div>
     <div class="menu-list">
       <div class="menu-item" onclick="goVoiceSelect">
@@ -45,24 +48,41 @@ export default {
   background-color: #e8e4df;
 }
 
-.header {
+.title-bar {
   flex-direction: row;
   align-items: center;
-  padding: 40px 30px 20px;
-  background-color: #faf8f5;
+  justify-content: space-between;
+  height: 90px;
+  padding: 0 20px;
+  background-color: #fffbf7;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0e8dd;
 }
 
-.back-icon {
+.title-left {
+  width: 70px;
+  height: 70px;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-arrow {
   font-size: 50px;
-  color: #c4b7a6;
-  margin-right: 12px;
+  color: #d4874b;
+  font-weight: 300;
 }
 
-.header-title {
-  font-size: 38px;
+.title-text {
+  font-size: 34px;
   font-weight: 600;
-  color: #5c5c5c;
+  color: #4a3728;
 }
+
+.title-right {
+  width: 70px;
+  height: 70px;
+}
+
 
 .menu-list {
   padding: 24px;

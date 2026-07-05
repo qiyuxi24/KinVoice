@@ -1,7 +1,15 @@
 <template>
   <div class="page">
+    <!-- 自定义标题栏 -->
+    <div class="title-bar">
+      <div class="title-left" onclick="goBack">
+        <text class="back-arrow">‹</text>
+      </div>
+      <text class="title-text">加入家庭组</text>
+      <div class="title-right"></div>
+    </div>
+
     <div class="card">
-      <text class="card-title">加入家庭组</text>
       <text class="card-desc">输入家人分享给你的家庭组 ID 和密码</text>
 
       <!-- 未登录：需要先注册 -->
@@ -40,6 +48,7 @@ import $utils from '../../helper/utils'
 import userIdentity from '../../helper/userIdentity'
 import authAPI from '../../helper/apis/auth'
 import familyAPI from '../../helper/apis/family'
+import { safeBack } from '../../helper/navigate'
 
 export default {
   private: {
@@ -53,12 +62,16 @@ export default {
   },
 
   async onInit() {
-    this.$page.setTitleBar({ text: '加入家庭组' })
+    this.$page.setTitleBar({ text: '', menu: false })
     await userIdentity.initUserId()
     await userIdentity.initNickname()
     await userIdentity.initLogin()
     this.isLoggedIn = userIdentity.isLoggedIn()
     this.nickname = userIdentity.getNickname()
+  },
+
+  goBack() {
+    safeBack()
   },
 
   onNicknameChange(e) {
@@ -140,7 +153,50 @@ export default {
   flex: 1;
   flex-direction: column;
   background-color: #f5ebe0;
+}
+
+/* ========== 自定义标题栏 ========== */
+.title-bar {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 90px;
+  padding: 0 20px;
+  background-color: #fffbf7;
+  border-bottom-width: 1px;
+  border-bottom-color: #f0e8dd;
+}
+
+.title-left {
+  width: 70px;
+  height: 70px;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-arrow {
+  font-size: 50px;
+  color: #d4874b;
+  font-weight: 300;
+}
+
+.title-text {
+  font-size: 34px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.title-right {
+  width: 70px;
+  height: 70px;
+}
+
+.card {
+  flex-direction: column;
+  background-color: #ffffff;
+  border-radius: 16px;
   padding: 30px 24px;
+  margin: 24px;
 }
 
 .card {

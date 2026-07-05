@@ -1,13 +1,12 @@
 <template>
   <div class="page">
-    <!-- 顶部返回栏 -->
-    <div class="top-bar">
-      <div class="back-btn" onclick="goBack">
+    <!-- 自定义标题栏 -->
+    <div class="title-bar">
+      <div class="title-left" onclick="goBack">
         <text class="back-arrow">‹</text>
-        <text class="back-text">返回</text>
       </div>
-      <text class="page-title">帮助与反馈</text>
-      <div class="top-bar-placeholder"></div>
+      <text class="title-text">帮助与反馈</text>
+      <div class="title-right"></div>
     </div>
 
     <div class="scroll-content">
@@ -115,7 +114,7 @@ import { safeBack } from '../../helper/navigate'
 
 export default {
   onInit() {
-    this.$page.setTitleBar({ text: '' })
+    this.$page.setTitleBar({ text: '', menu: false })
   },
 
   goBack() {
@@ -147,42 +146,39 @@ export default {
   background-color: @morandi-bg;
 }
 
-.top-bar {
+.title-bar {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  padding: 30px 24px 20px;
-  background-color: @morandi-card;
+  height: 90px;
+  padding: 0 20px;
+  background-color: #fffbf7;
   border-bottom-width: 1px;
-  border-bottom-color: @morandi-border;
+  border-bottom-color: #f0e8dd;
 }
 
-.back-btn {
-  flex-direction: row;
+.title-left {
+  width: 70px;
+  height: 70px;
   align-items: center;
-  width: 120px;
+  justify-content: center;
 }
 
 .back-arrow {
-  font-size: 44px;
-  color: @morandi-text;
-  margin-top: -4px;
+  font-size: 50px;
+  color: #d4874b;
+  font-weight: 300;
 }
 
-.back-text {
-  font-size: 28px;
-  color: @morandi-text;
-  margin-left: 4px;
-}
-
-.page-title {
-  font-size: 32px;
+.title-text {
+  font-size: 34px;
   font-weight: 600;
-  color: @morandi-text;
+  color: #4a3728;
 }
 
-.top-bar-placeholder {
-  width: 120px;
+.title-right {
+  width: 70px;
+  height: 70px;
 }
 
 .scroll-content {

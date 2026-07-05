@@ -338,7 +338,7 @@ export default {
   },
 
   showSettings() {
-    $utils.showToast('设置')
+    safePush('/pages/Settings')
   },
 
   showAbout() {
@@ -451,9 +451,9 @@ export default {
   right: 0;
   bottom: 0;
   background-color: #ffffff;
-  border-radius: 28px 28px 0 0;
+  border-radius: 28px;
   flex-direction: column;
-  padding-bottom: 40px;
+  padding-bottom: 120px;
   transform: translateY(100%);
 }
 

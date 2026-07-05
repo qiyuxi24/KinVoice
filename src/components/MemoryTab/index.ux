@@ -897,7 +897,7 @@ export default {
 }
 
 .navbar {
-  padding: 52px 20px 0;
+  padding: 0 20px;
   height: 90px;
   flex-direction: row;
   align-items: center;
@@ -1063,7 +1063,6 @@ export default {
   background-color: @surface;
   border-radius: 16px;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   overflow: hidden;
 }
 
@@ -1092,7 +1091,7 @@ export default {
 .modal-sheet {
   width: 100%;
   background-color: @surface;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px;
   padding: 22px 22px 40px;
   flex-direction: column;
 }
@@ -1202,7 +1201,7 @@ export default {
 .move-sheet {
   width: 100%;
   background-color: @surface;
-  border-radius: 20px 20px 0 0;
+  border-radius: 20px;
   padding: 22px 22px 40px;
   flex-direction: column;
 }

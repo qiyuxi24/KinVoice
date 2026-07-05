@@ -101,8 +101,7 @@
         <!-- 操作按钮 -->
         <div class="panel-btn panel-btn-primary" onclick="doAuth">
           <text class="panel-btn-text">{{ authLoading ? '处理中...' : (authMode === 'login' ? '登录' : '注册') }}</text>
-        </div>
-      </div>
+        </div>      </div>
 
       <!-- 已登录：修改昵称 + 退出登录 -->
       <div class="panel-body" else>
@@ -131,8 +130,7 @@
         <!-- 退出登录 -->
         <div class="panel-btn panel-btn-danger" onclick="doLogout">
           <text class="panel-btn-text">退出登录</text>
-        </div>
-      </div>
+        </div>      </div>
     </div>
   </div>
 </template>
@@ -508,19 +506,6 @@ export default {
   background-color: rgba(0, 0, 0, 0.4);
 }
 
-.user-panel {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ffffff;
-  border-radius: 28px;
-  flex-direction: column;
-  padding-bottom: 40px;
-  /* 默认隐藏在屏幕下方 */
-  transform: translateY(100%);
-}
-
 .panel-show {
   transform: translateY(0);
 }
@@ -556,7 +541,8 @@ export default {
 /* 面板内容区 */
 .panel-body {
   flex-direction: column;
-  padding: 0 30px;
+  padding-right: 30px;
+  padding-left: 30px;
 }
 
 .panel-hint {
@@ -666,7 +652,18 @@ export default {
   margin-bottom: 12px;
 }
 
-/* 分隔线 */
+.user-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ffffff;
+  border-radius: 28px;
+  flex-direction: column;
+  padding-bottom: 120px;
+  transform: translateY(100%);
+}
+
 .panel-divider {
   height: 1px;
   background-color: #f0e8dd;

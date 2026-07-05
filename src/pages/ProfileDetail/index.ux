@@ -64,7 +64,7 @@ export default {
   },
 
   async onInit() {
-    this.$page.setTitleBar({ text: '' })
+    this.$page.setTitleBar({ text: '', menu: false })
     // 先确保身份就绪（与其他模块保持一致的调用模式）
     await userIdentity.initUserId()
     await userIdentity.initNickname()
@@ -181,7 +181,6 @@ export default {
   justify-content: space-between;
   height: 90px;
   padding: 0 20px;
-  padding-top: 24px;
   background-color: #fffbf7;
   border-bottom-width: 1px;
   border-bottom-color: #f0e8dd;
@@ -231,14 +230,16 @@ export default {
 /* ========== 阅读区 ========== */
 .read-area {
   flex: 1;
-  padding: 30px 28px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 28px;
 }
 
 .empty {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding-top: 120px;
 }
 
 .empty-icon {
