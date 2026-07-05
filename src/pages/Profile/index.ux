@@ -13,6 +13,21 @@
     </div>
 
     <div class="menu-list">
+      <div class="menu-item" onclick="goFamily">
+        <text class="menu-icon">🏠</text>
+        <text class="menu-text">我的家庭组</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="goProfileDetail">
+        <text class="menu-icon">📋</text>
+        <text class="menu-text">用户档案</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="updateStableProfile">
+        <text class="menu-icon">🤖</text>
+        <text class="menu-text">{{ updatingStable ? 'AI 分析中...' : 'AI 更新固定档案' }}</text>
+        <text class="menu-arrow">›</text>
+      </div>
       <div class="menu-item" onclick="showSettings">
         <text class="menu-icon">⚙️</text>
         <text class="menu-text">设置</text>
@@ -37,7 +52,7 @@
       </div>
       <div class="tab-item" onclick="goBreakIce">
         <text class="tab-icon">💬</text>
-        <text class="tab-label">破冰</text>
+        <text class="tab-label">聊天</text>
       </div>
       <div class="tab-item" onclick="goMemory">
         <text class="tab-icon">📚</text>
@@ -52,11 +67,50 @@
 </template>
 
 <script>
-import router from '@system.router'
+import $utils from '../../helper/utils'
+import profileAI from '../../helper/apis/profile_ai'
+import { safePush, safeReplace } from '../../helper/navigate'
 
 export default {
+  private: {
+    updatingStable: false
+  },
+
   onInit() {
     this.$page.setTitleBar({ text: '' })
+  },
+
+  goProfileDetail() {
+    safePush('/pages/ProfileDetail')
+  },
+
+  goFamily() {
+    safePush('/pages/Family')
+  },
+
+  /**
+   * 手动触发 AI 更新固定档案。
+   * 从全部对话历史中提取性别、生日、家庭成员等不变信息。
+   */
+  updateStableProfile() {
+    if (this.updatingStable) return
+    this.updatingStable = true
+    $utils.showToast('AI 正在分析你的对话...')
+
+    profileAI.updateStable('default')
+      .then((res) => {
+        this.updatingStable = false
+        if (res.ok) {
+          $utils.showToast('固定档案已更新！')
+        } else {
+          $utils.showToast(res.content_preview || '更新失败，请稍后重试')
+        }
+      })
+      .catch((err) => {
+        this.updatingStable = false
+        console.log('固定档案更新失败:', err)
+        $utils.showToast('更新失败，请检查网络')
+      })
   },
 
   showSettings() {
@@ -72,25 +126,26 @@ export default {
   },
 
   goCompanion() {
-    router.replace({ uri: '/pages/Companion' })
+    safeReplace('/pages/Companion')
   },
 
   goBreakIce() {
-    router.replace({ uri: '/pages/BreakIce' })
+    safeReplace('/pages/BreakIce')
   },
 
   goMemory() {
-    router.replace({ uri: '/pages/Memory' })
+    safeReplace('/pages/Memory')
   },
 
   goProfile() {
-    router.replace({ uri: '/pages/Profile' })
+    safeReplace('/pages/Profile')
   }
 }
 </script>
 
 <style lang="less">
-@import './../../assets/styles/style.less';
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
 
 .page {
   flex: 1;
@@ -178,17 +233,22 @@ export default {
   right: 0;
   bottom: 0;
   height: 90px;
-  background-color: #fffbf7;
+  background-color: #fff;
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
 }
 
 .tab-item {
-  flex-direction: column;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  padding: 8px 20px;
+  padding-top: 8px;
+  padding-right: 20px;
+  padding-bottom: 8px;
+  padding-left: 20px;
+  border-radius: 10px;
+  flex-direction: column;
 }
 
 .tab-icon {
@@ -201,7 +261,11 @@ export default {
   margin-top: 4px;
 }
 
+.tab-active {
+  background-color: #d4874b;
+}
+
 .tab-active .tab-label {
-  color: #d4874b;
+  color: #ffffff;
 }
 </style>

@@ -1,0 +1,658 @@
+<template>
+  <div class="page">
+    <!-- 头部 -->
+    <div class="header">
+      <div class="header-top" onclick="goBack">
+        <text class="back-icon">‹</text>
+        <text class="header-title">用户档案</text>
+      </div>
+      <text class="header-desc">记录家庭成员的故事与记忆</text>
+    </div>
+
+    <!-- 档案列表 -->
+    <div class="profile-list" if="profiles.length > 0">
+      <div class="profile-card" for="(index, item) in profiles" onclick="viewProfile(item)">
+        <div class="card-left">
+          <div class="avatar-small">
+            <text class="avatar-letter">{{ item.name ? item.name.charAt(0) : '?' }}</text>
+          </div>
+          <div class="card-info">
+            <text class="card-name">{{ item.name }}</text>
+            <text class="card-relation">{{ item.relation }}</text>
+            <text class="card-birth" if="item.birth_date">🎂 {{ item.birth_date }}</text>
+          </div>
+        </div>
+        <div class="card-right">
+          <text class="edit-btn" onclick="editProfile(item, $event)">✏️</text>
+          <text class="delete-btn" onclick="deleteProfile(item, $event)">🗑️</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空状态 -->
+    <div class="empty-state" elif="!loading">
+      <text class="empty-icon">📋</text>
+      <text class="empty-text">还没有档案，点击下方按钮添加第一位家庭成员吧</text>
+    </div>
+
+    <!-- 加载中 -->
+    <div class="loading-state" if="loading">
+      <text class="loading-text">加载中...</text>
+    </div>
+
+    <!-- 底部添加按钮 -->
+    <div class="fab" onclick="showAddDialog">
+      <text class="fab-text">+ 添加成员</text>
+    </div>
+
+    <!-- ── 编辑/新增弹窗 ── -->
+    <div class="modal-mask" if="showDialog" onclick="closeDialog">
+      <div class="modal-body" onclick="stopBubble">
+        <text class="modal-title">{{ editingId ? '编辑档案' : '添加成员' }}</text>
+
+        <!-- 姓名 -->
+        <div class="form-group">
+          <text class="form-label">姓名 *</text>
+          <input class="form-input" type="text" placeholder="请输入姓名" value="{{ formName }}" onchange="onNameChange" />
+        </div>
+
+        <!-- 关系 -->
+        <div class="form-group">
+          <text class="form-label">关系</text>
+          <select class="form-select" onchange="onRelationChange">
+            <option value="父亲" selected="{{ formRelation === '父亲' }}">父亲</option>
+            <option value="母亲" selected="{{ formRelation === '母亲' }}">母亲</option>
+            <option value="配偶" selected="{{ formRelation === '配偶' }}">配偶</option>
+            <option value="子女" selected="{{ formRelation === '子女' }}">子女</option>
+            <option value="祖父母" selected="{{ formRelation === '祖父母' }}">祖父母</option>
+            <option value="兄弟姐妹" selected="{{ formRelation === '兄弟姐妹' }}">兄弟姐妹</option>
+            <option value="其他家人" selected="{{ formRelation === '其他家人' }}">其他家人</option>
+          </select>
+        </div>
+
+        <!-- 生日 -->
+        <div class="form-group">
+          <text class="form-label">生日</text>
+          <input class="form-input" type="date" placeholder="YYYY-MM-DD" value="{{ formBirthDate }}" onchange="onBirthDateChange" />
+        </div>
+
+        <!-- Markdown 正文 -->
+        <div class="form-group">
+          <text class="form-label">档案内容（支持 Markdown）</text>
+          <textarea class="form-textarea" placeholder="用 Markdown 写下关于 ta 的故事、习惯、喜好..." onchange="onContentChange">{{ formContent }}</textarea>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="modal-actions">
+          <div class="btn-cancel" onclick="closeDialog">
+            <text class="btn-text">取消</text>
+          </div>
+          <div class="btn-confirm" onclick="saveProfile">
+            <text class="btn-text btn-text-white">{{ editingId ? '保存修改' : '添加' }}</text>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 查看档案详情弹窗 ── -->
+    <div class="modal-mask" if="showDetail" onclick="closeDetail">
+      <div class="detail-body" onclick="stopBubble">
+        <div class="detail-header">
+          <text class="detail-name">{{ viewingProfile.name }}</text>
+          <text class="detail-relation">{{ viewingProfile.relation }}</text>
+          <text class="detail-birth" if="viewingProfile.birth_date">🎂 {{ viewingProfile.birth_date }}</text>
+        </div>
+        <div class="detail-divider"></div>
+        <!-- Markdown 渲染区 -->
+        <div class="detail-content">
+          <richtext class="md-render">{{ viewingProfile.content_md || '暂无详细内容' }}</richtext>
+        </div>
+        <div class="detail-close" onclick="closeDetail">
+          <text class="detail-close-text">关闭</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { safeBack } from '../../helper/navigate'
+import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
+
+const CACHE_KEY = 'kinvoice_profiles'
+
+/** 获取页面存活标志（router.replace 后旧页面实例会被销毁，异步回调需先检查） */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+export default {
+  private: {
+    profiles: [],           // 档案列表
+    loading: true,
+    showDialog: false,      // 编辑弹窗
+    editingId: null,        // 编辑中的档案 id（null = 新增模式）
+    // 表单字段
+    formName: '',
+    formRelation: '家人',
+    formBirthDate: '',
+    formContent: '',
+    // 查看详情
+    showDetail: false,
+    viewingProfile: {},
+    isActive: false,
+    loadingProfiles: false  // 防抖：防止 loadProfiles 并发
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+  },
+
+  onShow() {
+    this.isActive = true
+    this.loadProfiles()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+  },
+
+  // ── 数据加载 ──
+  async loadProfiles() {
+    if (!checkActive(this)) return
+    // 防抖：防止快速切页导致的并发请求堆积
+    if (this.loadingProfiles) return
+    this.loadingProfiles = true
+    this.loading = true
+
+    try {
+      const result = await $apis.profiles.list()
+      const profiles = (result && result.profiles) ? result.profiles : []
+      if (!checkActive(this)) return
+      this.profiles = profiles
+      // 同步到本地缓存
+      this.saveToLocal(profiles)
+    } catch (e) {
+      console.warn('从后端加载档案失败，尝试本地缓存:', e)
+      if (!checkActive(this)) return
+      this.loadFromLocal()
+    } finally {
+      if (checkActive(this)) {
+        this.loading = false
+        this.loadingProfiles = false
+      }
+    }
+  },
+
+  loadFromLocal() {
+    if (!checkActive(this)) return
+    storage.get({
+      key: CACHE_KEY,
+      success: (res) => {
+        if (!checkActive(this)) return
+        try {
+          const data = JSON.parse(res)
+          this.profiles = data || []
+        } catch (e) {
+          this.profiles = []
+        }
+      },
+      fail: () => {
+        if (checkActive(this)) {
+          this.profiles = []
+        }
+      },
+    })
+  },
+
+  saveToLocal(profiles) {
+    storage.set({
+      key: CACHE_KEY,
+      value: JSON.stringify(profiles),
+      success: () => {},
+      fail: (e) => console.warn('缓存档案失败:', e),
+    })
+  },
+
+  // ── 弹窗控制 ──
+  showAddDialog() {
+    if (!checkActive(this)) return
+    this.editingId = null
+    this.formName = ''
+    this.formRelation = '家人'
+    this.formBirthDate = ''
+    this.formContent = ''
+    this.showDialog = true
+  },
+
+  editProfile(item, e) {
+    if (!checkActive(this)) return
+    if (e) e.stopPropagation && e.stopPropagation()
+    this.editingId = item.id
+    this.formName = item.name || ''
+    this.formRelation = item.relation || '家人'
+    this.formBirthDate = item.birth_date || ''
+    this.formContent = item.content_md || ''
+    this.showDialog = true
+  },
+
+  closeDialog() {
+    if (!checkActive(this)) return
+    this.showDialog = false
+    this.editingId = null
+  },
+
+  stopBubble(e) {
+    if (e) e.stopPropagation && e.stopPropagation()
+  },
+
+  // ── 查看详情 ──
+  viewProfile(item) {
+    if (!checkActive(this)) return
+    this.viewingProfile = item
+    this.showDetail = true
+  },
+
+  closeDetail() {
+    if (!checkActive(this)) return
+    this.showDetail = false
+    this.viewingProfile = {}
+  },
+
+  // ── 表单字段绑定 ──
+  onNameChange(e) {
+    if (!checkActive(this)) return
+    this.formName = e.value || e.text || ''
+  },
+  onRelationChange(e) {
+    if (!checkActive(this)) return
+    const val = e.value || (e.newSelected !== undefined ? e.newSelected : '')
+    this.formRelation = val || '家人'
+  },
+  onBirthDateChange(e) {
+    if (!checkActive(this)) return
+    this.formBirthDate = e.value || e.text || ''
+  },
+  onContentChange(e) {
+    if (!checkActive(this)) return
+    this.formContent = e.value || e.text || ''
+  },
+
+  // ── 保存（新增/编辑）──
+  async saveProfile() {
+    if (!checkActive(this)) return
+    const name = (this.formName || '').trim()
+    if (!name) {
+      $utils.showToast('请输入姓名')
+      return
+    }
+
+    const payload = {
+      name: name,
+      relation: this.formRelation || '家人',
+      birth_date: this.formBirthDate || null,
+      content_md: this.formContent || '',
+    }
+
+    try {
+      if (this.editingId) {
+        // 更新
+        await $apis.profiles.update(this.editingId, payload)
+        if (!checkActive(this)) return
+        $utils.showToast('档案已更新')
+      } else {
+        // 新增
+        await $apis.profiles.create(payload)
+        if (!checkActive(this)) return
+        $utils.showToast('档案已添加')
+      }
+      if (!checkActive(this)) return
+      this.closeDialog()
+      await this.loadProfiles()
+    } catch (e) {
+      console.error('保存档案失败:', e)
+      if (checkActive(this)) {
+        $utils.showToast('保存失败，请检查网络')
+      }
+    }
+  },
+
+  // ── 删除 ──
+  async deleteProfile(item, e) {
+    if (!checkActive(this)) return
+    if (e) e.stopPropagation && e.stopPropagation()
+    try {
+      await $apis.profiles.remove(item.id)
+      if (!checkActive(this)) return
+      $utils.showToast('档案已删除')
+      await this.loadProfiles()
+    } catch (e) {
+      console.error('删除档案失败:', e)
+      if (checkActive(this)) {
+        $utils.showToast('删除失败，请检查网络')
+      }
+    }
+  },
+
+  // ── 返回 ──
+  goBack() {
+    if (!checkActive(this)) return
+    safeBack()
+  },
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f5ebe0;
+  padding-bottom: 140px;
+}
+
+/* ── 头部 ── */
+.header {
+  padding: 40px 30px 20px;
+  background: linear-gradient(180deg, #fffbf7 0%, #f5ebe0 100%);
+}
+.header-top {
+  flex-direction: row;
+  align-items: center;
+}
+.back-icon {
+  font-size: 50px;
+  color: #d4874b;
+  margin-right: 12px;
+}
+.header-title {
+  font-size: 38px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.header-desc {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+  margin-left: 62px;
+}
+
+/* ── 列表 ── */
+.profile-list {
+  flex-direction: column;
+  padding: 16px 24px;
+}
+.profile-card {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+.card-left {
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+.avatar-small {
+  width: 80px;
+  height: 80px;
+  border-radius: 40px;
+  background-color: #9cb5c9;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-letter {
+  font-size: 34px;
+  font-weight: 600;
+  color: #ffffff;
+}
+.card-info {
+  flex-direction: column;
+  margin-left: 20px;
+}
+.card-name {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.card-relation {
+  font-size: 24px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+.card-birth {
+  font-size: 22px;
+  color: #8ab4c9;
+  margin-top: 4px;
+}
+.card-right {
+  flex-direction: row;
+  align-items: center;
+}
+.edit-btn {
+  font-size: 36px;
+  padding: 8px 12px;
+}
+.delete-btn {
+  font-size: 36px;
+  padding: 8px 12px;
+}
+
+/* ── 空状态 ── */
+.empty-state {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+}
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+}
+.empty-text {
+  font-size: 28px;
+  color: #9a8b7a;
+  text-align: center;
+  line-height: 42px;
+}
+
+/* ── 加载中 ── */
+.loading-state {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.loading-text {
+  font-size: 28px;
+  color: #9a8b7a;
+}
+
+/* ── FAB 按钮 ── */
+.fab {
+  position: fixed;
+  left: 30px;
+  right: 30px;
+  bottom: 40px;
+  height: 88px;
+  background-color: #d4874b;
+  border-radius: 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.fab-text {
+  font-size: 32px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+/* ── 弹窗 ── */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.modal-body {
+  width: 640px;
+  background-color: #fffbf7;
+  border-radius: 20px;
+  padding: 36px 30px 30px;
+  flex-direction: column;
+}
+.modal-title {
+  font-size: 34px;
+  font-weight: 600;
+  color: #4a3728;
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+/* ── 表单 ── */
+.form-group {
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+.form-label {
+  font-size: 26px;
+  color: #4a3728;
+  margin-bottom: 8px;
+}
+.form-input {
+  height: 72px;
+  padding: 0 16px;
+  font-size: 28px;
+  background-color: #ffffff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+}
+.form-select {
+  height: 72px;
+  padding: 0 16px;
+  font-size: 28px;
+  background-color: #ffffff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+}
+.form-textarea {
+  height: 240px;
+  padding: 16px;
+  font-size: 26px;
+  background-color: #ffffff;
+  border: 1px solid #e0d6cc;
+  border-radius: 10px;
+}
+
+/* ── 弹窗按钮 ── */
+.modal-actions {
+  flex-direction: row;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+.btn-cancel {
+  flex: 1;
+  height: 76px;
+  background-color: #e0d6cc;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+.btn-confirm {
+  flex: 1;
+  height: 76px;
+  background-color: #d4874b;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-left: 12px;
+}
+.btn-text {
+  font-size: 30px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.btn-text-white {
+  color: #ffffff;
+}
+
+/* ── 详情弹窗 ── */
+.detail-body {
+  width: 640px;
+  max-height: 800px;
+  background-color: #fffbf7;
+  border-radius: 20px;
+  padding: 36px 30px 30px;
+  flex-direction: column;
+}
+.detail-header {
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.detail-name {
+  font-size: 38px;
+  font-weight: 600;
+  color: #4a3728;
+}
+.detail-relation {
+  font-size: 26px;
+  color: #9a8b7a;
+  margin-top: 6px;
+}
+.detail-birth {
+  font-size: 24px;
+  color: #8ab4c9;
+  margin-top: 4px;
+}
+.detail-divider {
+  height: 1px;
+  background-color: #e0d6cc;
+  margin: 16px 0;
+}
+.detail-content {
+  max-height: 420px;
+  /* overflow-y 快应用不支持，用 scroll 代替 */
+  padding: 8px 0;
+}
+.md-render {
+  font-size: 28px;
+  color: #4a3728;
+  line-height: 44px;
+}
+.detail-close {
+  margin-top: 20px;
+  height: 72px;
+  background-color: #e0d6cc;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.detail-close-text {
+  font-size: 28px;
+  color: #4a3728;
+}
+</style>

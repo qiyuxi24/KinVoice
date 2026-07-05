@@ -21,13 +21,25 @@ export default {
 
   /**
    * 创建新卡片
-   * @param {Object} data - { category, emotion, observation, feeling, need, request? }
+   * @param {Object} data - { category, emotion, observation, feeling, need, request?, title?, content?, author?, tag? }
    * @returns {Promise<{id, category, ...}>}
    *
    * 可能错误码：1001, 2001, 3004(422), 4001
    */
   create(data) {
     return $ajax.post(`${baseUrl}/cards`, data)
+  },
+
+  /**
+   * 更新卡片
+   * @param {number} cardId
+   * @param {Object} data - 要更新的字段（全可选）
+   * @returns {Promise<{id, category, ...}>}
+   *
+   * 可能错误码：1001, 2001, 3003(404), 4001
+   */
+  update(cardId, data) {
+    return $ajax.put(`${baseUrl}/cards/${cardId}`, data)
   },
 
   /**
@@ -39,5 +51,16 @@ export default {
    */
   remove(cardId) {
     return $ajax.delete(`${baseUrl}/cards/${cardId}`)
+  },
+
+  /**
+   * 双向同步：本地全部卡片 ↔ 后端
+   * @param {Object[]} cards - 本地缓存的全部卡片 [{id?, tag, date, title, author, content, emotion, need}, ...]
+   * @returns {Promise<{cards:Array, added_to_backend:number, added_to_local:number, total:number}>}
+   *
+   * 只增不减：本地有后端没有的 → 创建到后端；后端有本地没有的 → 返回给前端
+   */
+  sync(cards) {
+    return $ajax.post(`${baseUrl}/cards/sync`, { cards: cards })
   },
 }

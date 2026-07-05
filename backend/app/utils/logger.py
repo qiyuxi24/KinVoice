@@ -1,27 +1,25 @@
 """
 日志配置 —— 基于 loguru
 """
-# 日志系统-记录系统的工作状况
-import logging
+import sys
+from loguru import logger
 from app.config import settings
 
+# 移除默认 handler
+logger.remove()
 
-def setup_logger(name: str = __name__) -> logging.Logger:
-    logger = logging.getLogger(name)
+# 控制台输出
+logger.add(
+    sys.stderr,
+    level=settings.LOG_LEVEL.upper(),
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+)
 
-    if not logger.handlers:
-        logger.setLevel(settings.LOG_LEVEL.upper())
-
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
-
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-
-        logger.addHandler(console_handler)
-
-    return logger
-
-
-logger = setup_logger("app")
+# 文件输出（按天轮转）
+logger.add(
+    "logs/kinvoice_{time:YYYY-MM-DD}.log",
+    level="DEBUG",
+    rotation="00:00",
+    retention="30 days",
+    encoding="utf-8",
+)

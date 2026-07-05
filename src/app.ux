@@ -1,10 +1,13 @@
+<template>
+  <div></div>
+</template>
+
 <script>
 /**
  * 应用级别的配置，供所有页面公用
  */
-
-const $utils = require('./helper/utils').default
-const $apis = require('./helper/apis').default
+import $utils from './helper/utils'
+import $apis from './helper/apis'
 
 /* @desc: 注入方法至全局 global,以便页面调用 */
 const hook2global = global.__proto__ || global
