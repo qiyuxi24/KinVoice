@@ -9,7 +9,7 @@
 
 路由前缀：/chatroom
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select, func, or_, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import AsyncSessionLocal
@@ -20,7 +20,6 @@ from app.schemas.chatroom import (
     MessagesResponse, MessageOut,
     ConversationItem, ConversationListResponse,
 )
-from app.middleware.user_identity import get_user_id
 from app.services.family_service import get_user_family_id
 from app.utils.logger import logger
 
@@ -49,7 +48,7 @@ async def get_nickname(session: AsyncSession, user_id: str) -> str:
 # ════════════════════════════════════════════════════════════════
 
 @router.post("/send", response_model=SendMessageResponse)
-async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_id)):
+async def send_message(req: SendMessageRequest):
     """
     发送一条聊天消息。
 
@@ -83,12 +82,12 @@ async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_
                     Conversation.type == "private",
                     or_(
                         and_(
-                            Conversation.sender_id == user_id,
+                            Conversation.sender_id == req.user_id,
                             Conversation.receiver_id == req.receiver_id,
                         ),
                         and_(
                             Conversation.sender_id == req.receiver_id,
-                            Conversation.receiver_id == user_id,
+                            Conversation.receiver_id == req.user_id,
                         ),
                     ),
                 ).order_by(Conversation.created_at.desc()).limit(1)
@@ -97,11 +96,11 @@ async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_
 
             if not conv:
                 # 新建私聊会话
-                sender_nick = await get_nickname(session, user_id)
+                sender_nick = await get_nickname(session, req.user_id)
                 receiver_nick = await get_nickname(session, req.receiver_id)
                 conv = Conversation(
                     type="private",
-                    sender_id=user_id,
+                    sender_id=req.user_id,
                     receiver_id=req.receiver_id,
                     title=f"{sender_nick or '我'} ↔ {receiver_nick or '对方'}",
                 )
@@ -110,7 +109,7 @@ async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_
 
         elif req.chat_type == "group":
             # 获取用户家庭组
-            fid = await resolve_family_id(user_id)
+            fid = await resolve_family_id(req.user_id)
             if not fid:
                 raise HTTPException(status_code=400, detail="你还没有加入家庭组，无法群聊")
 
@@ -140,14 +139,14 @@ async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_
         # ChatMessage.role: 用 "user" 存储发送者 user_id（复用 role 字段）
         msg = ChatMessage(
             conversation_id=conv.id,
-            role=user_id,  # 复用 role 字段存 sender_id
+            role=req.user_id,  # 复用 role 字段存 sender_id
             content=req.content,
         )
         session.add(msg)
         await session.commit()
         await session.refresh(msg)
 
-        logger.info(f"聊天消息: conv={conv.id}, type={conv.type}, sender={user_id}")
+        logger.info(f"聊天消息: conv={conv.id}, type={conv.type}, sender={req.user_id}")
 
         return SendMessageResponse(
             conversation_id=conv.id,
@@ -164,7 +163,7 @@ async def send_message(req: SendMessageRequest, user_id: str = Depends(get_user_
 @router.get("/messages", response_model=MessagesResponse)
 async def get_messages(
     conversation_id: int = Query(..., description="会话 ID"),
-    user_id: str = Depends(get_user_id),
+    user_id: str = Query(..., description="当前用户 ID"),
     after_id: int = Query(0, description="增量拉取：只返回 id > after_id 的消息"),
     limit: int = Query(50, ge=1, le=200),
 ):
@@ -233,7 +232,7 @@ async def get_messages(
 
 @router.get("/conversations", response_model=ConversationListResponse)
 async def list_conversations(
-    user_id: str = Depends(get_user_id),
+    user_id: str = Query(..., description="当前用户 ID"),
 ):
     """
     获取用户的聊天列表（私聊 + 群聊）。

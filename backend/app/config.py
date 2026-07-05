@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     llm_api_base: str = ""      # 模型接口根地址
     llm_model: str = ""         # 模型名称
 
-    # 数据库（留空则自动用 session.py 计算的绝对路径）
-    database_url: str = ""
+    # 数据库
+    database_url: str = "sqlite+aiosqlite:///./data/kinvoice.db"
 
     # 日志
     LOG_LEVEL: str = "INFO"

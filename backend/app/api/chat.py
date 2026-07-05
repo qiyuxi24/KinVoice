@@ -17,7 +17,6 @@ from app.schemas.chat import (
 )
 from app.models.card import Conversation, ChatMessage
 from app.db.session import AsyncSessionLocal
-from app.middleware.user_identity import get_user_id
 from app.utils.logger import logger
 
 router = APIRouter(prefix="/chat", tags=["陪伴对话"])
@@ -28,14 +27,13 @@ MEMORY_TRIGGER = re.compile(r'\[MEMORY_UPDATE\]')
 
 # ── xia 分支辅助函数 ──
 
-async def get_or_create_conversation(session, conv_id: int | None, first_message: str, user_id: str) -> Conversation:
-    """获取或创建会话（仅限 AI 对话类型，按 user_id 隔离）"""
+async def get_or_create_conversation(session, conv_id: int | None, first_message: str) -> Conversation:
+    """获取或创建会话（仅限 AI 对话类型）"""
     if conv_id:
         result = await session.execute(
             select(Conversation).where(
                 Conversation.id == conv_id,
                 Conversation.type == "ai",
-                Conversation.user_id == user_id,
             )
         )
         conv = result.scalar_one_or_none()
@@ -43,7 +41,7 @@ async def get_or_create_conversation(session, conv_id: int | None, first_message
             return conv
         raise HTTPException(status_code=404, detail="会话不存在或不是 AI 对话")
     title = first_message[:50] if first_message else "新对话"
-    conv = Conversation(title=title, type="ai", user_id=user_id)
+    conv = Conversation(title=title, type="ai")
     session.add(conv)
     await session.flush()
     return conv
@@ -62,7 +60,7 @@ async def build_history(session, conv_id: int) -> list[dict]:
 # ── POST /chat ──
 
 @router.post("", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
+async def chat_endpoint(req: ChatRequest):
     """
     陪伴式 AI 对话 —— 统一使用 xia 模式（会话持久化）
     - 首次对话：不传 conversation_id（或传 null）→ 自动新建会话，返回新 conversation_id
@@ -106,7 +104,7 @@ async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
     # ── xia 模式：会话持久化（默认路径） ──
     try:
         async with AsyncSessionLocal() as session:
-            conv = await get_or_create_conversation(session, req.conversation_id, req.message, user_id)
+            conv = await get_or_create_conversation(session, req.conversation_id, req.message)
 
             # 保存用户消息
             user_msg = ChatMessage(conversation_id=conv.id, role="user", content=req.message)
@@ -152,13 +150,11 @@ async def chat_endpoint(req: ChatRequest, user_id: str = Depends(get_user_id)):
 # ── GET /chat/conversations ──
 
 @router.get("/conversations", response_model=ConversationListOut)
-async def list_conversations(user_id: str = Depends(get_user_id)):
-    """列出当前用户的 AI 对话会话（按创建时间倒序）"""
+async def list_conversations():
+    """列出所有会话（按创建时间倒序）"""
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(Conversation)
-            .where(Conversation.type == "ai", Conversation.user_id == user_id)
-            .order_by(Conversation.created_at.desc())
+            select(Conversation).order_by(Conversation.created_at.desc())
         )
         convs = result.scalars().all()
         return ConversationListOut(
@@ -172,15 +168,14 @@ async def list_conversations(user_id: str = Depends(get_user_id)):
 # ── GET /chat/history ──
 
 @router.get("/history", response_model=HistoryOut)
-async def get_history(conversation_id: int, user_id: str = Depends(get_user_id)):
-    """拉取某个会话的全部消息历史（按 user_id 隔离）"""
+async def get_history(conversation_id: int):
+    """拉取某个会话的全部消息历史"""
     async with AsyncSessionLocal() as session:
-        # 验证会话存在且为 AI 对话类型且属于当前用户
+        # 验证会话存在且为 AI 对话类型（隔离聊天室会话）
         conv_result = await session.execute(
             select(Conversation).where(
                 Conversation.id == conversation_id,
                 Conversation.type == "ai",
-                Conversation.user_id == user_id,
             )
         )
         conv = conv_result.scalar_one_or_none()
@@ -207,14 +202,11 @@ async def get_history(conversation_id: int, user_id: str = Depends(get_user_id))
 # ── DELETE /chat/conversations/{conv_id} ──
 
 @router.delete("/conversations/{conv_id}")
-async def delete_conversation(conv_id: int, user_id: str = Depends(get_user_id)):
-    """删除会话及其所有关联消息（硬删除，按 user_id 隔离）"""
+async def delete_conversation(conv_id: int):
+    """删除会话及其所有关联消息（硬删除）"""
     async with AsyncSessionLocal() as session:
         conv_result = await session.execute(
-            select(Conversation).where(
-                Conversation.id == conv_id,
-                Conversation.user_id == user_id,
-            )
+            select(Conversation).where(Conversation.id == conv_id)
         )
         conv = conv_result.scalar_one_or_none()
         if not conv:

@@ -581,6 +581,22 @@ export default {
     safeReplace('/pages/Profile')
   },
 
+  // ==================== 档案更新 ====================
+
+  /**
+   * 离开 Companion 页面时静默触发动态档案更新。
+   * 失败不弹 toast，不影响用户正常使用。
+   */
+  triggerProfileUpdate() {
+    profileAI.updateDynamic('default')
+      .then((res) => {
+        console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息')
+      })
+      .catch((err) => {
+        // 静默失败，仅日志记录
+        console.log('[Companion] 动态档案更新失败（静默）:', err)
+      })
+  }
 }
 </script>
 
@@ -620,7 +636,6 @@ export default {
   right: 0;
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.3);
-  z-index: 100;
 }
 
 /* ========== 侧边栏 ========== */
@@ -632,7 +647,6 @@ export default {
   width: 560px;
   background-color: @morandi-white;
   flex-direction: column;
-  z-index: 101;
   transition: left 0.25s ease;
 }
 
@@ -674,7 +688,6 @@ export default {
 .sidebar-list {
   flex: 1;
   flex-direction: column;
-  overflow-y: auto;
 }
 
 .sidebar-item {
@@ -697,7 +710,7 @@ export default {
 .sidebar-item-title {
   font-size: 26px;
   color: @morandi-text;
-  max-lines: 1;
+  lines: 1;
   text-overflow: ellipsis;
 }
 
@@ -937,19 +950,22 @@ export default {
   right: 0;
   bottom: 0;
   height: 90px;
-  background-color: @morandi-tabbar;
+  background-color: #fff;
   flex-direction: row;
   justify-content: space-around;
   align-items: center;
-  border-top-width: 1px;
-  border-top-color: @morandi-border;
 }
 
 .tab-item {
-  flex-direction: column;
+  flex: 1;
   align-items: center;
   justify-content: center;
-  padding: 6px 16px;
+  padding-top: 8px;
+  padding-right: 20px;
+  padding-bottom: 8px;
+  padding-left: 20px;
+  border-radius: 10px;
+  flex-direction: column;
 }
 
 .tab-icon {
@@ -957,12 +973,16 @@ export default {
 }
 
 .tab-label {
-  font-size: 20px;
-  color: @morandi-text-light;
-  margin-top: 2px;
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active {
+  background-color: #d4874b;
 }
 
 .tab-active .tab-label {
-  color: @morandi-brown;
+  color: #ffffff;
 }
 </style>

@@ -2,12 +2,16 @@
  * 聊天室 API —— 家庭组成员互聊
  *
  * 与 chat.js（AI 对话）完全独立。
- * user_id 由 ajax.js 自动通过 X-User-Id Header 注入，无需手动传递。
  */
 import $ajax from '../ajax'
 import config from './config'
+import userIdentity from '../userIdentity'
 
 const baseUrl = config.baseUrl
+
+function uid() {
+  return userIdentity.getUserId() || '1'
+}
 
 export default {
   /**
@@ -15,7 +19,9 @@ export default {
    * @returns {Promise<{conversations: Array}>}
    */
   getConversations() {
-    return $ajax.get(`${baseUrl}/chatroom/conversations`)
+    return $ajax.get(`${baseUrl}/chatroom/conversations`, {
+      user_id: uid(),
+    })
   },
 
   /**
@@ -29,6 +35,7 @@ export default {
    */
   sendMessage({ conversation_id, receiver_id, chat_type, content }) {
     return $ajax.post(`${baseUrl}/chatroom/send`, {
+      user_id: uid(),
       conversation_id: conversation_id || null,
       receiver_id: receiver_id || null,
       chat_type,
@@ -45,6 +52,7 @@ export default {
   getMessages(conversationId, afterId = 0) {
     return $ajax.get(`${baseUrl}/chatroom/messages`, {
       conversation_id: conversationId,
+      user_id: uid(),
       after_id: afterId,
       limit: 50,
     })

@@ -9,10 +9,10 @@
     <!-- Tab 切换 -->
     <div class="tab-bar">
       <div class="tab-item {{ activeTab === 'private' ? 'tab-active' : '' }}" onclick="switchTab('private')">
-        <text class="tab-text">私聊</text>
+        <text class="tab-text {{ activeTab === 'private' ? 'tab-text-active' : '' }}">私聊</text>
       </div>
       <div class="tab-item {{ activeTab === 'group' ? 'tab-active' : '' }}" onclick="switchTab('group')">
-        <text class="tab-text">群聊</text>
+        <text class="tab-text {{ activeTab === 'group' ? 'tab-text-active' : '' }}">群聊</text>
       </div>
     </div>
 
@@ -48,7 +48,7 @@
       </block>
 
       <!-- 没有其他成员 -->
-      <div class="empty-card" if="!loading && familyId && members.length <= 1">
+      <div class="empty-card" if="!loading && familyId && members.length === 0">
         <text class="empty-icon">👤</text>
         <text class="empty-text">暂无可聊天的成员</text>
         <text class="empty-sub">邀请家人加入家庭组吧</text>
@@ -79,7 +79,7 @@
           <text class="chat-preview">{{ groupPreview || '点击进入群聊' }}</text>
         </div>
         <div class="chat-meta">
-          <text class="chat-count">{{ members.length }}人</text>
+          <text class="chat-count">{{ members.length + 1 }}人</text>
           <text class="chat-arrow">›</text>
         </div>
       </div>
@@ -126,6 +126,7 @@ export default {
     members: [],
     myUserId: '',
     loading: true,
+    loadingData: false,
     // 聊天预览（最后一条消息）
     privatePreviews: {},  // { peer_user_id: "最后一条消息内容" }
     groupPreview: '',
@@ -137,13 +138,16 @@ export default {
     this.isActive = true
     this.myUserId = await userIdentity.initUserId()
     await userIdentity.initNickname()
+    // onInit 完成后立即加载数据（此时 myUserId 已就绪）
     await this.loadFamilyData()
   },
 
   onShow() {
     this.isActive = true
-    // 每次回到页面刷新数据
-    this.loadFamilyData()
+    // 从其他页面返回时刷新（此时 myUserId 已在 onInit 中初始化完毕）
+    if (this.myUserId && !this.loadingData) {
+      this.loadFamilyData()
+    }
   },
 
   onHide() {
@@ -157,6 +161,7 @@ export default {
   // ==================== 数据加载 ====================
 
   async loadFamilyData() {
+    this.loadingData = true
     this.loading = true
     try {
       const res = await familyAPI.getMyGroup()
@@ -174,6 +179,7 @@ export default {
       console.log('加载家庭组数据失败:', e)
     } finally {
       this.loading = false
+      this.loadingData = false
     }
   },
 
@@ -400,7 +406,7 @@ export default {
 .chat-preview {
   font-size: 24px;
   color: #9a8b7a;
-  max-lines: 1;
+  lines: 1;
   text-overflow: ellipsis;
 }
 
@@ -452,6 +458,6 @@ export default {
 }
 
 .tab-active .tab-label {
-  color: #d4874b;
+    color: #ffffff;
 }
 </style>

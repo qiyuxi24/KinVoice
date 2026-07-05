@@ -139,6 +139,12 @@ export default {
     await this.loadMyGroup()
   },
 
+  onShow() {
+    this.nickname = userIdentity.getNickname()
+    this.hasNickname = !!this.nickname
+    this.loadMyGroup()
+  },
+
   // ==================== 数据加载 ====================
 
   async loadMyGroup() {
@@ -428,7 +434,7 @@ export default {
   position: fixed;
   left: 30px;
   right: 30px;
-  top: 30%;
+  top: 260px;
   background-color: #ffffff;
   border-radius: 20px;
   padding: 30px;

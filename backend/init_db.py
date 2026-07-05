@@ -9,6 +9,7 @@ from app.db.session import engine, Base, BASE_DIR, AsyncSessionLocal
 from app.models.card import Card, Conversation, ChatMessage  # noqa: F401
 from app.models.folder import Folder  # noqa: F401
 from app.models.profile import UserDocument  # 用户个人文档
+from app.models.profile import FamilyMember  # 家庭成员档案（si 保留）
 from app.models.voice import CustomVoice  # 自定义音色（xia）
 from app.models.family import User, FamilyGroup, FamilyMembership  # 家庭组（新增）
 

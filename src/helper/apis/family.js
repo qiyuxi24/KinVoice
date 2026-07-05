@@ -1,12 +1,21 @@
 /**
  * 家庭组 API
  *
- * user_id 由 ajax.js 自动通过 X-User-Id Header 注入，无需手动传递。
+ * 用户身份通过请求体中的 user_id 字段传递（而非 Header），
+ * 避免修改现有 ajax.js。
  */
 import $ajax from '../ajax'
 import config from './config'
+import userIdentity from '../userIdentity'
 
 const baseUrl = config.baseUrl
+
+/**
+ * 获取当前设备 user_id
+ */
+function uid() {
+  return userIdentity.getUserId() || '1'
+}
 
 export default {
   /**
@@ -16,6 +25,7 @@ export default {
    */
   register(nickname) {
     return $ajax.post(`${baseUrl}/family/register-with-id`, {
+      user_id: uid(),
       nickname,
     })
   },
@@ -27,6 +37,7 @@ export default {
    */
   createGroup(nickname) {
     return $ajax.post(`${baseUrl}/family/create`, {
+      user_id: uid(),
       nickname,
     })
   },
@@ -40,6 +51,7 @@ export default {
    */
   joinGroup(familyId, password, nickname) {
     return $ajax.post(`${baseUrl}/family/join`, {
+      user_id: uid(),
       family_id: familyId,
       password,
       nickname,
@@ -51,7 +63,9 @@ export default {
    * @returns {Promise<{ok}>}
    */
   leaveGroup() {
-    return $ajax.post(`${baseUrl}/family/leave`, {})
+    return $ajax.post(`${baseUrl}/family/leave`, {
+      user_id: uid(),
+    })
   },
 
   /**
@@ -59,6 +73,6 @@ export default {
    * @returns {Promise<{family_id, password, members: [{user_id, nickname, joined_at}]}>}
    */
   getMyGroup() {
-    return $ajax.get(`${baseUrl}/family/my-group`)
+    return $ajax.get(`${baseUrl}/family/my-group?user_id=${uid()}`)
   },
 }

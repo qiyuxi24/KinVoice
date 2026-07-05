@@ -14,8 +14,11 @@ TIMEOUT_SECONDS = 3600
 # 需要 request_id 的 vivo 模型列表
 VIVO_MODELS = ["qwen3.5-plus", "Volc-DeepSeek-V3.2", "Doubao-Seed-2.0-mini", "Doubao-Seed-2.0-lite", "Doubao-Seed-2.0-pro"]
 
-# 提示词统一从 cloudie_prompt 导入
-from app.services.cloudie_prompt import CLOUDIE_SYSTEM_PROMPT as SYSTEM_PROMPT_CHAT
+SYSTEM_PROMPT_CHAT = (
+    "你是一个温柔、善解人意的陪伴者。你擅长用温和的方式倾听和回应。"
+    "你会关注对方的感受和需要，用温暖的语气给予回应。"
+    "回复长度控制在 80-200 字之间，语气自然亲切。"
+)
 
 
 async def call_llm(messages: list[dict]) -> str:

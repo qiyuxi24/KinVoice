@@ -2,49 +2,75 @@
   <div class="page">
     <!-- 顶部 -->
     <div class="header">
-      <text class="page-title">传承</text>
-      <text class="page-subtitle">用文件夹整理家族记忆</text>
+      <text class="page-title">📚 家庭记忆库</text>
+      <text class="page-subtitle">代代相传的专属回忆与智慧 💕</text>
     </div>
 
-    <!-- 文件夹筛选 -->
-    <div class="folder-strip-wrapper" if="folders.length > 0 || totalCount > 0">
-      <scroll-view class="folder-strip" scroll-x="true" show-scrollbar="false">
-        <div class="folder-pill {{ activeFolderId === null ? 'pill-active' : '' }}" onclick="selectFolder(null)">
-          <text class="pill-text">全部</text>
-          <text class="pill-count" if="totalCount > 0">{{ totalCount }}</text>
-        </div>
-        <div
-          class="folder-pill {{ activeFolderId === item.id ? 'pill-active' : '' }}"
-          for="(idx, item) in folders"
-          onclick="selectFolder(item.id)"
-        >
-          <text class="pill-text">{{ item.name }}</text>
-          <text class="pill-count" if="item.note_count > 0">{{ item.note_count }}</text>
-        </div>
-      </scroll-view>
+    <div class="category-tabs">
+      <div 
+        class="tab tab-first {{ activeCategory === '人生阅历' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('人生阅历')" 
+      >
+        <text>👤 人生阅历</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '家庭菜谱' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('家庭菜谱')" 
+      >
+        <text>🍳 家庭菜谱</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '成长故事' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('成长故事')" 
+      >
+        <text>🌱 成长故事</text>
+      </div>
+      <div 
+        class="tab {{ activeCategory === '相处感悟' ? 'tab-active' : '' }}" 
+        onclick="switchCategory('相处感悟')" 
+      >
+        <text>💭 相处感悟</text>
+      </div>
+    </div>
+
+    <div class="section-header">
+      <text class="section-title">[{{ activeCategory }}] 相关记录 ✨</text>
+      <div class="add-btn" onclick="showModal">
+        <text class="add-icon">+</text>
+        <text class="add-text">录入新经验</text>
+      </div>
     </div>
 
     <!-- 笔记列表 -->
     <div class="content-scroll">
-      <div class="loading-box" if="loading">
-        <text class="loading-text">加载中...</text>
+      <div class="card-list">
+        <div class="memory-card" for="(index, item) in currentCards">
+          <div class="card-left">
+            <div class="card-tag">
+              <text class="tag-text">#{{ item.tag }}</text>
+            </div>
+            <text class="card-date">{{ item.date }}</text>
+          </div>
+          <div class="card-center">
+            <text class="card-title">{{ item.title }}</text>
+          </div>
+          <div class="card-right">
+            <div class="card-author">
+              <text class="author-icon">👤</text>
+              <text class="author-text">来自 {{ item.author }}</text>
+            </div>
+            <text class="card-content">{{ item.content }}</text>
+          </div>
+          <div class="card-actions">
+            <div class="action-btn edit-btn" onclick="editCard(item, index)">
+              <text class="action-icon">✏️</text>
+            </div>
+            <div class="action-btn delete-btn" onclick="deleteCard(item, index)">
+              <text class="action-icon">🗑️</text>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div class="empty-box" elif="filteredNotes.length === 0 && !loading">
-        <text class="empty-icon">📝</text>
-        <text class="empty-text">{{ folders.length === 0 ? '还没有文件夹，先创建一个吧' : '这里还没有卡片，新建一张吧' }}</text>
-      </div>
-
-      <div class="note-list" else>
-        <div class="note-card" for="(index, item) in filteredNotes" onclick="editNote(item, index)">
-          <text class="note-folder" if="activeFolderId === null && item.folderName">{{ item.folderName }}</text>
-          <text class="note-title">{{ item.title }}</text>
-          <text class="note-content">{{ item.content }}</text>
-          <div class="note-footer">
-            <text class="note-author">{{ item.author }}</text>
-            <text class="note-date">{{ item.date }}</text>
-            <div class="note-actions">
-              <text class="del-icon" onclick="deleteNote(item, index)">🗑</text>
             </div>
           </div>
         </div>
@@ -71,7 +97,7 @@
       </div>
       <div class="tab-item" onclick="goBreakIce">
         <text class="tab-icon">💬</text>
-        <text class="tab-label">破冰</text>
+        <text class="tab-label">聊天</text>
       </div>
       <div class="tab-item tab-active">
         <text class="tab-icon">📚</text>
@@ -92,6 +118,34 @@
         </div>
 
         <div class="modal-body">
+          <text class="form-label">🏷️ 所属分类</text>
+          <div class="category-options">
+            <div 
+              class="category-option option-first {{ formData.category === '人生阅历' ? 'option-active' : '' }}" 
+              onclick="selectCategory('人生阅历')" 
+            >
+              <text>👤 人生阅历</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '家庭菜谱' ? 'option-active' : '' }}" 
+              onclick="selectCategory('家庭菜谱')" 
+            >
+              <text>🍳 家庭菜谱</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '成长故事' ? 'option-active' : '' }}" 
+              onclick="selectCategory('成长故事')" 
+            >
+              <text>🌱 成长故事</text>
+            </div>
+            <div 
+              class="category-option {{ formData.category === '相处感悟' ? 'option-active' : '' }}" 
+              onclick="selectCategory('相处感悟')" 
+            >
+              <text>💭 相处感悟</text>
+            </div>
+          </div>
+
           <div if="folders.length > 0">
             <text class="form-label">放入文件夹</text>
             <scroll-view class="folder-picker-scroll" scroll-x="true" show-scrollbar="false">
@@ -104,20 +158,21 @@
               </div>
             </scroll-view>
           </div>
+          </div>
           <text class="form-hint" elif="folders.length === 0">还没有文件夹，这张卡片将保存为未分类</text>
 
-          <text class="form-label">标题</text>
-          <input class="form-input" type="text" placeholder="给卡片起个名字" value="{{ noteForm.title }}" onchange="onFieldChange('title', $event)" />
+          <text class="form-label">📛 卡片标题</text>
+          <input class="form-input" type="text" placeholder="给这段记忆起个名字" value="{{ formData.title }}" onchange="onTitleChange" />
 
-          <text class="form-label">内容</text>
-          <textarea class="form-textarea" placeholder="写下你想传承的故事..." onchange="onFieldChange('content', $event)">{{ noteForm.content }}</textarea>
+          <text class="form-label">📝 正文内容</text>
+          <textarea class="form-textarea" placeholder="记录下你的故事、经验或感悟..." onchange="onContentChange">{{ formData.content }}</textarea>
 
-          <text class="form-label">讲述人</text>
-          <input class="form-input" type="text" placeholder="谁讲的故事" value="{{ noteForm.author }}" onchange="onFieldChange('author', $event)" />
+          <text class="form-label">👤 作者</text>
+          <input class="form-input" type="text" placeholder="来自谁的经验" value="{{ formData.author }}" onchange="onAuthorChange" />
         </div>
 
-        <div class="modal-submit" onclick="saveNote">
-          <text>保存</text>
+        <div class="modal-submit" onclick="saveCard">
+          <text>{{ editMode ? '✅ 保存修改' : '✅ 保存留存' }}</text>
         </div>
       </div>
     </div>
@@ -936,16 +991,8 @@ export default {
   flex-direction: column;
 }
 
-.form-label {
-  font-size: 24px;
-  color: #5f503f;
-  margin-top: 18px;
-}
-
-.form-hint {
-  font-size: 22px;
-  color: #b0a293;
-  margin-top: 18px;
+.tab-active {
+  background-color: #d4874b;
 }
 
 /* 文件夹选择器 */
@@ -1008,6 +1055,289 @@ export default {
   background-color: #7d9bb8;
   border-radius: 44px;
   font-size: 28px;
+  color: #fff;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.add-btn {
+  flex-direction: row;
+  align-items: center;
+  height: 56px;
+  padding: 0 20px;
+  background-color: #e8e0d5;
+  border-radius: 28px;
+}
+
+.add-icon {
+  font-size: 28px;
+  color: #7a9cb8;
+  margin-right: 6px;
+}
+
+.add-text {
+  font-size: 24px;
+  color: #7a9cb8;
+}
+
+.content-scroll {
+  flex: 1;
+  padding: 0 24px;
+}
+
+.card-list {
+  flex-direction: column;
+}
+
+.memory-card {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  flex-direction: row;
+  border-left: 6px solid #a8c5d9;
+}
+
+.card-left {
+  width: 100px;
+  flex-direction: column;
+  align-items: center;
+}
+
+.card-tag {
+  background-color: #e8f0f5;
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.tag-text {
+  font-size: 20px;
+  color: #8ab4c9;
+}
+
+.card-date {
+  font-size: 20px;
+  color: #a89a8a;
+}
+
+.card-center {
+  flex: 1;
+  padding: 0 16px;
+  justify-content: center;
+}
+
+.card-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.card-right {
+  flex: 2;
+  flex-direction: column;
+}
+
+.card-author {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.author-icon {
+  font-size: 22px;
+  margin-right: 6px;
+}
+
+.author-text {
+  font-size: 22px;
+  color: #8ab4c9;
+}
+
+.card-content {
+  font-size: 26px;
+  color: #5a4a3a;
+  line-height: 32px;
+}
+
+.card-actions {
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 8px;
+  width: 60px;
+}
+
+.action-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.edit-btn {
+  background-color: #e8f0f5;
+}
+
+.delete-btn {
+  background-color: #f5e8e8;
+}
+
+.action-icon {
+  font-size: 24px;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
+  padding-right: 20px;
+  padding-bottom: 8px;
+  padding-left: 20px;
+  border-radius: 10px;
+  flex-direction: column;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #ffffff;
+}
+
+.modal-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.modal-content {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 32px;
+  padding: 32px;
+  padding-bottom: 64px;
+  flex-direction: column;
+}
+
+.modal-header {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modal-title {
+  font-size: 36px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.modal-close {
+  width: 56px;
+  height: 56px;
+  font-size: 48px;
+  color: #a89a8a;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 28px;
+  color: #4a3728;
+  margin-top: 24px;
+}
+
+.category-options {
+  flex-direction: row;
+  margin-top: 12px;
+}
+
+.category-option {
+  flex: 1;
+  height: 72px;
+  background-color: #f5f0e8;
+  border-radius: 16px;
+  font-size: 24px;
+  color: #4a3728;
+  margin-left: 12px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-first {
+  margin-left: 0;
+}
+
+.option-active {
+  background-color: #a8c5d9;
+  color: #fff;
+}
+
+.form-input {
+  width: 100%;
+  height: 88px;
+  margin-top: 12px;
+  padding: 0 24px;
+  background-color: #f5f0e8;
+  border-radius: 16px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #b5a899;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 200px;
+  margin-top: 12px;
+  padding: 20px 24px;
+  background-color: #f5f0e8;
+  border-radius: 16px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #b5a899;
+}
+
+.modal-submit {
+  width: 100%;
+  height: 96px;
+  margin-top: 32px;
+  background-color: #a8c5d9;
+  border-radius: 48px;
+  font-size: 32px;
   color: #fff;
   font-weight: 600;
   flex-direction: column;

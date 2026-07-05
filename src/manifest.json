@@ -34,6 +34,9 @@
   "router": {
     "entry": "pages/Companion",
     "pages": {
+      "pages/About": {
+        "component": "index"
+      },
       "pages/Demo": {
         "component": "index"
       },
@@ -102,7 +105,7 @@
         "titleBarText": "我的"
       },
       "pages/ProfileDetail": {
-        "titleBarText": "我的文档"
+        "titleBarText": "用户档案"
       },
       "pages/Family": {
         "titleBarText": "家庭组"

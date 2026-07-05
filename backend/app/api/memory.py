@@ -138,8 +138,10 @@ async def create_card(
     payload = {k: v for k, v in data.model_dump().items() if k in orm_fields and v is not None}
 
     if "type" not in payload:
-        payload["type"] = "simple"
-    payload["family_id"] = family_id
+        payload["type"] = "nvc"
+
+    # 动态注入 family_id（覆盖前端可能传的值）
+    payload["family_id"] = family_id if family_id is not None else 1
 
     card = Card(**payload)
     session.add(card)
@@ -224,6 +226,8 @@ async def sync_cards(
 ):
     """双向同步：只增不减"""
     family_id = await resolve_family_id(user_id)
+    # ensure family_id is resolved to a concrete value
+    family_id = family_id if family_id is not None else 1
 
     result = await session.execute(
         select(Card).where(Card.family_id == family_id).order_by(Card.created_at.desc())
@@ -295,10 +299,15 @@ async def favorite_message(
     req: FavoriteRequest,
     user_id: str = Depends(get_user_id),
 ):
-    """将一条对话消息收藏为笔记"""
+    """
+    将一条对话消息收藏为卡片（xia 新增）
+    自动关联用户消息和 AI 回复
+    """
     family_id = await resolve_family_id(user_id)
+    family_id = family_id if family_id is not None else 1
 
     async with AsyncSessionLocal() as session:
+        # 查询目标消息
         result = await session.execute(
             select(ChatMessage)
             .join(Conversation, ChatMessage.conversation_id == Conversation.id)
@@ -306,7 +315,7 @@ async def favorite_message(
         )
         msg = result.scalar_one_or_none()
         if not msg:
-            raise HTTPException(status_code=404, detail="消息不存在或不属于当前用户")
+            raise HTTPException(status_code=404, detail="消息不存在")
         if msg.role != "assistant":
             raise HTTPException(status_code=400, detail="只能收藏 AI 回复")
 

@@ -35,3 +35,13 @@ backend/logs/
 *.sw*
 .ide
 .quickapp.preview.json
+
+# claude文件
+.docs
+CLAUDE.md
+*/CLAUDE.md
+
+# python.pyc缓存文件
+__pycache__/
+*.pyc
+*/venv

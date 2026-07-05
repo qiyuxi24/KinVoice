@@ -7,7 +7,6 @@
 import $fetch from '@system.fetch'
 import $utils from './utils'
 import { getErrorInfo, mapDetailToCode, httpStatusToCode, fetchErrorToCode } from './errorCodes'
-import userIdentity from './userIdentity'
 
 const TIMEOUT = 20000
 
@@ -82,12 +81,6 @@ function fetchPromise(params) {
       header: params.header || {},
     }
 
-    // 自动注入 X-User-Id Header（统一用户身份传递方式）
-    const uid = userIdentity.getUserId()
-    if (uid) {
-      fetchOptions.header['X-User-Id'] = uid
-    }
-
     // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
     // 快应用 @system.fetch 对 data 的自动处理行为不一致，
     // 有的版本会转成 form-urlencoded 导致 FastAPI 收到非 JSON body → 422
@@ -103,32 +96,35 @@ function fetchPromise(params) {
     $fetch
       .fetch(fetchOptions)
       .then(response => {
-        // 快应用 @system.fetch 返回: { code: 200, data: "JSON字符串", headers: {} }
-        const rawText = response.data
-        let parsed = null
+        // 快应用 @system.fetch 可能已自动解析 JSON，body 可能是对象或字符串
+        let body = response.data
 
-        try {
-          parsed = JSON.parse(rawText)
-        } catch (e) {
-          // JSON 解析失败 → 视为成功（可能是二进制数据，如 TTS）
-          console.log('[ajax] 响应非 JSON，可能是二进制数据')
-          resolve(rawText)
-          return
+        if (typeof body === 'string') {
+          try {
+            body = JSON.parse(body)
+          } catch (e) {
+            // JSON 解析失败 → 视为成功（可能是二进制数据，如 TTS）
+            console.log('[ajax] 响应非 JSON，可能是二进制数据')
+            resolve(body)
+            return
+          }
         }
+
+        // HTTP 状态码：优先用代理包装中的真实状态码，否则用 fetch 层 code
+        let httpStatus = Number(response.code || 0)
 
         // 处理 Quick App Studio 代理包装：
         // /api/proxy/xxx 会返回 { code: 200, headers: {}, data: "原响应JSON字符串" }
-        // 需要解包并返回真正的后端响应体
-        console.log('[ajax] parsed keys:', Object.keys(parsed), 'has headers:', !!parsed.headers, 'data type:', typeof parsed.data)
-        if (parsed && typeof parsed === 'object' &&
-            typeof parsed.data === 'string' &&
-            parsed.headers && typeof parsed.headers === 'object') {
+        if (body && typeof body === 'object' &&
+            typeof body.data === 'string' &&
+            body.headers && typeof body.headers === 'object') {
+          // 用代理包装中的真实 HTTP 状态码
+          httpStatus = Number(body.code || httpStatus)
           try {
             console.log('[ajax] 检测到代理包装，解包 data 字段')
-            parsed = JSON.parse(parsed.data)
-            console.log('[ajax] 解包后:', JSON.stringify(parsed).substring(0, 120))
+            body = JSON.parse(body.data)
+            console.log('[ajax] 解包后:', JSON.stringify(body).substring(0, 120))
           } catch (e) {
-            // 内层 data 不是 JSON，保留外层对象
             console.log('[ajax] 代理响应 data 字段非 JSON，保留外层:', e)
           }
         } else {
@@ -136,11 +132,11 @@ function fetchPromise(params) {
         }
 
         // 检查后端是否返回了错误
-        const err = parseBackendError(parsed, response.code)
+        const err = parseBackendError(body, httpStatus)
         if (err) {
           reject(err)
         } else {
-          resolve(parsed)
+          resolve(body)
         }
       })
       .catch((error, code) => {
