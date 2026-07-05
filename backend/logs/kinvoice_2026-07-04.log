@@ -1,8 +1,0 @@
-2026-07-04 23:47:05.401 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
-2026-07-04 23:47:28.643 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=7, conv_id=1783179866545
-2026-07-04 23:47:28.657 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
-2026-07-04 23:56:38.831 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=5, conv_id=None
-2026-07-04 23:57:01.491 | ERROR    | app.api.chat:chat_endpoint:97 - LLM 调用失败: All connection attempts failed
-2026-07-04 23:58:27.892 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
-2026-07-04 23:58:35.762 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=5, conv_id=None
-2026-07-04 23:58:57.442 | ERROR    | app.api.chat:chat_endpoint:97 - LLM 调用失败: All connection attempts failed
