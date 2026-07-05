@@ -1,0 +1,91 @@
+2026-07-05 00:05:25.296 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=3, conv_id=1783179866545
+2026-07-05 00:05:25.314 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:06:28.705 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 00:06:34.988 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=11, conv_id=None
+2026-07-05 00:09:49.490 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=3, conv_id=1783179866545
+2026-07-05 00:09:49.501 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:14:48.666 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=3, conv_id=1783179866545
+2026-07-05 00:14:48.674 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:16:29.677 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=4, conv_id=None
+2026-07-05 00:17:20.718 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 00:17:28.931 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:19:58.103 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=3, conv_id=1783179866545
+2026-07-05 00:19:58.113 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:20:17.014 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=1783179866545
+2026-07-05 00:20:17.023 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:21:58.823 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:25:48.258 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 00:28:01.061 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=3, conv_id=1783179866545
+2026-07-05 00:28:01.074 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:29:16.963 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:29:45.384 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:32:08.957 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:32:49.360 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:34:14.374 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:35:02.602 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=1783179866545
+2026-07-05 00:35:02.613 | ERROR    | app.api.chat:chat_endpoint:113 - 聊天接口异常: 404: 会话不存在或不是 AI 对话
+2026-07-05 00:39:07.649 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=2, conv_id=None
+2026-07-05 00:39:32.722 | INFO     | app.api.chat:chat_endpoint:63 - 收到对话: msg_len=4, conv_id=12
+2026-07-05 00:40:25.830 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:40:25.864 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:40:25.868 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:40:33.715 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:40:33.725 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:40:33.725 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:40:40.405 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:40:40.414 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:40:40.416 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:40:54.020 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=1 family_id=1
+2026-07-05 00:40:54.025 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=2 family_id=1
+2026-07-05 00:40:54.028 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=3 family_id=1
+2026-07-05 00:40:54.031 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=4 family_id=1
+2026-07-05 00:40:54.036 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=5 family_id=1
+2026-07-05 00:40:54.036 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=6 family_id=1
+2026-07-05 00:40:54.044 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=7 family_id=1
+2026-07-05 00:40:54.047 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=8 family_id=1
+2026-07-05 00:40:54.050 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=9 family_id=1
+2026-07-05 00:40:54.055 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=10 family_id=1
+2026-07-05 00:40:54.056 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=11 family_id=1
+2026-07-05 00:40:54.056 | INFO     | app.api.memory:sync_cards:261 - sync 完成: 本地→后端 +11, 后端→本地 +0, 合并后共 11 张
+2026-07-05 00:41:21.013 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:41:21.040 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:41:21.040 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:41:37.580 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:41:37.592 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:41:37.592 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:41:44.766 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:41:44.778 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:41:44.778 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:41:57.124 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=12 family_id=1
+2026-07-05 00:41:57.131 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=13 family_id=1
+2026-07-05 00:41:57.134 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=14 family_id=1
+2026-07-05 00:41:57.139 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=15 family_id=1
+2026-07-05 00:41:57.145 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=16 family_id=1
+2026-07-05 00:41:57.145 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=17 family_id=1
+2026-07-05 00:41:57.150 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=18 family_id=1
+2026-07-05 00:41:57.155 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=19 family_id=1
+2026-07-05 00:41:57.160 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=20 family_id=1
+2026-07-05 00:41:57.166 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=21 family_id=1
+2026-07-05 00:41:57.170 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=22 family_id=1
+2026-07-05 00:41:57.170 | INFO     | app.api.memory:sync_cards:261 - sync 完成: 本地→后端 +11, 后端→本地 +11, 合并后共 22 张
+2026-07-05 00:42:03.714 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:42:03.726 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:42:03.726 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:42:18.082 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:42:18.094 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:42:18.094 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
+2026-07-05 00:42:46.447 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=23 family_id=1
+2026-07-05 00:42:46.452 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=24 family_id=1
+2026-07-05 00:42:46.456 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=25 family_id=1
+2026-07-05 00:42:46.459 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=26 family_id=1
+2026-07-05 00:42:46.462 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=27 family_id=1
+2026-07-05 00:42:46.468 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=28 family_id=1
+2026-07-05 00:42:46.472 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=29 family_id=1
+2026-07-05 00:42:46.476 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=30 family_id=1
+2026-07-05 00:42:46.479 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=31 family_id=1
+2026-07-05 00:42:46.484 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=32 family_id=1
+2026-07-05 00:42:46.484 | INFO     | app.api.memory:sync_cards:237 - sync: 本地→后端 创建卡片 id=33 family_id=1
+2026-07-05 00:42:46.489 | INFO     | app.api.memory:sync_cards:261 - sync 完成: 本地→后端 +11, 后端→本地 +22, 合并后共 33 张
+2026-07-05 00:42:48.632 | INFO     | app.api.profile_ai:update_dynamic:28 - 动态档案更新请求: user_id=default
+2026-07-05 00:42:48.641 | INFO     | app.extractors.database:fetch_today_messages:39 - 提取今日消息: 0 条
+2026-07-05 00:42:48.641 | INFO     | app.services.profile_writer:update_dynamic_profile:140 - 用户 default 今日无对话，跳过动态档案更新
