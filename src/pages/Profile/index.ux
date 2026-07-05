@@ -1,0 +1,519 @@
+<template>
+  <div class="page">
+    <!-- ========== 头部：头像区域（点击登录/显示信息） ========== -->
+    <div class="header">
+      <!-- 已登录：显示用户信息 -->
+      <div class="user-card" if="isLoggedIn">
+        <div class="avatar" onclick="toggleLoginPanel">
+          <text class="avatar-text">{{ avatarChar }}</text>
+        </div>
+        <div class="user-info">
+          <text class="user-name">你好，{{ nickname }}</text>
+          <text class="user-desc">{{ familyInfo || '你的家庭情绪树洞' }}</text>
+        </div>
+        <div class="logout-btn" onclick="handleLogout">
+          <text class="logout-text">退出</text>
+        </div>
+      </div>
+
+      <!-- 未登录：点击头像展开登录面板 -->
+      <div class="user-card" else>
+        <div class="avatar" onclick="toggleLoginPanel">
+          <text class="avatar-text">👤</text>
+        </div>
+        <div class="user-info" onclick="toggleLoginPanel">
+          <text class="user-name">点击登录</text>
+          <text class="user-desc">登录后开始你的家庭之旅</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 登录/注册面板 ========== -->
+    <div class="login-panel" if="showLoginPanel && !isLoggedIn">
+      <!-- 登录模式 -->
+      <block if="!isRegistering">
+        <text class="panel-title">登录</text>
+        <input class="panel-input" type="text" placeholder="用户名" value="{{ loginUsername }}" onchange="onLoginUsername" />
+        <input class="panel-input" type="password" placeholder="密码" value="{{ loginPassword }}" onchange="onLoginPassword" />
+        <div class="panel-btn" onclick="handleLogin">
+          <text class="panel-btn-text">{{ logging ? '登录中...' : '登录' }}</text>
+        </div>
+        <div class="panel-switch" onclick="switchToRegister">
+          <text class="panel-switch-text">没有账号？去注册</text>
+        </div>
+      </block>
+
+      <!-- 注册模式 -->
+      <block else>
+        <text class="panel-title">注册</text>
+        <input class="panel-input" type="text" placeholder="用户名" value="{{ regUsername }}" onchange="onRegUsername" />
+        <input class="panel-input" type="password" placeholder="密码" value="{{ regPassword }}" onchange="onRegPassword" />
+        <input class="panel-input" type="text" placeholder="昵称" value="{{ regNickname }}" onchange="onRegNickname" />
+        <div class="panel-btn" onclick="handleRegister">
+          <text class="panel-btn-text">{{ regging ? '注册中...' : '注册' }}</text>
+        </div>
+        <div class="panel-switch" onclick="switchToLogin">
+          <text class="panel-switch-text">已有账号？去登录</text>
+        </div>
+      </block>
+    </div>
+
+    <!-- ========== 菜单列表 ========== -->
+    <div class="menu-list">
+      <div class="menu-item" onclick="goFamily">
+        <text class="menu-icon">🏠</text>
+        <text class="menu-text">我的家庭组</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="goProfileDetail">
+        <text class="menu-icon">📋</text>
+        <text class="menu-text">我的文档</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="showSettings">
+        <text class="menu-icon">⚙️</text>
+        <text class="menu-text">设置</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="showAbout">
+        <text class="menu-icon">ℹ️</text>
+        <text class="menu-text">关于我们</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="showHelp">
+        <text class="menu-icon">❓</text>
+        <text class="menu-text">帮助与反馈</text>
+        <text class="menu-arrow">›</text>
+      </div>
+    </div>
+
+    <!-- ========== TabBar ========== -->
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item tab-active">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import $utils from '../../helper/utils'
+import userIdentity from '../../helper/userIdentity'
+import familyAPI from '../../helper/apis/family'
+import { safePush, safeReplace } from '../../helper/navigate'
+
+export default {
+  private: {
+    // 登录态
+    isLoggedIn: false,
+    nickname: '',
+    familyInfo: '',
+
+    // 登录面板
+    showLoginPanel: false,
+    isRegistering: false,
+
+    // 登录表单
+    loginUsername: '',
+    loginPassword: '',
+    logging: false,
+
+    // 注册表单
+    regUsername: '',
+    regPassword: '',
+    regNickname: '',
+    regging: false,
+
+  },
+
+  computed: {
+    avatarChar() {
+      return (this.nickname || '我').charAt(0)
+    }
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.restoreSession()
+  },
+
+  onShow() {
+    // 每次回到页面时刷新登录态
+    this.restoreSession()
+  },
+
+  /** 从本地恢复登录态 */
+  async restoreSession() {
+    const session = await userIdentity.init()
+    if (session && session.user_id) {
+      this.isLoggedIn = true
+      this.nickname = session.nickname || '用户'
+      this.showLoginPanel = false
+      this.loadFamilyInfo()
+    } else {
+      this.isLoggedIn = false
+      this.nickname = ''
+      this.familyInfo = ''
+    }
+  },
+
+  /** 加载家庭组信息 */
+  async loadFamilyInfo() {
+    try {
+      const res = await familyAPI.getMyGroup()
+      if (res && res.family_id) {
+        const memberCount = (res.members && res.members.length) || 1
+        const names = (res.members || [])
+          .map((m) => m.nickname)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join('、')
+        this.familyInfo = `家庭组 · ${memberCount}人（${names}）`
+      } else {
+        this.familyInfo = '暂未加入家庭组'
+      }
+    } catch (e) {
+      this.familyInfo = ''
+    }
+  },
+
+  // ==================== 登录面板 ====================
+
+  toggleLoginPanel() {
+    if (this.isLoggedIn) return
+    this.showLoginPanel = !this.showLoginPanel
+  },
+
+  switchToRegister() {
+    this.isRegistering = true
+  },
+
+  switchToLogin() {
+    this.isRegistering = false
+  },
+
+  // ==================== 登录表单输入 ====================
+
+  onLoginUsername(e) {
+    this.loginUsername = e.value || ''
+  },
+  onLoginPassword(e) {
+    this.loginPassword = e.value || ''
+  },
+  onRegUsername(e) {
+    this.regUsername = e.value || ''
+  },
+  onRegPassword(e) {
+    this.regPassword = e.value || ''
+  },
+  onRegNickname(e) {
+    this.regNickname = e.value || ''
+  },
+
+  // ==================== 登录 ====================
+
+  async handleLogin() {
+    const username = (this.loginUsername || '').trim()
+    const password = (this.loginPassword || '').trim()
+
+    if (!username) { $utils.showToast('请输入用户名'); return }
+    if (!password) { $utils.showToast('请输入密码'); return }
+
+    this.logging = true
+    try {
+      const res = await userIdentity.login(username, password)
+      this.isLoggedIn = true
+      this.nickname = res.nickname
+      this.showLoginPanel = false
+      this.loginUsername = ''
+      this.loginPassword = ''
+      $utils.showToast('登录成功')
+      this.loadFamilyInfo()
+    } catch (e) {
+      const msg = (e && e.message) || '登录失败'
+      $utils.showToast(msg)
+    } finally {
+      this.logging = false
+    }
+  },
+
+  // ==================== 注册 ====================
+
+  async handleRegister() {
+    const username = (this.regUsername || '').trim()
+    const password = (this.regPassword || '').trim()
+    const nickname = (this.regNickname || '').trim()
+
+    if (!username) { $utils.showToast('请输入用户名'); return }
+    if (!password) { $utils.showToast('请输入密码'); return }
+    if (!nickname) { $utils.showToast('请输入昵称'); return }
+    if (password.length < 4) { $utils.showToast('密码至少4位'); return }
+
+    this.regging = true
+    try {
+      const res = await userIdentity.register(username, password, nickname)
+      this.isLoggedIn = true
+      this.nickname = res.nickname
+      this.showLoginPanel = false
+      this.regUsername = ''
+      this.regPassword = ''
+      this.regNickname = ''
+      $utils.showToast('注册成功')
+      this.loadFamilyInfo()
+    } catch (e) {
+      const msg = (e && e.message) || '注册失败'
+      $utils.showToast(msg)
+    } finally {
+      this.regging = false
+    }
+  },
+
+  // ==================== 登出 ====================
+
+  handleLogout() {
+    userIdentity.logout()
+    this.isLoggedIn = false
+    this.nickname = ''
+    this.familyInfo = ''
+    this.showLoginPanel = false
+    $utils.showToast('已退出登录')
+  },
+
+  // ==================== 菜单 ====================
+
+  goProfileDetail() {
+    safePush('/pages/ProfileDetail')
+  },
+
+  goFamily() {
+    safePush('/pages/Family')
+  },
+
+  showSettings() {
+    $utils.showToast('设置')
+  },
+
+  showAbout() {
+    $utils.showToast('关于我们')
+  },
+
+  showHelp() {
+    $utils.showToast('帮助与反馈')
+  },
+
+  // ==================== TabBar 路由 ====================
+
+  goCompanion() {
+    safeReplace('/pages/Companion')
+  },
+
+  goBreakIce() {
+    safeReplace('/pages/BreakIce')
+  },
+
+  goMemory() {
+    safeReplace('/pages/Memory')
+  },
+
+  goProfile() {
+    safeReplace('/pages/Profile')
+  }
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f5ebe0;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 30px;
+  background: linear-gradient(180deg, #fffbf7 0%, #f5ebe0 100%);
+}
+
+.user-card {
+  flex-direction: row;
+  align-items: center;
+}
+
+.avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50px;
+  background-color: #9cb5c9;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-text {
+  font-size: 44px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.user-info {
+  flex-direction: column;
+  margin-left: 24px;
+}
+
+.user-name {
+  font-size: 36px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.user-desc {
+  font-size: 26px;
+  color: #8ab4c9;
+  margin-top: 8px;
+}
+
+.menu-list {
+  flex-direction: column;
+  padding: 24px;
+}
+
+.menu-item {
+  flex-direction: row;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+
+.menu-icon {
+  font-size: 40px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30px;
+  color: #4a3728;
+  margin-left: 16px;
+}
+
+.menu-arrow {
+  font-size: 36px;
+  color: #c9b8ad;
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fffbf7;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+
+/* ========== 登录面板 ========== */
+.login-panel {
+  flex-direction: column;
+  margin: 0 24px 16px;
+  padding: 30px 24px;
+  background-color: #ffffff;
+  border-radius: 16px;
+}
+
+.panel-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.panel-input {
+  height: 72px;
+  padding: 0 20px;
+  margin-bottom: 16px;
+  background-color: #f5ebe0;
+  border-radius: 10px;
+  font-size: 28px;
+  color: #4a3728;
+  placeholder-color: #c9b8ad;
+}
+
+.panel-btn {
+  height: 72px;
+  background-color: #d4874b;
+  border-radius: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.panel-btn-text {
+  font-size: 30px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.panel-switch {
+  margin-top: 20px;
+  align-items: center;
+}
+
+.panel-switch-text {
+  font-size: 24px;
+  color: #8ab4c9;
+}
+
+/* ========== 退出按钮 ========== */
+.logout-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background-color: #f0e4d8;
+}
+
+.logout-text {
+  font-size: 22px;
+  color: #9a8b7a;
+}
+</style>

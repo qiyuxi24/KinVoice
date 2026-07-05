@@ -1,0 +1,457 @@
+<template>
+  <div class="page">
+    <!-- 顶部标题 -->
+    <div class="header">
+      <text class="page-title">💬 家庭聊天</text>
+      <text class="page-subtitle">和家人们聊聊天</text>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="tab-bar">
+      <div class="tab-item {{ activeTab === 'private' ? 'tab-active' : '' }}" onclick="switchTab('private')">
+        <text class="tab-text">私聊</text>
+      </div>
+      <div class="tab-item {{ activeTab === 'group' ? 'tab-active' : '' }}" onclick="switchTab('group')">
+        <text class="tab-text">群聊</text>
+      </div>
+    </div>
+
+    <!-- ========== 私聊列表 ========== -->
+    <div class="chat-list" if="activeTab === 'private'">
+      <!-- 加载中 -->
+      <div class="loading-hint" if="loading">
+        <text class="loading-text">加载中...</text>
+      </div>
+
+      <!-- 未加入家庭组 -->
+      <div class="empty-card" if="!loading && !familyId">
+        <text class="empty-icon">🏠</text>
+        <text class="empty-text">你还没有加入家庭组</text>
+        <text class="empty-sub">加入家庭组后即可与家人私聊</text>
+        <div class="go-family-btn" onclick="goFamily">
+          <text class="go-family-text">去加入家庭组</text>
+        </div>
+      </div>
+
+      <!-- 成员列表 -->
+      <block for="member in members">
+        <div class="chat-item" onclick="openPrivateChat(member.user_id, member.nickname)">
+          <div class="chat-avatar">
+            <text class="chat-avatar-text">{{ member.nickname ? member.nickname.charAt(0).toUpperCase() : '?' }}</text>
+          </div>
+          <div class="chat-info">
+            <text class="chat-name">{{ member.nickname || '未知' }}</text>
+            <text class="chat-preview">{{ getPrivatePreview(member.user_id) || '点击开始聊天' }}</text>
+          </div>
+          <text class="chat-arrow">›</text>
+        </div>
+      </block>
+
+      <!-- 没有其他成员 -->
+      <div class="empty-card" if="!loading && familyId && members.length <= 1">
+        <text class="empty-icon">👤</text>
+        <text class="empty-text">暂无可聊天的成员</text>
+        <text class="empty-sub">邀请家人加入家庭组吧</text>
+      </div>
+    </div>
+
+    <!-- ========== 群聊入口 ========== -->
+    <div class="chat-list" if="activeTab === 'group'">
+      <div class="loading-hint" if="loading">
+        <text class="loading-text">加载中...</text>
+      </div>
+
+      <div class="empty-card" if="!loading && !familyId">
+        <text class="empty-icon">🏠</text>
+        <text class="empty-text">你还没有加入家庭组</text>
+        <text class="empty-sub">加入家庭组后即可参与群聊</text>
+        <div class="go-family-btn" onclick="goFamily">
+          <text class="go-family-text">去加入家庭组</text>
+        </div>
+      </div>
+
+      <div class="chat-item" if="!loading && familyId" onclick="openGroupChat">
+        <div class="chat-avatar chat-avatar-group">
+          <text class="chat-avatar-text">👥</text>
+        </div>
+        <div class="chat-info">
+          <text class="chat-name">家庭群聊</text>
+          <text class="chat-preview">{{ groupPreview || '点击进入群聊' }}</text>
+        </div>
+        <div class="chat-meta">
+          <text class="chat-count">{{ members.length }}人</text>
+          <text class="chat-arrow">›</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- TabBar -->
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item tab-active" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">聊天</text>
+      </div>
+      <div class="tab-item" onclick="goMemory">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import $utils from '../../helper/utils'
+import userIdentity from '../../helper/userIdentity'
+import familyAPI from '../../helper/apis/family'
+import chatroomAPI from '../../helper/apis/chatroom'
+import { safeReplace, safePush } from '../../helper/navigate'
+
+/** 获取页面存活标志 */
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+export default {
+  private: {
+    activeTab: 'private',
+    familyId: '',
+    members: [],
+    myUserId: '',
+    loading: true,
+    // 聊天预览（最后一条消息）
+    privatePreviews: {},  // { peer_user_id: "最后一条消息内容" }
+    groupPreview: '',
+    isActive: false,
+  },
+
+  async onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+    this.myUserId = await userIdentity.initUserId()
+    await userIdentity.initNickname()
+    await this.loadFamilyData()
+  },
+
+  onShow() {
+    this.isActive = true
+    // 每次回到页面刷新数据
+    this.loadFamilyData()
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+  },
+
+  // ==================== 数据加载 ====================
+
+  async loadFamilyData() {
+    this.loading = true
+    try {
+      const res = await familyAPI.getMyGroup()
+      if (res.family_id) {
+        this.familyId = res.family_id
+        // 过滤掉自己，只显示其他成员
+        this.members = (res.members || []).filter(m => m.user_id !== this.myUserId)
+      } else {
+        this.familyId = ''
+        this.members = []
+      }
+      // 加载聊天预览
+      await this.loadPreviews()
+    } catch (e) {
+      console.log('加载家庭组数据失败:', e)
+    } finally {
+      this.loading = false
+    }
+  },
+
+  /**
+   * 从后端拉取聊天列表，更新预览信息
+   */
+  async loadPreviews() {
+    if (!this.familyId) return
+    try {
+      const res = await chatroomAPI.getConversations()
+      const previews = {}
+      let gp = ''
+      for (const conv of (res.conversations || [])) {
+        if (conv.type === 'private' && conv.peer_user_id) {
+          previews[conv.peer_user_id] = conv.last_message || ''
+        } else if (conv.type === 'group') {
+          gp = conv.last_message || ''
+        }
+      }
+      this.privatePreviews = previews
+      this.groupPreview = gp
+    } catch (e) {
+      console.log('加载聊天预览失败:', e)
+    }
+  },
+
+  getPrivatePreview(peerId) {
+    return this.privatePreviews[peerId] || ''
+  },
+
+  // ==================== Tab 切换 ====================
+
+  switchTab(tab) {
+    this.activeTab = tab
+  },
+
+  // ==================== 导航 ====================
+
+  openPrivateChat(peerId, peerName) {
+    safePush(`/pages/ChatRoom?type=private&peer_id=${peerId}&peer_name=${encodeURIComponent(peerName || '')}`)
+  },
+
+  openGroupChat() {
+    safePush('/pages/ChatRoom?type=group')
+  },
+
+  goFamily() {
+    safePush('/pages/Family')
+  },
+
+  goCompanion() {
+    safeReplace('/pages/Companion')
+  },
+
+  goBreakIce() {
+    safeReplace('/pages/BreakIce')
+  },
+
+  goMemory() {
+    safeReplace('/pages/Memory')
+  },
+
+  goProfile() {
+    safeReplace('/pages/Profile')
+  },
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+  padding-bottom: 180px;
+}
+
+.header {
+  padding: 60px 30px 20px;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.page-subtitle {
+  font-size: 26px;
+  color: #8b7355;
+  margin-top: 8px;
+}
+
+/* Tab 切换 */
+.tab-bar {
+  flex-direction: row;
+  margin: 0 24px 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.tab-item {
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 10px;
+}
+
+.tab-active {
+  background-color: #d4874b;
+}
+
+.tab-text {
+  font-size: 28px;
+  color: #9a8b7a;
+}
+
+.tab-active .tab-text {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* 聊天列表 */
+.chat-list {
+  flex: 1;
+  flex-direction: column;
+  padding: 0 24px;
+}
+
+.loading-hint {
+  padding: 40px;
+  align-items: center;
+}
+
+.loading-text {
+  font-size: 26px;
+  color: #9a8b7a;
+}
+
+/* 空状态 */
+.empty-card {
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 30px;
+  background-color: #ffffff;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.empty-icon {
+  font-size: 56px;
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  font-size: 28px;
+  color: #4a3728;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.empty-sub {
+  font-size: 24px;
+  color: #9a8b7a;
+  margin-bottom: 20px;
+}
+
+.go-family-btn {
+  background-color: #d4874b;
+  border-radius: 10px;
+  padding: 14px 32px;
+}
+
+.go-family-text {
+  font-size: 26px;
+  color: #ffffff;
+}
+
+/* 聊天列表项 */
+.chat-item {
+  flex-direction: row;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 10px;
+}
+
+.chat-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 32px;
+  background-color: #d4874b;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-avatar-group {
+  background-color: #8ab4c9;
+}
+
+.chat-avatar-text {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.chat-info {
+  flex: 1;
+  flex-direction: column;
+  margin-left: 16px;
+}
+
+.chat-name {
+  font-size: 28px;
+  color: #4a3728;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.chat-preview {
+  font-size: 24px;
+  color: #9a8b7a;
+  max-lines: 1;
+  text-overflow: ellipsis;
+}
+
+.chat-meta {
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: 8px;
+}
+
+.chat-count {
+  font-size: 22px;
+  color: #8ab4c9;
+  margin-bottom: 4px;
+}
+
+.chat-arrow {
+  font-size: 32px;
+  color: #c4b8a8;
+}
+
+/* TabBar */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon {
+  font-size: 36px;
+}
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label {
+  color: #d4874b;
+}
+</style>

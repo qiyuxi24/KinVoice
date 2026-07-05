@@ -1,0 +1,208 @@
+2026-07-05 11:32:47.343 | INFO     | app.main:lifespan:27 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 11:32:49.452 | INFO     | app.main:lifespan:27 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 11:33:08.463 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:09.437 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:09.985 | INFO     | app.api.profile_ai:update_dynamic:29 - 动态档案更新请求: user_id=1
+2026-07-05 11:33:09.995 | ERROR    | app.api.profile_ai:update_dynamic:34 - 提取今日消息失败: (sqlite3.OperationalError) no such table: chat_messages
+[SQL: SELECT chat_messages.id, chat_messages.conversation_id, chat_messages.role, chat_messages.content, chat_messages.is_favorited, chat_messages.created_at 
+FROM chat_messages JOIN conversations ON chat_messages.conversation_id = conversations.id 
+WHERE conversations.user_id = ? AND conversations.type = ? AND chat_messages.created_at >= ? ORDER BY chat_messages.created_at ASC]
+[parameters: ('1', 'ai', '2026-07-05')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:09.999 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: family_memberships
+[SQL: SELECT family_memberships.user_id, family_memberships.family_id, family_memberships.joined_at 
+FROM family_memberships 
+WHERE family_memberships.user_id = ?]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:11.562 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: cards
+[SQL: SELECT cards.id, cards.type, cards.category, cards.emotion, cards.observation, cards.feeling, cards.need, cards.request, cards.conversation_id, cards.message_id, cards.title, cards.content, cards.original_text, cards.family_id, cards.created_at, cards.updated_at 
+FROM cards 
+WHERE cards.family_id = ? ORDER BY cards.created_at DESC]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:13.646 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: family_memberships
+[SQL: SELECT family_memberships.user_id, family_memberships.family_id, family_memberships.joined_at 
+FROM family_memberships 
+WHERE family_memberships.user_id = ?]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:14.073 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:15.120 | INFO     | app.api.profile_ai:update_dynamic:29 - 动态档案更新请求: user_id=1
+2026-07-05 11:33:15.150 | ERROR    | app.api.profile_ai:update_dynamic:34 - 提取今日消息失败: (sqlite3.OperationalError) no such table: chat_messages
+[SQL: SELECT chat_messages.id, chat_messages.conversation_id, chat_messages.role, chat_messages.content, chat_messages.is_favorited, chat_messages.created_at 
+FROM chat_messages JOIN conversations ON chat_messages.conversation_id = conversations.id 
+WHERE conversations.user_id = ? AND conversations.type = ? AND chat_messages.created_at >= ? ORDER BY chat_messages.created_at ASC]
+[parameters: ('1', 'ai', '2026-07-05')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:33:15.153 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: family_memberships
+[SQL: SELECT family_memberships.user_id, family_memberships.family_id, family_memberships.joined_at 
+FROM family_memberships 
+WHERE family_memberships.user_id = ?]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:34:26.334 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:42:47.836 | INFO     | app.main:lifespan:29 - KinVoice 后端已关闭
+2026-07-05 11:42:51.047 | INFO     | app.main:lifespan:27 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 11:58:14.308 | INFO     | app.api.profile_ai:update_dynamic:29 - 动态档案更新请求: user_id=1
+2026-07-05 11:58:14.340 | ERROR    | app.api.profile_ai:update_dynamic:34 - 提取今日消息失败: (sqlite3.OperationalError) no such table: chat_messages
+[SQL: SELECT chat_messages.id, chat_messages.conversation_id, chat_messages.role, chat_messages.content, chat_messages.is_favorited, chat_messages.created_at 
+FROM chat_messages JOIN conversations ON chat_messages.conversation_id = conversations.id 
+WHERE conversations.user_id = ? AND conversations.type = ? AND chat_messages.created_at >= ? ORDER BY chat_messages.created_at ASC]
+[parameters: ('1', 'ai', '2026-07-05')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 11:58:15.507 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: user_documents
+[SQL: SELECT user_documents.id, user_documents.user_id, user_documents.name, user_documents.tags, user_documents.content_md, user_documents.created_at, user_documents.updated_at 
+FROM user_documents 
+WHERE user_documents.user_id = ? ORDER BY user_documents.created_at DESC]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:07:59.621 | INFO     | app.api.profile_ai:update_stable:55 - 固定档案更新请求: user_id=1
+2026-07-05 12:07:59.629 | ERROR    | app.api.profile_ai:update_stable:62 - 提取消息失败: (sqlite3.OperationalError) no such table: chat_messages
+[SQL: SELECT chat_messages.id, chat_messages.conversation_id, chat_messages.role, chat_messages.content, chat_messages.is_favorited, chat_messages.created_at 
+FROM chat_messages JOIN conversations ON chat_messages.conversation_id = conversations.id 
+WHERE conversations.user_id = ? AND conversations.type = ? AND chat_messages.created_at >= ? ORDER BY chat_messages.created_at ASC]
+[parameters: ('1', 'ai', '2026-07-05')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:31.664 | ERROR    | app.main:global_exception_handler:92 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:31.828 | INFO     | app.main:lifespan:29 - KinVoice 后端已关闭
+2026-07-05 12:09:34.302 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 12:09:36.553 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 12:09:36.573 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:38.862 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:42.853 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:48.045 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:52.735 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:09:55.377 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:10:00.955 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:10:28.394 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:12:41.126 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:12:41.650 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:12:43.608 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: family_memberships
+[SQL: SELECT family_memberships.user_id, family_memberships.family_id, family_memberships.joined_at 
+FROM family_memberships 
+WHERE family_memberships.user_id = ?]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:12:45.289 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: cards
+[SQL: SELECT cards.id, cards.type, cards.category, cards.emotion, cards.observation, cards.feeling, cards.need, cards.request, cards.conversation_id, cards.message_id, cards.title, cards.content, cards.original_text, cards.family_id, cards.created_at, cards.updated_at 
+FROM cards 
+WHERE cards.family_id = ? ORDER BY cards.created_at DESC]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:12:48.830 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: user_documents
+[SQL: SELECT user_documents.id, user_documents.user_id, user_documents.name, user_documents.tags, user_documents.content_md, user_documents.created_at, user_documents.updated_at 
+FROM user_documents 
+WHERE user_documents.user_id = ? ORDER BY user_documents.created_at DESC]
+[parameters: ('1',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:13:50.595 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:16:21.597 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:16:21.776 | INFO     | app.main:lifespan:28 - KinVoice 后端已关闭
+2026-07-05 12:16:24.472 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 12:17:58.109 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 12:17:58.216 | INFO     | app.main:lifespan:28 - KinVoice 后端已关闭
+2026-07-05 12:18:00.917 | INFO     | app.main:lifespan:26 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 12:18:04.897 | ERROR    | app.main:global_exception_handler:89 - 未捕获异常: OperationalError: (sqlite3.OperationalError) no such table: conversations
+[SQL: SELECT conversations.id, conversations.title, conversations.user_id, conversations.family_id, conversations.type, conversations.sender_id, conversations.receiver_id, conversations.is_favorited, conversations.created_at 
+FROM conversations 
+WHERE conversations.type = ? AND conversations.user_id = ? ORDER BY conversations.created_at DESC]
+[parameters: ('ai', '1')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-07-05 16:11:34.214 | INFO     | app.main:lifespan:28 - KinVoice 后端已关闭
+2026-07-05 16:11:38.048 | INFO     | app.main:lifespan:29 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 16:22:43.229 | INFO     | app.main:lifespan:31 - KinVoice 后端已关闭
+2026-07-05 16:22:46.564 | INFO     | app.main:lifespan:29 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 16:24:23.495 | INFO     | app.main:lifespan:31 - KinVoice 后端已关闭
+2026-07-05 16:24:29.661 | INFO     | app.main:lifespan:29 - KinVoice 后端启动中... APP_NAME=KinVoice
+2026-07-05 16:34:25.627 | INFO     | app.main:lifespan:31 - KinVoice 后端已关闭

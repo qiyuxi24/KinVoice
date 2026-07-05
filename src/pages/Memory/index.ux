@@ -1,0 +1,1017 @@
+<template>
+  <div class="page">
+    <!-- 顶部 -->
+    <div class="header">
+      <text class="page-title">传承</text>
+      <text class="page-subtitle">用文件夹整理家族记忆</text>
+    </div>
+
+    <!-- 文件夹筛选 -->
+    <div class="folder-strip-wrapper" if="folders.length > 0 || totalCount > 0">
+      <scroll-view class="folder-strip" scroll-x="true" show-scrollbar="false">
+        <div class="folder-pill {{ activeFolderId === null ? 'pill-active' : '' }}" onclick="selectFolder(null)">
+          <text class="pill-text">全部</text>
+          <text class="pill-count" if="totalCount > 0">{{ totalCount }}</text>
+        </div>
+        <div
+          class="folder-pill {{ activeFolderId === item.id ? 'pill-active' : '' }}"
+          for="(idx, item) in folders"
+          onclick="selectFolder(item.id)"
+        >
+          <text class="pill-text">{{ item.name }}</text>
+          <text class="pill-count" if="item.note_count > 0">{{ item.note_count }}</text>
+        </div>
+      </scroll-view>
+    </div>
+
+    <!-- 笔记列表 -->
+    <div class="content-scroll">
+      <div class="loading-box" if="loading">
+        <text class="loading-text">加载中...</text>
+      </div>
+
+      <div class="empty-box" elif="filteredNotes.length === 0 && !loading">
+        <text class="empty-icon">📝</text>
+        <text class="empty-text">{{ folders.length === 0 ? '还没有文件夹，先创建一个吧' : '这里还没有卡片，新建一张吧' }}</text>
+      </div>
+
+      <div class="note-list" else>
+        <div class="note-card" for="(index, item) in filteredNotes" onclick="editNote(item, index)">
+          <text class="note-folder" if="activeFolderId === null && item.folderName">{{ item.folderName }}</text>
+          <text class="note-title">{{ item.title }}</text>
+          <text class="note-content">{{ item.content }}</text>
+          <div class="note-footer">
+            <text class="note-author">{{ item.author }}</text>
+            <text class="note-date">{{ item.date }}</text>
+            <div class="note-actions">
+              <text class="del-icon" onclick="deleteNote(item, index)">🗑</text>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部操作栏：只有新建文件夹 / 新建卡片 -->
+    <div class="action-bar">
+      <div class="action-btn secondary" onclick="showFolderModal()">
+        <text class="btn-icon">+</text>
+        <text class="btn-text">新建文件夹</text>
+      </div>
+      <div class="action-btn primary" onclick="showNoteModal()">
+        <text class="btn-icon">+</text>
+        <text class="btn-text">新建卡片</text>
+      </div>
+    </div>
+
+    <!-- TabBar -->
+    <div class="tabbar">
+      <div class="tab-item" onclick="goCompanion">
+        <text class="tab-icon">🏠</text>
+        <text class="tab-label">陪伴</text>
+      </div>
+      <div class="tab-item" onclick="goBreakIce">
+        <text class="tab-icon">💬</text>
+        <text class="tab-label">破冰</text>
+      </div>
+      <div class="tab-item tab-active">
+        <text class="tab-icon">📚</text>
+        <text class="tab-label">传承</text>
+      </div>
+      <div class="tab-item" onclick="goProfile">
+        <text class="tab-icon">👤</text>
+        <text class="tab-label">我的</text>
+      </div>
+    </div>
+
+    <!-- 新建/编辑卡片弹窗 -->
+    <div class="modal-overlay" if="showNoteModalFlag">
+      <div class="modal-content">
+        <div class="modal-header">
+          <text class="modal-title">{{ editingNote ? '编辑卡片' : '新建卡片' }}</text>
+          <div class="modal-close" onclick="hideNoteModal"><text>×</text></div>
+        </div>
+
+        <div class="modal-body">
+          <div if="folders.length > 0">
+            <text class="form-label">放入文件夹</text>
+            <scroll-view class="folder-picker-scroll" scroll-x="true" show-scrollbar="false">
+              <div
+                class="picker-pill {{ noteForm.folder_id === item.id ? 'picker-pill-active' : '' }}"
+                for="(idx, item) in folders"
+                onclick="pickFolder(item.id)"
+              >
+                <text>{{ item.name }}</text>
+              </div>
+            </scroll-view>
+          </div>
+          <text class="form-hint" elif="folders.length === 0">还没有文件夹，这张卡片将保存为未分类</text>
+
+          <text class="form-label">标题</text>
+          <input class="form-input" type="text" placeholder="给卡片起个名字" value="{{ noteForm.title }}" onchange="onFieldChange('title', $event)" />
+
+          <text class="form-label">内容</text>
+          <textarea class="form-textarea" placeholder="写下你想传承的故事..." onchange="onFieldChange('content', $event)">{{ noteForm.content }}</textarea>
+
+          <text class="form-label">讲述人</text>
+          <input class="form-input" type="text" placeholder="谁讲的故事" value="{{ noteForm.author }}" onchange="onFieldChange('author', $event)" />
+        </div>
+
+        <div class="modal-submit" onclick="saveNote">
+          <text>保存</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 新建文件夹弹窗 -->
+    <div class="modal-overlay" if="showFolderModalFlag">
+      <div class="modal-content">
+        <div class="modal-header">
+          <text class="modal-title">新建文件夹</text>
+          <div class="modal-close" onclick="hideFolderModal"><text>×</text></div>
+        </div>
+
+        <div class="modal-body">
+          <text class="form-label">文件夹名称</text>
+          <input class="form-input" type="text" placeholder="如：妈妈的菜谱" value="{{ folderForm.name }}" onchange="onFolderNameChange" />
+        </div>
+
+        <div class="modal-submit" onclick="saveFolder">
+          <text>创建</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import storage from '@system.storage'
+import $utils from '../../helper/utils'
+import $apis from '../../helper/apis'
+import { safeReplace } from '../../helper/navigate'
+
+const STORAGE_KEY = 'memory_notes'
+const FOLDERS_CACHE = 'memory_folders'
+
+function checkActive(vm) {
+  return vm && vm.isActive === true
+}
+
+/** 后端笔记 → 前端格式 */
+function noteFromBackend(card, folderMap) {
+  return {
+    id: card.id,
+    folder_id: card.folder_id || null,
+    folderName: folderMap[card.folder_id] || '',
+    title: card.title || '',
+    content: card.content || '',
+    author: card.author || '我',
+    emotion: card.emotion || '感慨',
+    date: card.created_at
+      ? card.created_at.slice(0, 10).replace(/-/g, '.')
+      : new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'),
+  }
+}
+
+export default {
+  private: {
+    folders: [],                // [{ id, name, note_count }]
+    activeFolderId: null,       // null=全部
+    notes: [],
+    loading: false,
+    isActive: false,
+
+    // 卡片弹窗
+    showNoteModalFlag: false,
+    editingNote: null,
+    editingIndex: -1,
+    noteForm: {
+      folder_id: null,
+      title: '',
+      content: '',
+      author: '我',
+      emotion: '感慨',
+    },
+
+    // 文件夹弹窗
+    showFolderModalFlag: false,
+    folderForm: {
+      name: '',
+    },
+  },
+
+  computed: {
+    filteredNotes() {
+      if (this.activeFolderId === null) return this.notes
+      return this.notes.filter(n => n.folder_id === this.activeFolderId)
+    },
+
+    totalCount() {
+      return this.notes.length
+    },
+  },
+
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+    this.isActive = true
+    this.loadAll()
+  },
+
+  onShow() {
+    this.isActive = true
+  },
+
+  onHide() {
+    this.isActive = false
+  },
+
+  onDestroy() {
+    this.isActive = false
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  数据加载
+  // ═══════════════════════════════════════════════════
+
+  async loadAll() {
+    if (!checkActive(this)) return
+    this.loading = true
+
+    try {
+      const folderResp = await $apis.cards.listFolders()
+      if (checkActive(this)) {
+        this.folders = folderResp.folders || []
+      }
+
+      const noteResp = await $apis.cards.list({ limit: 500 })
+      if (!checkActive(this)) { this.loading = false; return }
+
+      const folderMap = {}
+      ;(this.folders || []).forEach(f => { folderMap[f.id] = f.name })
+
+      if (noteResp.cards && noteResp.cards.length > 0) {
+        this.notes = noteResp.cards.map(c => noteFromBackend(c, folderMap))
+        this.saveToLocal()
+      } else {
+        this.loadFromLocal()
+      }
+    } catch (err) {
+      if (!checkActive(this)) { this.loading = false; return }
+      console.log('后端加载失败，回退本地缓存:', err)
+      this.loadFromLocal()
+    }
+
+    this.loading = false
+  },
+
+  loadFromLocal() {
+    if (!checkActive(this)) { this.loading = false; return }
+
+    storage.get({
+      key: FOLDERS_CACHE,
+      success: (data) => {
+        if (!checkActive(this)) return
+        if (data) {
+          try {
+            const cached = JSON.parse(data)
+            if (Array.isArray(cached)) this.folders = cached
+          } catch (e) { /* ignore */ }
+        }
+      },
+      fail: () => {},
+    })
+
+    storage.get({
+      key: STORAGE_KEY,
+      success: (data) => {
+        if (!checkActive(this)) { this.loading = false; return }
+        if (data) {
+          try {
+            const cached = JSON.parse(data)
+            if (Array.isArray(cached) && cached.length > 0) {
+              this.notes = cached
+              this.trySyncToBackend()
+            }
+          } catch (e) { /* ignore */ }
+        }
+        this.loading = false
+      },
+      fail: () => {
+        if (checkActive(this)) this.loading = false
+      },
+    })
+  },
+
+  trySyncToBackend() {
+    const localOnly = this.notes.filter(c => !c.id)
+    if (localOnly.length === 0) return
+
+    $apis.cards.sync(this.notes)
+      .then((resp) => {
+        if (!checkActive(this)) return
+        if (resp.cards && resp.cards.length > 0) {
+          const folderMap = {}
+          ;(this.folders || []).forEach(f => { folderMap[f.id] = f.name })
+          this.notes = resp.cards.map(c => noteFromBackend(c, folderMap))
+          this.saveToLocal()
+        }
+      })
+      .catch((err) => console.log('同步失败:', err))
+  },
+
+  saveToLocal() {
+    storage.set({
+      key: STORAGE_KEY,
+      value: JSON.stringify(this.notes),
+      success: () => {},
+      fail: (err) => console.log('保存本地缓存失败:', err),
+    })
+  },
+
+  saveFoldersToLocal() {
+    storage.set({
+      key: FOLDERS_CACHE,
+      value: JSON.stringify(this.folders),
+      success: () => {},
+      fail: () => {},
+    })
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  文件夹切换
+  // ═══════════════════════════════════════════════════
+
+  selectFolder(folderId) {
+    if (!checkActive(this)) return
+    this.activeFolderId = folderId
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  文件夹弹窗
+  // ═══════════════════════════════════════════════════
+
+  showFolderModal() {
+    if (!checkActive(this)) return
+    this.folderForm.name = ''
+    this.showFolderModalFlag = true
+  },
+
+  hideFolderModal() {
+    if (!checkActive(this)) return
+    this.showFolderModalFlag = false
+  },
+
+  onFolderNameChange(event) {
+    if (!checkActive(this)) return
+    this.folderForm.name = event.value || ''
+  },
+
+  saveFolder() {
+    if (!checkActive(this)) return
+    const name = (this.folderForm.name || '').trim()
+    if (!name) {
+      $utils.showToast('请输入文件夹名称')
+      return
+    }
+    this.doCreateFolder(name)
+  },
+
+  doCreateFolder(name) {
+    if (!checkActive(this)) return
+    $apis.cards.createFolder(name)
+      .then((resp) => {
+        if (!checkActive(this)) return
+        const newFolder = { id: resp.id, name: name, note_count: 0 }
+        this.folders.push(newFolder)
+        this.saveFoldersToLocal()
+        this.activeFolderId = resp.id
+        this.hideFolderModal()
+        $utils.showToast('✅ 文件夹已创建')
+      })
+      .catch((err) => {
+        if (!checkActive(this)) return
+        console.log('创建文件夹失败:', err)
+        const tempId = -Date.now()
+        this.folders.push({ id: tempId, name: name, note_count: 0 })
+        this.saveFoldersToLocal()
+        this.activeFolderId = tempId
+        this.hideFolderModal()
+        $utils.showToast('✅ 已创建本地文件夹')
+      })
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  卡片弹窗
+  // ═══════════════════════════════════════════════════
+
+  showNoteModal() {
+    if (!checkActive(this)) return
+    this.editingNote = null
+    this.editingIndex = -1
+    this.noteForm = {
+      folder_id: this.activeFolderId || (this.folders.length > 0 ? this.folders[0].id : null),
+      title: '',
+      content: '',
+      author: '我',
+      emotion: '感慨',
+    }
+    this.showNoteModalFlag = true
+  },
+
+  editNote(item, index) {
+    if (!checkActive(this)) return
+    this.editingNote = item
+    this.editingIndex = index
+    this.noteForm = {
+      folder_id: item.folder_id || null,
+      title: item.title || '',
+      content: item.content || '',
+      author: item.author || '我',
+      emotion: item.emotion || '感慨',
+    }
+    this.showNoteModalFlag = true
+  },
+
+  hideNoteModal() {
+    if (!checkActive(this)) return
+    this.showNoteModalFlag = false
+    this.editingNote = null
+    this.editingIndex = -1
+  },
+
+  pickFolder(folderId) {
+    if (!checkActive(this)) return
+    this.noteForm.folder_id = folderId
+  },
+
+  onFieldChange(field, event) {
+    if (!checkActive(this)) return
+    const val = event.value || event.text || (event.detail && event.detail.value) || ''
+    this.noteForm[field] = val
+  },
+
+  saveNote() {
+    if (!checkActive(this)) return
+    if (!this.noteForm.title || !this.noteForm.content) {
+      $utils.showToast('请填写标题和内容')
+      return
+    }
+
+    if (this.editingNote) {
+      this.doUpdateNote()
+    } else {
+      this.doCreateNote()
+    }
+  },
+
+  doCreateNote() {
+    if (!checkActive(this)) return
+    const payload = {
+      type: 'simple',
+      title: this.noteForm.title,
+      content: this.noteForm.content,
+      author: this.noteForm.author || '我',
+      emotion: this.noteForm.emotion || '感慨',
+      folder_id: this.noteForm.folder_id,
+    }
+
+    const folderName = this.getFolderName(this.noteForm.folder_id)
+    const newNote = {
+      ...payload,
+      folderName: folderName,
+      date: new Date().toLocaleDateString('zh-CN').replace(/\//g, '.'),
+    }
+
+    $apis.cards.create(payload)
+      .then((resp) => {
+        if (!checkActive(this)) return
+        newNote.id = resp.id
+        this.notes.unshift(newNote)
+        this.incrementFolderCount(this.noteForm.folder_id)
+        this.saveToLocal()
+        this.hideNoteModal()
+        $utils.showToast('✅ 已保存')
+      })
+      .catch((err) => {
+        if (!checkActive(this)) return
+        console.log('创建卡片失败:', err)
+        this.notes.unshift(newNote)
+        this.incrementFolderCount(this.noteForm.folder_id)
+        this.saveToLocal()
+        this.hideNoteModal()
+        $utils.showToast('✅ 已存本地')
+      })
+  },
+
+  doUpdateNote() {
+    if (!checkActive(this)) return
+    const note = this.editingNote
+    const index = this.editingIndex
+    if (!note || index < 0) return
+
+    const payload = {
+      title: this.noteForm.title,
+      content: this.noteForm.content,
+      author: this.noteForm.author || '我',
+      emotion: this.noteForm.emotion || '感慨',
+      folder_id: this.noteForm.folder_id,
+    }
+
+    const oldFolderId = note.folder_id
+
+    if (note.id) {
+      $apis.cards.update(note.id, payload)
+        .then(() => {
+          if (!checkActive(this)) return
+          this.applyNoteUpdate(note, payload, index, oldFolderId)
+          this.hideNoteModal()
+          $utils.showToast('✅ 已更新')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('更新卡片失败:', err)
+          this.applyNoteUpdate(note, payload, index, oldFolderId)
+          this.hideNoteModal()
+          $utils.showToast('✅ 已更新本地')
+        })
+    } else {
+      $apis.cards.create({ ...payload, type: 'simple' })
+        .then((resp) => {
+          if (!checkActive(this)) return
+          note.id = resp.id
+          payload.id = resp.id
+          this.applyNoteUpdate(note, payload, index, oldFolderId)
+          this.hideNoteModal()
+          $utils.showToast('✅ 已更新')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('创建卡片失败:', err)
+          this.applyNoteUpdate(note, payload, index, oldFolderId)
+          this.hideNoteModal()
+          $utils.showToast('✅ 已更新本地')
+        })
+    }
+  },
+
+  applyNoteUpdate(note, payload, index, oldFolderId) {
+    note.title = payload.title
+    note.content = payload.content
+    note.author = payload.author
+    note.emotion = payload.emotion
+    note.folder_id = payload.folder_id
+    note.folderName = this.getFolderName(payload.folder_id)
+
+    if (payload.folder_id !== oldFolderId) {
+      this.decrementFolderCount(oldFolderId)
+      this.incrementFolderCount(payload.folder_id)
+    }
+
+    this.saveToLocal()
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  删除卡片
+  // ═══════════════════════════════════════════════════
+
+  deleteNote(item, index) {
+    if (!checkActive(this)) return
+    const folderId = item.folder_id
+
+    if (item.id) {
+      $apis.cards.remove(item.id)
+        .then(() => {
+          if (!checkActive(this)) return
+          this.notes.splice(index, 1)
+          this.decrementFolderCount(folderId)
+          this.saveToLocal()
+          $utils.showToast('🗑️ 已删除')
+        })
+        .catch((err) => {
+          if (!checkActive(this)) return
+          console.log('删除卡片失败:', err)
+          this.notes.splice(index, 1)
+          this.decrementFolderCount(folderId)
+          this.saveToLocal()
+          $utils.showToast('🗑️ 已删除本地')
+        })
+    } else {
+      this.notes.splice(index, 1)
+      this.decrementFolderCount(folderId)
+      this.saveToLocal()
+      $utils.showToast('🗑️ 已删除')
+    }
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  工具方法
+  // ═══════════════════════════════════════════════════
+
+  getFolderName(folderId) {
+    if (!folderId) return ''
+    const f = this.folders.find(x => x.id === folderId)
+    return f ? f.name : ''
+  },
+
+  incrementFolderCount(folderId) {
+    if (!folderId) return
+    const f = this.folders.find(x => x.id === folderId)
+    if (f) f.note_count = (f.note_count || 0) + 1
+  },
+
+  decrementFolderCount(folderId) {
+    if (!folderId) return
+    const f = this.folders.find(x => x.id === folderId)
+    if (f && f.note_count > 0) f.note_count -= 1
+  },
+
+  // ═══════════════════════════════════════════════════
+  //  路由
+  // ═══════════════════════════════════════════════════
+
+  goCompanion() { safeReplace('/pages/Companion') },
+  goBreakIce() { safeReplace('/pages/BreakIce') },
+  goMemory() { safeReplace('/pages/Memory') },
+  goProfile() { safeReplace('/pages/Profile') },
+}
+</script>
+
+<style lang="less">
+@import '../../assets/styles/variables.less';
+@import '../../assets/styles/mixins.less';
+
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+}
+
+/* 顶部 */
+.header {
+  padding: 56px 24px 16px;
+  flex-direction: column;
+}
+
+.page-title {
+  font-size: 44px;
+  font-weight: 600;
+  color: #4a3728;
+}
+
+.page-subtitle {
+  font-size: 24px;
+  color: #8ab4c9;
+  margin-top: 6px;
+}
+
+/* 文件夹筛选 */
+.folder-strip-wrapper {
+  height: 72px;
+  margin-bottom: 8px;
+}
+
+.folder-strip {
+  flex-direction: row;
+  padding: 0 20px;
+  height: 72px;
+}
+
+.folder-pill {
+  flex-direction: row;
+  align-items: center;
+  height: 52px;
+  padding: 0 18px;
+  margin-right: 10px;
+  background-color: #fff;
+  border-radius: 26px;
+  border: 2px solid #e8e0d5;
+}
+
+.pill-active {
+  background-color: #a8c5d9;
+  border-color: #7d9bb8;
+}
+
+.pill-active .pill-text { color: #fff; }
+.pill-active .pill-count { color: rgba(255,255,255,0.8); background-color: rgba(255,255,255,0.2); }
+
+.pill-text {
+  font-size: 24px;
+  color: #4a3728;
+  max-width: 160px;
+  lines: 1;
+  text-overflow: ellipsis;
+}
+
+.pill-count {
+  font-size: 20px;
+  color: #b0a293;
+  background-color: rgba(0,0,0,0.05);
+  border-radius: 12px;
+  padding: 2px 10px;
+  margin-left: 8px;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* 内容区域 */
+.content-scroll {
+  flex: 1;
+  padding: 0 24px;
+  padding-bottom: 200px;
+}
+
+.loading-box, .empty-box {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 30px;
+}
+
+.loading-text {
+  font-size: 26px;
+  color: #9b8f86;
+}
+
+.empty-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.empty-text {
+  font-size: 26px;
+  color: #9b8f86;
+  text-align: center;
+}
+
+/* 笔记卡片 */
+.note-card {
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  flex-direction: column;
+  box-shadow: 0 6px 20px rgba(74, 55, 40, 0.05);
+}
+
+.note-folder {
+  font-size: 20px;
+  color: #7d9bb8;
+  margin-bottom: 6px;
+}
+
+.note-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #3d3025;
+  margin-bottom: 10px;
+  lines: 2;
+  text-overflow: ellipsis;
+}
+
+.note-content {
+  font-size: 24px;
+  color: #5f503f;
+  line-height: 32px;
+  margin-bottom: 14px;
+  lines: 3;
+  text-overflow: ellipsis;
+}
+
+.note-footer {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.note-author {
+  font-size: 20px;
+  color: #8a9caf;
+}
+
+.note-date {
+  font-size: 18px;
+  color: #b0a293;
+}
+
+.note-actions {
+  flex-direction: row;
+}
+
+.del-icon {
+  font-size: 26px;
+  padding: 8px;
+}
+
+/* 底部操作栏 */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 90px;
+  height: 100px;
+  background-color: #fff;
+  border-top: 1px solid #ece5dc;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.action-btn {
+  flex: 1;
+  height: 68px;
+  border-radius: 34px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn:first-child {
+  margin-right: 14px;
+}
+
+.secondary {
+  background-color: #fff;
+  border: 2px solid #a8c5d9;
+}
+
+.secondary .btn-icon,
+.secondary .btn-text {
+  color: #7d9bb8;
+}
+
+.primary {
+  background-color: #7d9bb8;
+}
+
+.primary .btn-icon,
+.primary .btn-text {
+  color: #fff;
+}
+
+.btn-icon {
+  font-size: 30px;
+  margin-right: 8px;
+}
+
+.btn-text {
+  font-size: 26px;
+  font-weight: 500;
+}
+
+/* TabBar */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 90px;
+  background-color: #fff;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.tab-item {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+}
+
+.tab-icon { font-size: 36px; }
+
+.tab-label {
+  font-size: 22px;
+  color: #9a8b7a;
+  margin-top: 4px;
+}
+
+.tab-active .tab-label { color: #d4874b; }
+
+/* 弹窗通用 */
+.modal-overlay {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.modal-content {
+  width: 100%;
+  background-color: #fff;
+  border-radius: 32px 32px 0 0;
+  padding: 26px 24px 48px;
+  flex-direction: column;
+}
+
+.modal-header {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.modal-title {
+  font-size: 30px;
+  font-weight: 600;
+  color: #3d3025;
+}
+
+.modal-close {
+  width: 44px;
+  height: 44px;
+  font-size: 36px;
+  color: #9b8f86;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-body {
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 24px;
+  color: #5f503f;
+  margin-top: 18px;
+}
+
+.form-hint {
+  font-size: 22px;
+  color: #b0a293;
+  margin-top: 18px;
+}
+
+/* 文件夹选择器 */
+.folder-picker-scroll {
+  flex-direction: row;
+  height: 64px;
+  margin-top: 10px;
+}
+
+.picker-pill {
+  height: 52px;
+  padding: 0 20px;
+  margin-right: 10px;
+  background-color: #f5f0e8;
+  border-radius: 26px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+}
+
+.picker-pill text {
+  font-size: 24px;
+  color: #4a3728;
+}
+
+.picker-pill-active {
+  background-color: #a8c5d9;
+  border-color: #7d9bb8;
+}
+
+.picker-pill-active text {
+  color: #fff;
+}
+
+.form-input {
+  width: 100%;
+  height: 76px;
+  margin-top: 10px;
+  padding: 0 18px;
+  background-color: #f6f2eb;
+  border-radius: 16px;
+  font-size: 24px;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 140px;
+  margin-top: 10px;
+  padding: 18px;
+  background-color: #f6f2eb;
+  border-radius: 16px;
+  font-size: 24px;
+}
+
+.modal-submit {
+  width: 100%;
+  height: 86px;
+  margin-top: 28px;
+  background-color: #7d9bb8;
+  border-radius: 44px;
+  font-size: 28px;
+  color: #fff;
+  font-weight: 600;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+</style>
