@@ -34,6 +34,9 @@
   "router": {
     "entry": "pages/Companion",
     "pages": {
+      "pages/About": {
+        "component": "index"
+      },
       "pages/Demo": {
         "component": "index"
       },

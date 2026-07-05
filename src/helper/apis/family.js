@@ -14,9 +14,7 @@ const baseUrl = config.baseUrl
  * 获取当前设备 user_id
  */
 function uid() {
-  var id = userIdentity.getUserId()
-  console.log('[family.js] uid() getUserId=' + JSON.stringify(id) + ' cached=' + JSON.stringify(userIdentity._cachedUserId) + ' final=' + JSON.stringify(id || '1'))
-  return id || '1'
+  return userIdentity.getUserId() || '1'
 }
 
 export default {

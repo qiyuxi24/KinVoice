@@ -118,7 +118,7 @@ export default {
   },
 
   showAbout() {
-    $utils.showToast('关于我们')
+    safePush('/pages/About')
   },
 
   showHelp() {

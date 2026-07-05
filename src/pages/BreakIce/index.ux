@@ -48,7 +48,7 @@
       </block>
 
       <!-- 没有其他成员 -->
-      <div class="empty-card" if="!loading && familyId && members.length <= 1">
+      <div class="empty-card" if="!loading && familyId && members.length === 0">
         <text class="empty-icon">👤</text>
         <text class="empty-text">暂无可聊天的成员</text>
         <text class="empty-sub">邀请家人加入家庭组吧</text>
@@ -79,7 +79,7 @@
           <text class="chat-preview">{{ groupPreview || '点击进入群聊' }}</text>
         </div>
         <div class="chat-meta">
-          <text class="chat-count">{{ members.length }}人</text>
+          <text class="chat-count">{{ members.length + 1 }}人</text>
           <text class="chat-arrow">›</text>
         </div>
       </div>
@@ -126,7 +126,7 @@ export default {
     members: [],
     myUserId: '',
     loading: true,
-    _loading: false,
+    loadingData: false,
     // 聊天预览（最后一条消息）
     privatePreviews: {},  // { peer_user_id: "最后一条消息内容" }
     groupPreview: '',
@@ -145,7 +145,7 @@ export default {
   onShow() {
     this.isActive = true
     // 从其他页面返回时刷新（此时 myUserId 已在 onInit 中初始化完毕）
-    if (this.myUserId && !this._loading) {
+    if (this.myUserId && !this.loadingData) {
       this.loadFamilyData()
     }
   },
@@ -161,7 +161,7 @@ export default {
   // ==================== 数据加载 ====================
 
   async loadFamilyData() {
-    this._loading = true
+    this.loadingData = true
     this.loading = true
     try {
       const res = await familyAPI.getMyGroup()
@@ -179,7 +179,7 @@ export default {
       console.log('加载家庭组数据失败:', e)
     } finally {
       this.loading = false
-      this._loading = false
+      this.loadingData = false
     }
   },
 
