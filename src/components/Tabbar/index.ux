@@ -1,66 +1,51 @@
 <!--
-  全局底部导航栏组件
-  注册在 app.ux 中，所有页面共享，无需各页面重复编写
+  底部导航栏组件
+  - 通过 props.activeTab 接收当前激活的 tab key
+  - 点击时通过 $dispatch('tabchange', { key }) 通知父页面（MainPage）
+  - 不再直接操作路由，由 MainPage 统一管理 tab 切换
+  - 样式自包含
 
-  工作原理：
-    各页面在 onShow() 中设置 global.$activeTab = 'companion' | 'breakIce' | ...
-    Tabbar 组件读取 global.$activeTab 来高亮当前 tab
+  用法（仅在 MainPage 中）：
+    <import name="tab-bar" src="../../components/Tabbar/index.ux"></import>
+    <tab-bar active-tab="{{ activeTab }}" ontabchange="onTabChange"></tab-bar>
 -->
 <template>
   <div class="tabbar">
-    <div
-      class="tab-item {{ $activeTab === tab.key ? 'tab-active' : '' }}"
-      for="{{ tabs }}"
-      onclick="onTabClick({{ tab.key }})"
-    >
-      <text class="tab-icon">{{ tab.icon }}</text>
-      <text class="tab-label">{{ tab.label }}</text>
+    <!-- 陪伴 -->
+    <div class="tab-item {{ activeTab === 'companion' ? 'tab-active' : '' }}" onclick="onTabClick('companion')">
+      <text class="tab-icon">🏠</text>
+      <text class="tab-label">陪伴</text>
+    </div>
+    <!-- 聊天 -->
+    <div class="tab-item {{ activeTab === 'breakIce' ? 'tab-active' : '' }}" onclick="onTabClick('breakIce')">
+      <text class="tab-icon">💬</text>
+      <text class="tab-label">聊天</text>
+    </div>
+    <!-- 传承 -->
+    <div class="tab-item {{ activeTab === 'memory' ? 'tab-active' : '' }}" onclick="onTabClick('memory')">
+      <text class="tab-icon">📚</text>
+      <text class="tab-label">传承</text>
+    </div>
+    <!-- 我的 -->
+    <div class="tab-item {{ activeTab === 'profile' ? 'tab-active' : '' }}" onclick="onTabClick('profile')">
+      <text class="tab-icon">👤</text>
+      <text class="tab-label">我的</text>
     </div>
   </div>
 </template>
 
 <script>
-import { TABS, onTabChange } from '../../helper/tabbar'
-
+/**
+ * Tabbar 组件 —— 只负责 UI 展示 + 事件通知。
+ * 不再直接操作路由；tab 切换由父页面（MainPage）通过 on-tabchange 事件处理。
+ */
 export default {
-  private: {
-    tabs: TABS,
-    /** 当前活跃 tab，从 global.$activeTab 读取 */
-    $activeTab: 'companion',
-  },
-
-  onInit() {
-    this._watchTimer = null
-    this._startWatch()
-  },
-
-  onDestroy() {
-    if (this._watchTimer) {
-      clearInterval(this._watchTimer)
-      this._watchTimer = null
-    }
-  },
-
-  /**
-   * 轮询 global.$activeTab 变化
-   * 快应用组件间通信最简单的方式就是通过 global 对象
-   */
-  _startWatch() {
-    // 初始同步
-    if (global.$activeTab && global.$activeTab !== this.$activeTab) {
-      this.$activeTab = global.$activeTab
-    }
-    // 定时检查（200ms 间隔足够）
-    this._watchTimer = setInterval(() => {
-      const cur = global.$activeTab
-      if (cur && cur !== this.$activeTab) {
-        this.$activeTab = cur
-      }
-    }, 200)
-  },
+  props: ['activeTab'],
 
   onTabClick(key) {
-    onTabChange(this.$activeTab, key)
+    if (!key || key === this.activeTab) return
+    // 向上层派发 tabchange 事件，由 MainPage 统一管理 tab 切换
+    this.$dispatch('tabchange', { key })
   },
 }
 </script>

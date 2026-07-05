@@ -24,12 +24,11 @@ export default {
 
   /**
    * 获取笔记列表
-   * @param {Object} [params] - { folder_id?, type?, limit?, offset? }
+   * @param {Object} [params] - { folder_id?, limit?, offset? }
    */
   list(params) {
     return $ajax.get(`${baseUrl}/cards`, {
       folder_id: params && params.folder_id,
-      type: params && params.type,
       limit: params && params.limit ? params.limit : 200,
       offset: params && params.offset ? params.offset : 0,
     })
@@ -37,7 +36,7 @@ export default {
 
   /**
    * 创建笔记
-   * @param {Object} data - { title, content, author, emotion, folder_id }
+   * @param {Object} data - { title, content, author, folder_id }
    */
   create(data) {
     return $ajax.post(`${baseUrl}/cards`, data)
@@ -58,21 +57,5 @@ export default {
    */
   remove(cardId) {
     return $ajax.delete(`${baseUrl}/cards/${cardId}`)
-  },
-
-  /**
-   * 双向同步
-   * @param {Object[]} cards - [{id?, folder_id, title, content, author, emotion, date}, ...]
-   */
-  sync(cards) {
-    return $ajax.post(`${baseUrl}/cards/sync`, { cards })
-  },
-
-  /**
-   * 收藏对话消息
-   * @param {number} messageId
-   */
-  favorite(messageId) {
-    return $ajax.post(`${baseUrl}/cards/favorite`, { message_id: messageId })
   },
 }

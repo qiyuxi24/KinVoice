@@ -1,0 +1,148 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <div class="back-btn" onclick="goBack">
+        <text class="back-icon">‹</text>
+        <text class="back-text">返回</text>
+      </div>
+    </div>
+
+    <div class="content">
+      <text class="app-name">KinVoice</text>
+      <text class="app-desc">Cloudie — 你的家庭情绪树洞</text>
+
+      <div class="section">
+        <text class="section-title">关于我们</text>
+        <text class="section-text">KinVoice 是一款专注于家庭情感连接的 AI 陪伴应用。通过智能对话、记忆传承和家庭互动，帮助家人之间更好地沟通和理解。</text>
+      </div>
+
+      <div class="section">
+        <text class="section-title">核心功能</text>
+        <div class="feature-item">
+          <text class="feature-icon">🏠</text>
+          <text class="feature-text">AI 陪伴 — 24小时在线的家庭情绪树洞</text>
+        </div>
+        <div class="feature-item">
+          <text class="feature-icon">📚</text>
+          <text class="feature-text">记忆传承 — 记录和分享家庭故事与智慧</text>
+        </div>
+        <div class="feature-item">
+          <text class="feature-icon">💬</text>
+          <text class="feature-text">家庭聊天 — 家庭成员之间的私密交流</text>
+        </div>
+        <div class="feature-item">
+          <text class="feature-icon">👤</text>
+          <text class="feature-text">用户档案 — 记录家人的故事与回忆</text>
+        </div>
+      </div>
+
+      <div class="section">
+        <text class="section-title">版本信息</text>
+        <text class="version-text">版本 1.0.0</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { safeBack } from '../../helper/navigate'
+
+export default {
+  goBack() {
+    safeBack()
+  }
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+}
+
+.header {
+  padding: 60px 24px 20px;
+}
+
+.back-btn {
+  flex-direction: row;
+  align-items: center;
+}
+
+.back-icon {
+  font-size: 40px;
+  color: #4a3728;
+  font-weight: 300;
+}
+
+.back-text {
+  font-size: 28px;
+  color: #4a3728;
+  margin-left: 8px;
+}
+
+.content {
+  flex: 1;
+  flex-direction: column;
+  padding: 20px 30px;
+}
+
+.app-name {
+  font-size: 44px;
+  font-weight: 700;
+  color: #4a3728;
+  text-align: center;
+}
+
+.app-desc {
+  font-size: 26px;
+  color: #8ab4c9;
+  text-align: center;
+  margin-top: 8px;
+  margin-bottom: 40px;
+}
+
+.section {
+  flex-direction: column;
+  margin-bottom: 30px;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 14px;
+}
+
+.section-text {
+  font-size: 26px;
+  color: #5a4a3a;
+  line-height: 36px;
+}
+
+.feature-item {
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.feature-icon {
+  font-size: 28px;
+  margin-right: 12px;
+}
+
+.feature-text {
+  font-size: 26px;
+  color: #5a4a3a;
+  flex: 1;
+}
+
+.version-text {
+  font-size: 26px;
+  color: #9a8b7a;
+}
+</style>

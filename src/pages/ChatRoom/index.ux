@@ -1,6 +1,6 @@
 <template>
   <div class="page">
-    <!-- 顶部标题栏 -->
+    <!-- 顶部标题栏（始终可见） -->
     <div class="title-bar">
       <div class="back-btn" onclick="goBack">
         <text class="back-icon">‹</text>
@@ -8,11 +8,30 @@
       <text class="title-text">{{ chatTitle }}</text>
     </div>
 
-    <!-- 消息列表 -->
-    <div class="chat-list" id="chatList">
+    <!-- 加载中 -->
+    <div class="status-container" if="loading">
+      <text class="status-text">加载中...</text>
+    </div>
+
+    <!-- 加载失败 -->
+    <div class="status-container" elif="loadError">
+      <text class="status-text status-error">加载失败</text>
+      <div class="retry-btn" onclick="retryLoad">
+        <text class="retry-text">点击重试</text>
+      </div>
+    </div>
+
+    <!-- 消息列表（非加载/非错误时才渲染，避免 for 循环报错） -->
+    <div class="chat-list" id="chatList" elif="!loading && !loadError">
+      <!-- 消息为空 -->
+      <div class="status-container" if="messages.length === 0">
+        <text class="status-text">暂无消息，开始聊天吧</text>
+      </div>
+
+      <!-- 有消息 -->
       <block for="(index, msg) in messages">
         <!-- 自己的消息（右对齐） -->
-        <div class="msg-row msg-self" if="msg.sender_id === myUserId">
+        <div class="msg-row msg-self" if="showAsSelf(msg)">
           <div class="msg-body">
             <div class="msg-sender">
               <text class="msg-sender-name">{{ msg.sender_nickname || '我' }}</text>
@@ -22,13 +41,13 @@
             </div>
           </div>
           <div class="msg-avatar msg-avatar-self">
-            <text class="avatar-text">{{ (msg.sender_nickname || '我').charAt(0).toUpperCase() }}</text>
+            <text class="avatar-text">{{ avatarChar(msg) }}</text>
           </div>
         </div>
         <!-- 别人的消息（左对齐） -->
         <div class="msg-row msg-other" else>
           <div class="msg-avatar msg-avatar-other">
-            <text class="avatar-text">{{ (msg.sender_nickname || '?').charAt(0).toUpperCase() }}</text>
+            <text class="avatar-text">{{ avatarChar(msg) }}</text>
           </div>
           <div class="msg-body">
             <div class="msg-sender">
@@ -41,22 +60,14 @@
         </div>
       </block>
 
-      <!-- 空状态 -->
-      <div class="empty-hint" if="messages.length === 0 && !loading">
-        <text class="empty-text">暂无消息，开始聊天吧</text>
-      </div>
-
-      <!-- 加载中 -->
-      <div class="loading-hint" if="loading">
-        <text class="loading-text">加载中...</text>
-      </div>
-
       <div class="chat-bottom-spacer"></div>
     </div>
 
-    <!-- 底部输入区 -->
+    <!-- 底部输入区（始终可见，加载/错误时禁用） -->
     <div class="bottom-input-area">
-      <input class="message-input" type="text" placeholder="输入消息..." value="{{ inputText }}" onchange="onInputChange" />
+      <input class="message-input" type="text" placeholder="输入消息..."
+             value="{{ inputText }}" onchange="onInputChange"
+             disabled="{{ loading || loadError || sending }}" />
       <div class="send-btn" onclick="sendMessage">
         <text class="send-text">{{ sending ? '...' : '发送' }}</text>
       </div>
@@ -72,17 +83,25 @@ import { safeBack } from '../../helper/navigate'
 
 /** 获取页面存活标志 */
 function checkActive(vm) {
-  return vm && vm.isActive === true
+  try { return vm && vm.isActive === true } catch (e) { return false }
+}
+
+/** 安全截取首字符 */
+function safeFirstChar(str) {
+  if (!str || typeof str !== 'string') return '?'
+  const ch = str.charAt(0)
+  if (!ch) return '?'
+  return ch.toUpperCase()
 }
 
 export default {
   private: {
     // 路由参数
-    chatType: '',       // "private" | "group"
-    peerId: '',         // 私聊对方 user_id
-    peerName: '',       // 私聊对方昵称
+    chatType: '',
+    peerId: '',
+    peerName: '',
 
-    // 状态
+    // 显示状态
     chatTitle: '聊天',
     myUserId: '',
     myNickname: '',
@@ -90,6 +109,7 @@ export default {
     messages: [],
     inputText: '',
     loading: true,
+    loadError: false,
     sending: false,
     isActive: false,
 
@@ -98,31 +118,29 @@ export default {
     lastMsgId: 0,
   },
 
-  async onInit() {
+  // ==================== 生命周期 ====================
+
+  /**
+   * onInit(): 同步设置初始状态 → 异步加载数据。
+   * 关键：所有同步设置放在 await 之前，确保模板首次渲染时有内容可显示。
+   */
+  onInit() {
     this.$page.setTitleBar({ text: '' })
     this.isActive = true
 
-    // 解析路由参数
-    this.chatType = this.$page.query.type || 'group'
-    this.peerId = this.$page.query.peer_id || ''
-    this.peerName = decodeURIComponent(this.$page.query.peer_name || '') || '对方'
+    // 解析路由参数（同步）
+    this.chatType = (this.$page.query && this.$page.query.type) || 'group'
+    this.peerId = (this.$page.query && this.$page.query.peer_id) || ''
+    const rawPeerName = (this.$page.query && this.$page.query.peer_name) || ''
+    this.peerName = decodeURIComponent(rawPeerName) || '对方'
 
-    this.myUserId = await userIdentity.initUserId()
-    await userIdentity.initNickname()
-    this.myNickname = userIdentity.getNickname() || '我'
+    // 设置标题（同步，确保首次可渲染）
+    this.chatTitle = this.chatType === 'private'
+      ? (this.peerName || '私聊')
+      : '家庭群聊'
 
-    if (this.chatType === 'private') {
-      this.chatTitle = this.peerName || '私聊'
-    } else {
-      this.chatTitle = '家庭群聊'
-    }
-
-    // 先发送一条空消息来获取/创建 conversation_id
-    await this.ensureConversation()
-    // 加载消息
-    await this.loadMessages()
-    // 开始轮询
-    this.startPolling()
+    // 异步初始化用户身份 + 加载数据（不阻塞 onInit 返回）
+    this._initFlow()
   },
 
   onHide() {
@@ -130,37 +148,96 @@ export default {
     this.stopPolling()
   },
 
+  onShow() {
+    this.isActive = true
+    // 回到页面：拉取增量消息 + 恢复轮询
+    if (!this.loadError && this.conversationId) {
+      this.pollMessages()
+      this.startPolling()
+    }
+  },
+
   onDestroy() {
     this.isActive = false
     this.stopPolling()
   },
 
-  // ==================== 会话管理 ====================
+  // ==================== 模板辅助方法 ====================
+
+  showAsSelf(msg) {
+    // 防御性判断：sender_id 与 myUserId 比较
+    if (!msg || !msg.sender_id) return false
+    return msg.sender_id === this.myUserId
+  },
+
+  avatarChar(msg) {
+    if (!msg) return '?'
+    const name = msg.sender_nickname || '?'
+    return safeFirstChar(name)
+  },
+
+  // ==================== 初始化流程 ====================
 
   /**
-   * 确保会话存在：通过发送一条特殊消息来创建/获取 conversation_id。
-   * 实际聊天室的 conversation 是在第一次发消息时自动创建的，
-   * 这里我们先拉取已有的会话列表来匹配。
+   * 主初始化流程：用户身份 → 查找会话 → 加载消息 → 启动轮询。
+   * 每一步带 try/catch，任一失败都会进入 loadError 状态。
    */
+  async _initFlow() {
+    try {
+      // Step 1: 用户身份
+      this.myUserId = await userIdentity.initUserId()
+      if (!checkActive(this)) return
+      await userIdentity.initNickname()
+      this.myNickname = userIdentity.getNickname() || '我'
+      if (!checkActive(this)) return
+
+      // Step 2: 查找/确认会话
+      await this.ensureConversation()
+      if (!checkActive(this)) return
+
+      // Step 3: 加载消息
+      await this.loadMessages()
+      if (!checkActive(this)) return
+
+      // Step 4: 启动轮询
+      this.startPolling()
+    } catch (e) {
+      console.log('[ChatRoom] 初始化失败:', e)
+      if (checkActive(this)) {
+        this.loadError = true
+        this.loading = false
+      }
+    }
+  },
+
+  /** 点击重试 */
+  retryLoad() {
+    if (!checkActive(this)) return
+    this.loadError = false
+    this.loading = true
+    this._initFlow()
+  },
+
+  // ==================== 会话管理 ====================
+
   async ensureConversation() {
     try {
       const res = await chatroomAPI.getConversations()
-      const convs = res.conversations || []
+      if (!checkActive(this)) return
+      const convs = (res && res.conversations) ? res.conversations : []
 
       if (this.chatType === 'private') {
-        const found = convs.find(c => c.type === 'private' && c.peer_user_id === this.peerId)
-        if (found) {
-          this.conversationId = found.id
-        }
-        // 没找到也没关系，第一次发消息时会自动创建
+        const found = convs.find(
+          c => c && c.type === 'private' && c.peer_user_id === this.peerId
+        )
+        if (found) this.conversationId = found.id
       } else {
-        const found = convs.find(c => c.type === 'group')
-        if (found) {
-          this.conversationId = found.id
-        }
+        const found = convs.find(c => c && c.type === 'group')
+        if (found) this.conversationId = found.id
       }
     } catch (e) {
-      console.log('获取会话失败:', e)
+      console.log('[ChatRoom] 获取会话列表失败:', e)
+      // 不阻断流程：没有 conversationId 也可以发消息（后端会懒创建）
     }
   },
 
@@ -171,16 +248,17 @@ export default {
       this.loading = false
       return
     }
-    this.loading = true
     try {
       const res = await chatroomAPI.getMessages(this.conversationId, 0)
       if (!checkActive(this)) return
-      this.messages = res.messages || []
-      if (this.messages.length > 0) {
-        this.lastMsgId = this.messages[this.messages.length - 1].id
+      const msgs = (res && res.messages) ? res.messages : []
+      this.messages = msgs
+      if (msgs.length > 0) {
+        const last = msgs[msgs.length - 1]
+        this.lastMsgId = (last && last.id) ? last.id : this.lastMsgId
       }
     } catch (e) {
-      console.log('加载消息失败:', e)
+      console.log('[ChatRoom] 加载消息失败:', e)
     } finally {
       if (checkActive(this)) {
         this.loading = false
@@ -207,22 +285,24 @@ export default {
   },
 
   async pollMessages() {
+    if (!this.conversationId) return
     try {
       const res = await chatroomAPI.getMessages(this.conversationId, this.lastMsgId)
       if (!checkActive(this)) return
-      const newMsgs = res.messages || []
+      const newMsgs = (res && res.messages) ? res.messages : []
       if (newMsgs.length > 0) {
-        // 去重后追加
+        // 去重
         const existingIds = new Set(this.messages.map(m => m.id))
-        const trulyNew = newMsgs.filter(m => !existingIds.has(m.id))
+        const trulyNew = newMsgs.filter(m => m && !existingIds.has(m.id))
         if (trulyNew.length > 0) {
           this.messages = [...this.messages, ...trulyNew]
-          this.lastMsgId = trulyNew[trulyNew.length - 1].id
+          const last = trulyNew[trulyNew.length - 1]
+          this.lastMsgId = last.id
           this.scrollToBottom()
         }
       }
     } catch (e) {
-      // 轮询失败静默处理
+      // 轮询失败静默处理，不影响用户体验
     }
   },
 
@@ -230,11 +310,12 @@ export default {
 
   onInputChange(event) {
     if (!checkActive(this)) return
-    this.inputText = event.value || ''
+    this.inputText = (event && event.value) ? event.value : ''
   },
 
   async sendMessage() {
     if (!checkActive(this)) return
+    if (this.loading || this.loadError) return
     const content = (this.inputText || '').trim()
     if (!content) return
     if (this.sending) return
@@ -242,48 +323,56 @@ export default {
     this.sending = true
     this.inputText = ''
 
-    // 乐观更新：先显示在本地
+    // 乐观更新
     const tempId = -Date.now()
     this.messages.push({
       id: tempId,
       sender_id: this.myUserId,
-      sender_nickname: this.myNickname,
+      sender_nickname: this.myNickname || '我',
       content: content,
     })
     this.scrollToBottom()
 
     try {
       const res = await chatroomAPI.sendMessage({
-        conversation_id: this.conversationId,
+        conversation_id: this.conversationId || null,
         receiver_id: this.chatType === 'private' ? this.peerId : null,
         chat_type: this.chatType,
         content: content,
       })
       if (!checkActive(this)) return
 
-      // 更新 conversation_id（首次发送时创建）
-      if (!this.conversationId) {
+      // 首次发送：后端会创建会话并返回 conversation_id
+      if (!this.conversationId && res && res.conversation_id) {
         this.conversationId = res.conversation_id
         this.startPolling()
       }
 
       // 用服务器返回的真实消息替换临时消息
-      const idx = this.messages.findIndex(m => m.id === tempId)
-      if (idx >= 0) {
+      const idx = this.messages.findIndex(
+        m => m && m.id === tempId
+      )
+      if (idx >= 0 && res) {
         this.messages[idx] = {
-          id: res.message_id,
+          id: res.message_id || tempId,
           sender_id: this.myUserId,
-          sender_nickname: this.myNickname,
-          content: res.content,
+          sender_nickname: this.myNickname || '我',
+          content: res.content || content,
         }
-        this.lastMsgId = res.message_id
+        if (res.message_id) {
+          this.lastMsgId = res.message_id
+        }
       }
     } catch (e) {
       if (!checkActive(this)) return
-      // 发送失败：标记临时消息为失败
-      const idx = this.messages.findIndex(m => m.id === tempId)
+      console.log('[ChatRoom] 发送失败:', e)
+      // 标记临时消息为失败
+      const idx = this.messages.findIndex(
+        m => m && m.id === tempId
+      )
       if (idx >= 0) {
         this.messages[idx].content = content + '（发送失败）'
+        this.messages[idx]._failed = true
       }
       $utils.showToast('发送失败，请重试')
     } finally {
@@ -293,7 +382,7 @@ export default {
     }
   },
 
-  // ==================== 工具 ====================
+  // ==================== 工具方法 ====================
 
   scrollToBottom() {
     setTimeout(() => {
@@ -304,7 +393,7 @@ export default {
           el.scrollTo({ index: -1 })
         }
       } catch (e) { /* ignore */ }
-    }, 100)
+    }, 150)
   },
 
   goBack() {
@@ -315,7 +404,7 @@ export default {
 </script>
 
 <style lang="less">
-/* 莫兰迪色系 */
+/* ===== 莫兰迪色系 ===== */
 @morandi-bg:        #f7f0e7;
 @morandi-white:     #faf8f5;
 @morandi-text:      #4a3728;
@@ -332,7 +421,7 @@ export default {
   background-color: @morandi-bg;
 }
 
-/* 标题栏 */
+/* ===== 标题栏 ===== */
 .title-bar {
   flex-direction: row;
   align-items: center;
@@ -365,7 +454,38 @@ export default {
   margin-left: 16px;
 }
 
-/* 消息列表 */
+/* ===== 状态占位 ===== */
+.status-container {
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 30px;
+}
+
+.status-text {
+  font-size: 26px;
+  color: @morandi-text-light;
+}
+
+.status-error {
+  color: #c0392b;
+}
+
+.retry-btn {
+  margin-top: 20px;
+  padding: 14px 40px;
+  background-color: @morandi-brown;
+  border-radius: 8px;
+}
+
+.retry-text {
+  font-size: 26px;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* ===== 消息列表 ===== */
 .chat-list {
   flex: 1;
   flex-direction: column;
@@ -373,17 +493,7 @@ export default {
   padding-bottom: 100px;
 }
 
-.empty-hint, .loading-hint {
-  padding: 60px;
-  align-items: center;
-}
-
-.empty-text, .loading-text {
-  font-size: 26px;
-  color: @morandi-text-light;
-}
-
-/* 消息行 */
+/* ===== 消息行 ===== */
 .msg-row {
   flex-direction: row;
   margin-bottom: 16px;
@@ -399,7 +509,7 @@ export default {
   padding-right: 80px;
 }
 
-/* 头像 */
+/* ===== 头像 ===== */
 .msg-avatar {
   width: 64px;
   height: 64px;
@@ -426,7 +536,7 @@ export default {
   font-weight: 600;
 }
 
-/* 消息体 */
+/* ===== 消息体 ===== */
 .msg-body {
   flex-direction: column;
   max-width: 100%;
@@ -436,7 +546,7 @@ export default {
   align-items: flex-end;
 }
 
-/* 发送者名称 */
+/* ===== 发送者名称 ===== */
 .msg-sender {
   margin-bottom: 4px;
 }
@@ -446,7 +556,7 @@ export default {
   color: @morandi-text-light;
 }
 
-/* 气泡 */
+/* ===== 气泡 ===== */
 .msg-bubble {
   padding: 14px 18px;
   border-radius: 8px;
@@ -471,7 +581,7 @@ export default {
   height: 20px;
 }
 
-/* 底部输入区 */
+/* ===== 底部输入区 ===== */
 .bottom-input-area {
   position: fixed;
   left: 0;

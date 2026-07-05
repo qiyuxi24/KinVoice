@@ -18,10 +18,11 @@ from app.api.summarize import router as summarize_router
 from app.api.profile import router as profile_router
 from app.api.tts import router as tts_router
 from app.api.replica import router as replica_router
-from app.api.auth import router as auth_router
-from app.api.profile_ai import router as profile_ai_router
 from app.api.family import router as family_router
 from app.api.chatroom import router as chatroom_router
+from app.api.profile_ai import router as profile_ai_router
+from app.api.cards_ai import router as cards_ai_router
+from app.api.auth import router as auth_router
 
 
 @asynccontextmanager
@@ -69,6 +70,12 @@ app.include_router(replica_router)
 app.include_router(family_router)
 # 家庭聊天室（独立模块）
 app.include_router(chatroom_router)
+# AI 档案编写（profile_ai）
+app.include_router(profile_ai_router)
+# AI 卡片提取（cards_ai）
+app.include_router(cards_ai_router)
+# 用户认证（注册/登录）
+app.include_router(auth_router)
 
 
 # ── 健康检查 ──

@@ -14,10 +14,12 @@ from app.db.session import Base
 
 
 class User(Base):
-    """用户表 —— 设备即用户，UUID 由前端生成"""
+    """用户表 —— 支持账号密码登录，同时兼容设备 UUID 注册"""
     __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True, comment="UUID，前端 localStorage 生成")
+    id = Column(String(36), primary_key=True, comment="UUID，注册时服务端生成或前端传入")
+    username = Column(String(50), unique=True, nullable=True, comment="登录用户名（唯一，设备注册时可为空）")
+    password_hash = Column(String(128), nullable=True, comment="PBKDF2-SHA256 密码哈希（设备注册时可为空）")
     nickname = Column(String(50), nullable=False, default="", comment="用户昵称")
     created_at = Column(DateTime, server_default=func.now())
 

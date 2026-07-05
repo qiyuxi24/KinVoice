@@ -2,8 +2,8 @@
 FTS5 全文检索服务 —— 为陪伴对话提供上下文检索
 
 检索范围：
-- cards（家庭卡片）：按 family_id 过滤，检索 title/content/observation/feeling/need/request/author
-- chat_messages（对话历史）：按 user_id 过滤（通过 conversations 关联），检索 content
+- cards（家庭卡片）：按 family_id 过滤，检索 title/content/author
+- chat_messages（对话历史）：按 user_id 过滤（通过 conversations 关联），检索 content/role
 
 设计决策：
 - 使用 SQLite FTS5 外部内容表，不存数据副本
@@ -41,14 +41,13 @@ def _escape_fts_query(query: str) -> str:
 
 
 async def search_cards(session: AsyncSession, query: str, family_id: str) -> list[dict]:
-    """检索家庭卡片"""
+    """检索家庭笔记"""
     fts_query = _escape_fts_query(query)
     if not fts_query:
         return []
 
     sql = text("""
-        SELECT c.id, c.title, c.content, c.observation, c.feeling, c.need, c.request, c.author,
-               c.type, c.category
+        SELECT c.id, c.title, c.content, c.author
         FROM cards_fts fts
         JOIN cards c ON c.id = fts.rowid
         WHERE cards_fts MATCH :query
@@ -96,15 +95,10 @@ def format_context(cards: list[dict], messages: list[dict]) -> str:
         card_lines = []
         for c in cards:
             author = f"（{c['author']}）" if c.get('author') else ""
-            title = c.get('title') or "未命名卡片"
-            # 拼合可用的文本字段
-            body_parts = []
-            for field in ('content', 'observation', 'feeling', 'need', 'request'):
-                if c.get(field):
-                    body_parts.append(str(c[field]))
-            body = ' | '.join(body_parts) if body_parts else title
+            title = c.get('title') or "未命名笔记"
+            body = c.get('content') or title
             card_lines.append(f"- **{title}**{author}：{body}")
-        parts.append("【家庭经验卡片】\n" + "\n".join(card_lines))
+        parts.append("【传承笔记】\n" + "\n".join(card_lines))
 
     if messages:
         msg_lines = []

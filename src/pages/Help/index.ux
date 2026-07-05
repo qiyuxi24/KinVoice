@@ -1,0 +1,160 @@
+<template>
+  <div class="page">
+    <div class="header">
+      <div class="back-btn" onclick="goBack">
+        <text class="back-icon">‹</text>
+        <text class="back-text">返回</text>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="section">
+        <text class="section-title">常见问题</text>
+
+        <div class="faq-item">
+          <text class="faq-q">如何开始使用 KinVoice？</text>
+          <text class="faq-a">注册或登录后，您可以在「AI 陪伴」中与 Cloudie 聊天，在「传承页」记录家庭故事，在「家庭聊天」中与家人互动。</text>
+        </div>
+
+        <div class="faq-item">
+          <text class="faq-q">如何创建或加入家庭组？</text>
+          <text class="faq-a">进入「我的」→「我的家庭组」，可以创建新的家庭组或通过家庭 ID 加入已有家庭组。</text>
+        </div>
+
+        <div class="faq-item">
+          <text class="faq-q">用户档案是什么？</text>
+          <text class="faq-a">用户档案会自动从您与 Cloudie 的对话中提取个人信息，帮助 AI 更好地了解您，提供更个性化的陪伴。</text>
+        </div>
+
+        <div class="faq-item">
+          <text class="faq-q">传承笔记如何使用？</text>
+          <text class="faq-a">在「传承页」中可以创建笔记卡片，记录家庭故事、人生智慧或美好回忆。与 Cloudie 聊天时，AI 也会自动提取值得记录的内容。</text>
+        </div>
+      </div>
+
+      <div class="section">
+        <text class="section-title">使用技巧</text>
+        <div class="tip-item">
+          <text class="tip-num">1</text>
+          <text class="tip-text">多与 Cloudie 聊天，AI 会逐渐了解您和您的家庭，提供更贴心的陪伴。</text>
+        </div>
+        <div class="tip-item">
+          <text class="tip-num">2</text>
+          <text class="tip-text">定期查看和整理传承笔记，让家庭记忆代代相传。</text>
+        </div>
+        <div class="tip-item">
+          <text class="tip-num">3</text>
+          <text class="tip-text">邀请家人加入同一个家庭组，一起记录和分享。</text>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { safeBack } from '../../helper/navigate'
+
+export default {
+  goBack() {
+    safeBack()
+  }
+}
+</script>
+
+<style lang="less">
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #f7f0e7;
+}
+
+.header {
+  padding: 60px 24px 20px;
+}
+
+.back-btn {
+  flex-direction: row;
+  align-items: center;
+}
+
+.back-icon {
+  font-size: 40px;
+  color: #4a3728;
+  font-weight: 300;
+}
+
+.back-text {
+  font-size: 28px;
+  color: #4a3728;
+  margin-left: 8px;
+}
+
+.content {
+  flex: 1;
+  flex-direction: column;
+  padding: 20px 30px;
+}
+
+.section {
+  flex-direction: column;
+  margin-bottom: 30px;
+  background-color: #fff;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 18px;
+}
+
+/* 常见问题 */
+.faq-item {
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+.faq-q {
+  font-size: 26px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 8px;
+  line-height: 36px;
+}
+
+.faq-a {
+  font-size: 26px;
+  color: #5a4a3a;
+  line-height: 36px;
+}
+
+/* 使用技巧 */
+.tip-item {
+  flex-direction: row;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.tip-num {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background-color: #d4874b;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  line-height: 40px;
+  margin-right: 14px;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  flex: 1;
+  font-size: 26px;
+  color: #5a4a3a;
+  line-height: 40px;
+}
+</style>

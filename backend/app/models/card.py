@@ -12,7 +12,8 @@ class Conversation(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     title = Column(String(200), nullable=True, comment="会话标题（取第一条消息前50字）")
-    family_id = Column(Integer, default=1)
+    user_id = Column(String(36), nullable=True, default="1", comment="所属用户 ID")
+    family_id = Column(String(8), default="1", comment="关联 family_groups.id")
     # 聊天室扩展字段（家庭组成员互聊，与 AI 对话解耦）
     type = Column(String(20), default="ai", comment="会话类型: ai(默认)/private(私聊)/group(群聊)")
     sender_id = Column(String(36), nullable=True, comment="私聊发起者 user_id")
@@ -43,65 +44,33 @@ class ChatMessage(Base):
 
 class Card(Base):
     """
-    经验卡片 —— 支持多种类型
-    - type="nvc": NVC 四要素卡片（兼容旧数据）
-    - type="chat_message": 收藏的单条对话消息
-    - type="chat_conversation": 收藏的整个对话
+    传承笔记 —— 精简为文件夹+笔记的备忘录模式
+    只保留：id / title / content(Markdown) / author / folder_id / family_id / created_at / updated_at
     """
     __tablename__ = "cards"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-    # 卡片类型
-    type = Column(String(20), nullable=False, default="nvc",
-                  comment="卡片类型: nvc / chat_message / chat_conversation")
-
-    # NVC 专用字段（兼容旧数据，允许为空）
-    category = Column(String(50), nullable=True, comment="分类（感受/需要/行动/通用）")
-    emotion = Column(String(100), nullable=True, comment="情绪关键词")
-    observation = Column(Text, nullable=True, comment="观察（事实描述）")
-    feeling = Column(Text, nullable=True, comment="感受")
-    need = Column(Text, nullable=True, comment="需要")
-    request = Column(Text, nullable=True, comment="请求")
-
-    # 对话收藏专用字段
-    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=True)
-    message_id = Column(Integer, ForeignKey("chat_messages.id"), nullable=True)
-    title = Column(String(200), nullable=True, comment="卡片标题")
-    content = Column(Text, nullable=True, comment="卡片正文（自动拼接或单条消息）")
-    original_text = Column(Text, nullable=True, comment="原始用户文本（可选）")
-
-    # 简化字段
+    title = Column(String(200), nullable=True, comment="笔记标题")
+    content = Column(Text, nullable=True, comment="笔记正文（Markdown）")
     author = Column(String(100), nullable=True, comment="作者/讲述人")
 
     # 文件夹归属
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True, comment="所属文件夹")
 
     # 通用
-    family_id = Column(Integer, default=1)
+    family_id = Column(String(8), default="1", comment="关联 family_groups.id")
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # 关系
-    conversation = relationship("Conversation", foreign_keys=[conversation_id])
-    message = relationship("ChatMessage", foreign_keys=[message_id])
     folder = relationship("Folder", foreign_keys=[folder_id])
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "type": self.type,
-            "category": self.category,
-            "emotion": self.emotion,
-            "observation": self.observation,
-            "feeling": self.feeling,
-            "need": self.need,
-            "request": self.request,
-            "conversation_id": self.conversation_id,
-            "message_id": self.message_id,
             "title": self.title,
             "content": self.content,
-            "original_text": self.original_text,
             "author": self.author,
             "folder_id": self.folder_id,
             "family_id": self.family_id,

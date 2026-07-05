@@ -5,15 +5,12 @@
 
     <!-- ========== 侧边栏 ========== -->
     <div class="sidebar {{ showSidebar ? 'sidebar-open' : '' }}">
-      <!-- 侧边栏头部 -->
       <div class="sidebar-header">
         <text class="sidebar-title">对话记录</text>
         <div class="sidebar-new-btn" onclick="newConversation">
           <text class="sidebar-new-icon">+</text>
         </div>
       </div>
-
-      <!-- 对话列表 -->
       <div class="sidebar-list">
         <block for="conv in conversationList">
           <div class="sidebar-item {{ conv.id === conversationId ? 'sidebar-item-active' : '' }}"
@@ -27,7 +24,6 @@
             </div>
           </div>
         </block>
-        <!-- 空状态 -->
         <div class="sidebar-empty" if="conversationList.length === 0">
           <text class="sidebar-empty-text">暂无对话记录</text>
         </div>
@@ -50,7 +46,6 @@
       <!-- 对话消息列表 -->
       <div class="chat-list" id="chatList">
         <block for="(index, msg) in messages">
-          <!-- AI 消息（左对齐） -->
           <div class="msg-row msg-ai" if="msg.role === 'assistant'">
             <image class="msg-avatar" src="../../assets/images/logo.png" />
             <div class="msg-body">
@@ -59,7 +54,6 @@
               </div>
             </div>
           </div>
-          <!-- 用户消息（右对齐） -->
           <div class="msg-row msg-user" elif="msg.role === 'user'">
             <div class="msg-body">
               <div class="msg-bubble msg-bubble-user">
@@ -70,7 +64,6 @@
               <text class="avatar-placeholder">我</text>
             </div>
           </div>
-          <!-- 系统提示（居中） -->
           <div class="msg-row msg-system" else>
             <text class="msg-system-text">{{ msg.content }}</text>
           </div>
@@ -86,7 +79,6 @@
           </div>
         </div>
 
-        <!-- 底部占位 -->
         <div class="chat-bottom-spacer"></div>
       </div>
 
@@ -98,26 +90,6 @@
         </div>
       </div>
     </div>
-
-    <!-- TabBar -->
-    <div class="tabbar">
-      <div class="tab-item tab-active" onclick="goCompanion">
-        <text class="tab-icon">🏠</text>
-        <text class="tab-label">陪伴</text>
-      </div>
-      <div class="tab-item" onclick="goBreakIce">
-        <text class="tab-icon">💬</text>
-        <text class="tab-label">聊天</text>
-      </div>
-      <div class="tab-item" onclick="goMemory">
-        <text class="tab-icon">📚</text>
-        <text class="tab-label">传承</text>
-      </div>
-      <div class="tab-item" onclick="goProfile">
-        <text class="tab-icon">👤</text>
-        <text class="tab-label">我的</text>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -126,12 +98,11 @@ import storage from '@system.storage'
 import $utils from '../../helper/utils'
 import chatAPI from '../../helper/apis/chat'
 import familyAPI from '../../helper/apis/family'
-import { safeReplace } from '../../helper/navigate'
 
 // 本地存储 key
-const CONV_ID_KEY = 'companion_conv_id'       // 当前会话 ID
-const CONV_LIST_KEY = 'companion_conv_list'   // 会话列表 [{ id, title, createdAt }]
-const CONV_MSG_PREFIX = 'conv_msgs_'          // 会话消息前缀，完整 key = conv_msgs_{id}
+const CONV_ID_KEY = 'companion_conv_id'
+const CONV_LIST_KEY = 'companion_conv_list'
+const CONV_MSG_PREFIX = 'conv_msgs_'
 
 /** 获取页面存活标志 */
 function checkActive(vm) {
@@ -166,34 +137,22 @@ function makeTitle(messages) {
 export default {
   private: {
     messageText: '',
-    // 消息列表：{ role: 'user'|'assistant'|'system', content: string }
     messages: [],
-    // 是否正在等待 AI 回复
     isThinking: false,
-    // 当前会话 ID（前端本地生成）
     conversationId: null,
-    // 侧边栏开关
     showSidebar: false,
-    // 会话列表：[{ id, title, createdAt }]
     conversationList: [],
-    // 页面存活标志
     isActive: false,
-    // 定时器句柄列表
     timers: [],
-    // 当前用户的家庭组 ID（null = 未加入家庭组）
     familyId: null,
   },
 
   onInit() {
     this.$page.setTitleBar({ text: '' })
     this.isActive = true
-    // 1. 恢复会话列表
     this.restoreConvList()
-    // 2. 恢复当前会话 ID + 消息
     this.restoreCurrentConv()
-    // 3. 静默从后端同步（失败不影响）
     this.syncFromBackend()
-    // 4. 获取家庭组 ID（用于检索上下文）
     this.fetchFamilyId()
   },
 
@@ -221,7 +180,6 @@ export default {
 
   // ==================== 本地存储：会话列表 ====================
 
-  /** 恢复会话列表 */
   restoreConvList() {
     if (!checkActive(this)) return
     storage.get({
@@ -241,7 +199,6 @@ export default {
     })
   },
 
-  /** 持久化会话列表 */
   saveConvList() {
     storage.set({
       key: CONV_LIST_KEY,
@@ -251,25 +208,22 @@ export default {
     })
   },
 
-  /** 在会话列表中新增/更新一条记录 */
   upsertConvInList(convId, title, createdAt) {
     const existing = this.conversationList.find(c => c.id === convId)
     if (existing) {
       existing.title = title || existing.title
     } else {
-      this.conversationList.unshift({ id: convId, title: title || '新对话', createdAt: createdAt || formatDate(Date.now()) })
+      this.conversationList.unshift({ id: convId, title: title || '新对话', created_at: createdAt || formatDate(Date.now()) })
     }
     this.saveConvList()
   },
 
   // ==================== 本地存储：会话消息 ====================
 
-  /** 构建某个会话的消息存储 key */
   msgKey(convId) {
     return CONV_MSG_PREFIX + convId
   },
 
-  /** 从本地存储加载某个会话的消息 */
   loadConvMessages(convId, callback) {
     storage.get({
       key: this.msgKey(convId),
@@ -283,13 +237,41 @@ export default {
             }
           } catch (e) { /* ignore */ }
         }
-        callback(null)
+        this._fallbackToBackendHistory(convId, callback)
       },
-      fail: () => callback(null)
+      fail: () => this._fallbackToBackendHistory(convId, callback)
     })
   },
 
-  /** 将当前消息列表保存到当前会话的存储中 */
+  _fallbackToBackendHistory(convId, callback) {
+    if (typeof convId !== 'number' || convId >= 1e10) {
+      callback(null)
+      return
+    }
+    chatAPI.getHistory(convId).then((raw) => {
+      if (!checkActive(this)) return
+      const data = this.unwrapProxy(raw)
+      if (data && Array.isArray(data.messages)) {
+        const msgs = data.messages.map(m => ({ role: m.role, content: m.content }))
+        this._saveMessagesToStorage(convId, msgs)
+        callback(msgs)
+      } else {
+        callback(null)
+      }
+    }).catch(() => {
+      callback(null)
+    })
+  },
+
+  _saveMessagesToStorage(convId, msgs) {
+    storage.set({
+      key: this.msgKey(convId),
+      value: JSON.stringify(msgs),
+      success: () => {},
+      fail: () => {}
+    })
+  },
+
   cacheCurrentConv() {
     if (!this.conversationId) return
     if (!this.messages || this.messages.length === 0) return
@@ -301,7 +283,6 @@ export default {
     })
   },
 
-  /** 删除某个会话的本地消息缓存 */
   deleteConvMessages(convId) {
     storage.delete({
       key: this.msgKey(convId),
@@ -312,7 +293,6 @@ export default {
 
   // ==================== 当前会话恢复 ====================
 
-  /** 恢复上次的会话 ID，并加载对应消息 */
   restoreCurrentConv() {
     if (!checkActive(this)) return
     storage.get({
@@ -340,7 +320,6 @@ export default {
             this.scrollToBottom()
           })
         } else {
-          // 无历史会话，新建一个
           this.createNewConversation(false)
         }
       },
@@ -352,7 +331,6 @@ export default {
     })
   },
 
-  /** 持久化当前会话 ID */
   saveCurrentConvId(id) {
     storage.set({
       key: CONV_ID_KEY,
@@ -362,45 +340,55 @@ export default {
     })
   },
 
-  /** 欢迎语模板 */
   welcomeMsg() {
     return { role: 'assistant', content: '今天过得开心吗？戳戳我，或者直接跟我说说话吧！' }
   },
 
   // ==================== 后端静默同步 ====================
 
-  /** 静默从后端同步（失败不影响前端） */
   syncFromBackend() {
     if (!checkActive(this)) return
     chatAPI.listConversations().then((raw) => {
       if (!checkActive(this)) return
-      let data = this.unwrapProxy(raw)
+      const data = this.unwrapProxy(raw)
       if (data && Array.isArray(data.conversations)) {
-        // 合并后端数据到本地列表（以后端为准更新 title）
+        const localMap = {}
+        this.conversationList.forEach(c => { localMap[c.id] = c })
+        let changed = false
         data.conversations.forEach(c => {
-          const local = this.conversationList.find(l => l.id === c.id)
-          if (local) {
-            local.title = c.title || local.title
+          if (localMap[c.id]) {
+            if (c.title && localMap[c.id].title !== c.title) {
+              localMap[c.id].title = c.title
+              changed = true
+            }
+          } else {
+            this.conversationList.unshift({
+              id: c.id,
+              title: c.title || '新对话',
+              created_at: c.created_at ? formatDate(new Date(c.created_at).getTime()) : formatDate(Date.now())
+            })
+            changed = true
           }
         })
-        this.saveConvList()
+        if (changed) {
+          this.saveConvList()
+        }
       }
-    }).catch(() => {
-      // 静默失败
-    })
+    }).catch(() => {})
   },
 
-  /** 获取当前用户的家庭组 ID（用于检索上下文） */
   fetchFamilyId() {
-    familyAPI.getMyGroup().then((raw) => {
+    if (this.familyIdPromise) {
+      return this.familyIdPromise
+    }
+    this.familyIdPromise = familyAPI.getMyGroup().then((raw) => {
       if (!checkActive(this)) return
       let data = this.unwrapProxy(raw)
       if (data && data.family_id) {
         this.familyId = data.family_id
       }
-    }).catch(() => {
-      // 未加入家庭组时静默失败，不影响正常对话
-    })
+    }).catch(() => {})
+    return this.familyIdPromise
   },
 
   // ==================== 代理解包 ====================
@@ -425,21 +413,16 @@ export default {
     this.showSidebar = false
   },
 
-  /** 新建对话（先保存当前会话，再开新的） */
   newConversation() {
-    // 先保存当前会话
     this.cacheCurrentConv()
     this.createNewConversation(true)
   },
 
-  /** 内部：创建新会话
-   *  @param {boolean} closeSidebar - 是否关闭侧边栏 */
   createNewConversation(closeSidebar) {
     const newId = generateLocalId()
     this.conversationId = newId
     this.saveCurrentConvId(newId)
     this.messages = [this.welcomeMsg()]
-    // 注册到会话列表
     this.upsertConvInList(newId, '新对话', formatDate(Date.now()))
     this.cacheCurrentConv()
     if (closeSidebar) {
@@ -448,15 +431,12 @@ export default {
     this.scrollToBottom()
   },
 
-  /** 切换对话：先保存当前会话，再加载目标会话 */
   switchConversation(targetId) {
     if (targetId === this.conversationId) {
       this.showSidebar = false
       return
     }
-    // 1. 保存当前会话
     this.cacheCurrentConv()
-    // 2. 切换到目标会话
     this.conversationId = targetId
     this.saveCurrentConvId(targetId)
     this.showSidebar = false
@@ -471,19 +451,16 @@ export default {
     })
   },
 
-  /** 删除对话 */
   deleteConversation(convId, event) {
     if (event && event.stopPropagation) {
       event.stopPropagation()
     }
-    // 1. 从本地列表移除
     this.conversationList = this.conversationList.filter(c => c.id !== convId)
     this.saveConvList()
-    // 2. 删除本地消息缓存
     this.deleteConvMessages(convId)
-    // 3. 静默通知后端删除
-    chatAPI.deleteConversation(convId).catch(() => {})
-    // 4. 如果删除的是当前对话，新建一个
+    if (typeof convId === 'number' && convId < 1e10) {
+      chatAPI.deleteConversation(convId).catch(() => {})
+    }
     if (this.conversationId === convId) {
       this.createNewConversation(false)
     }
@@ -499,13 +476,16 @@ export default {
 
   sendMessage() {
     if (!checkActive(this)) return
+    if (this.isThinking) {
+      $utils.showToast('请等小云回复完再发送')
+      return
+    }
     const content = (this.messageText || '').trim()
     if (!content) {
       $utils.showToast('请输入内容')
       return
     }
 
-    // 首次发送消息：更新会话标题
     const isFirstMessage = !this.messages.some(m => m.role === 'user')
     this.messages.push({ role: 'user', content: content })
     this.messageText = ''
@@ -517,13 +497,14 @@ export default {
 
     this.isThinking = true
     this.scrollToBottom()
-
     this.callCloudieAPI(content)
   },
 
   scrollToBottom() {
     const timer = setTimeout(() => {
       if (!checkActive(this)) return
+      const idx = this.timers.indexOf(timer)
+      if (idx !== -1) this.timers.splice(idx, 1)
       try {
         const el = this.$element('chatList')
         if (el && el.scrollTo) {
@@ -535,68 +516,59 @@ export default {
   },
 
   callCloudieAPI(message) {
-    // 后端仍传 conversation_id（如果有的话），后端可据此关联
-    chatAPI.sendMessage({
-      message: message,
-      conversation_id: this.conversationId || null,
-      family_id: this.familyId || null,
-    }).then((raw) => {
-      if (!checkActive(this)) return
-      this.isThinking = false
-
-      let data = this.unwrapProxy(raw)
-
-      if (data && data.reply) {
-        this.messages.push({ role: 'assistant', content: data.reply })
-        // AI 回复后立即缓存到本地
-        this.cacheCurrentConv()
-      } else {
-        $utils.showToast('AI 回复为空，请重试')
-      }
-      this.scrollToBottom()
-    }).catch((error) => {
-      if (!checkActive(this)) return
-      console.log('[Companion] API Error:', error)
-      this.isThinking = false
-      $utils.showToast('AI 回复失败，请重试')
-      this.scrollToBottom()
+    const familyReady = this.familyIdPromise
+      ? this.familyIdPromise.catch(() => {})
+      : Promise.resolve()
+    familyReady.then(() => {
+      chatAPI.sendMessage({
+        message: message,
+        conversation_id: this.conversationId || null,
+        family_id: this.familyId || null,
+      }).then((raw) => {
+        if (!checkActive(this)) return
+        this.isThinking = false
+        let data = this.unwrapProxy(raw)
+        if (data && data.reply) {
+          this.messages.push({ role: 'assistant', content: data.reply })
+          this.cacheCurrentConv()
+          if (data.conversation_id && data.conversation_id !== this.conversationId) {
+            this.migrateConvId(this.conversationId, data.conversation_id)
+          }
+          // 后台提取（档案+卡片）已由后端 chat.py 自动编排，前端无需额外调用
+        } else {
+          $utils.showToast('AI 回复为空，请重试')
+        }
+        this.scrollToBottom()
+      }).catch((error) => {
+        if (!checkActive(this)) return
+        console.log('[Companion] API Error:', error)
+        this.isThinking = false
+        $utils.showToast('AI 回复失败，请重试')
+        this.scrollToBottom()
+      })
     })
   },
 
-  // ==================== 路由 ====================
-
-  goCompanion() {
-    safeReplace('/pages/Companion')
+  migrateConvId(oldId, newId) {
+    if (!oldId || !newId || oldId === newId) return
+    storage.get({
+      key: this.msgKey(oldId),
+      success: (data) => {
+        if (data) {
+          storage.set({ key: this.msgKey(newId), value: data, success: () => {}, fail: () => {} })
+          storage.delete({ key: this.msgKey(oldId), success: () => {}, fail: () => {} })
+        }
+      },
+      fail: () => {}
+    })
+    const item = this.conversationList.find(c => c.id === oldId)
+    if (item) {
+      item.id = newId
+      this.saveConvList()
+    }
+    this.conversationId = newId
+    this.saveCurrentConvId(newId)
   },
-
-  goBreakIce() {
-    safeReplace('/pages/BreakIce')
-  },
-
-  goMemory() {
-    safeReplace('/pages/Memory')
-  },
-
-  goProfile() {
-    safeReplace('/pages/Profile')
-  },
-
-  // ==================== 档案更新 ====================
-
-  /**
-   * 离开 Companion 页面时静默触发动态档案更新。
-   * 失败不弹 toast，不影响用户正常使用。
-   */
-  triggerProfileUpdate() {
-    profileAI.updateDynamic('default')
-      .then((res) => {
-        console.log('[Companion] 动态档案更新完成:', res.messages_used, '条消息')
-      })
-      .catch((err) => {
-        // 静默失败，仅日志记录
-        console.log('[Companion] 动态档案更新失败（静默）:', err)
-      })
-  }
 }
 </script>
 
@@ -941,48 +913,5 @@ export default {
   font-size: 32px;
   color: @morandi-white;
   font-weight: bold;
-}
-
-/* ── TabBar ── */
-.tabbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 90px;
-  background-color: #fff;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
-}
-
-.tab-item {
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  padding-top: 8px;
-  padding-right: 20px;
-  padding-bottom: 8px;
-  padding-left: 20px;
-  border-radius: 10px;
-  flex-direction: column;
-}
-
-.tab-icon {
-  font-size: 36px;
-}
-
-.tab-label {
-  font-size: 22px;
-  color: #9a8b7a;
-  margin-top: 4px;
-}
-
-.tab-active {
-  background-color: #d4874b;
-}
-
-.tab-active .tab-label {
-  color: #ffffff;
 }
 </style>
