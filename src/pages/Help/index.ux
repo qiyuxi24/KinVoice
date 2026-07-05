@@ -25,8 +25,15 @@
           <div class="feature-item">
             <text class="feature-icon">💬</text>
             <div class="feature-info">
-              <text class="feature-name">破冰聊天</text>
-              <text class="feature-desc">为家人之间的对话提供有趣的话题灵感。不知道该和家人聊什么？让破冰模式帮你打开话匣子。</text>
+              <text class="feature-name">家庭聊天</text>
+              <text class="feature-desc">加入家庭组后，即可与家人开启群聊或私聊。支持实时消息收发，让家人的声音穿越距离，随时温暖彼此。</text>
+            </div>
+          </div>
+          <div class="feature-item">
+            <text class="feature-icon">🕊️</text>
+            <div class="feature-info">
+              <text class="feature-name">NVC 非暴力沟通</text>
+              <text class="feature-desc">在聊天输入框中点击 NVC 按钮，AI 会帮你分析当前表达背后的情感，并将话语转换为更温和、更容易被对方接受的表达方式。特别适合情绪激动或沟通困难时使用。</text>
             </div>
           </div>
           <div class="feature-item">
@@ -76,6 +83,14 @@
       <div class="card">
         <text class="card-title">常见问题</text>
         <div class="faq-list">
+          <div class="faq-item">
+            <text class="faq-question">Q: 如何在家庭聊天中与家人对话？</text>
+            <text class="faq-answer">A: 加入家庭组后，在「聊天」页面即可看到家庭群聊入口，点击进入即可群聊。如需私聊某位家人，点击对应成员即可发起一对一会话。</text>
+          </div>
+          <div class="faq-item">
+            <text class="faq-question">Q: NVC 非暴力沟通是什么？怎么使用？</text>
+            <text class="faq-answer">A: NVC（非暴力沟通）是一种温和的表达方式。在聊天输入框输入内容后，点击 NVC 按钮，AI 会分析你话语中的情绪并提供转换建议。你可以选择使用转换后的文本发送，或保留原话。</text>
+          </div>
           <div class="faq-item">
             <text class="faq-question">Q: 聊天记录是否安全？</text>
             <text class="faq-answer">A: 所有对话数据仅存储在您的本地设备，我们承诺不会将任何聊天内容上传至第三方服务器。</text>

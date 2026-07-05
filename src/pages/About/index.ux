@@ -13,7 +13,7 @@
     <div class="scroll-content">
       <!-- Logo + 名称 -->
       <div class="brand-section">
-        <image class="brand-logo" src="../../assets/images/logo.png" />
+        <image class="brand-logo" src="../../assets/images/logo.png" onerror="onImgError" />
         <text class="brand-name">Cloudie</text>
         <text class="brand-slogan">你的家庭情绪树洞</text>
         <text class="brand-version">版本 {{ versionName }}</text>
@@ -86,6 +86,10 @@ export default {
 
   openGitHub() {
     $utils.showToast('GitHub：github.com/qiyuxi24/KinVoice')
+  },
+
+  onImgError() {
+    // 图片加载失败时静默处理，不影响页面渲染
   }
 }
 </script>
@@ -104,6 +108,7 @@ export default {
   flex: 1;
   flex-direction: column;
   background-color: @morandi-bg;
+  overflow: hidden;
 }
 
 .top-bar {
@@ -148,6 +153,7 @@ export default {
   flex: 1;
   flex-direction: column;
   padding: 24px;
+  overflow-y: auto;
 }
 
 // ── 品牌区 ──
