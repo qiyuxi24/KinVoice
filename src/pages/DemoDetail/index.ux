@@ -21,6 +21,10 @@
 import $utils from '../../helper/utils'
 
 export default {
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+
   private: {
     text: '快应用是什么？',
   },

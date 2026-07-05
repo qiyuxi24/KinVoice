@@ -1,0 +1,95 @@
+<template>
+  <div class="page">
+    <div class="header" onclick="goBack">
+      <text class="back-icon">‹</text>
+      <text class="header-title">设置</text>
+    </div>
+    <div class="menu-list">
+      <div class="menu-item" onclick="goVoiceSelect">
+        <text class="menu-icon">🎤</text>
+        <text class="menu-text">声音音色选择</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="goCustomVoice">
+        <text class="menu-icon">🎙️</text>
+        <text class="menu-text">自定义音色</text>
+        <text class="menu-arrow">›</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { safeBack, safePush } from '../../helper/navigate'
+
+export default {
+  onInit() {
+    this.$page.setTitleBar({ text: '' })
+  },
+  goVoiceSelect() {
+    safePush('/pages/VoiceSelect')
+  },
+  goCustomVoice() {
+    safePush('/pages/CustomVoice')
+  },
+  goBack() {
+    safeBack()
+  }
+}
+</script>
+
+<style>
+.page {
+  flex: 1;
+  flex-direction: column;
+  background-color: #e8e4df;
+}
+
+.header {
+  flex-direction: row;
+  align-items: center;
+  padding: 40px 30px 20px;
+  background-color: #faf8f5;
+}
+
+.back-icon {
+  font-size: 50px;
+  color: #c4b7a6;
+  margin-right: 12px;
+}
+
+.header-title {
+  font-size: 38px;
+  font-weight: 600;
+  color: #5c5c5c;
+}
+
+.menu-list {
+  padding: 24px;
+}
+
+.menu-item {
+  flex-direction: row;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 12px;
+}
+
+.menu-icon {
+  font-size: 40px;
+}
+
+.menu-text {
+  flex: 1;
+  font-size: 30px;
+  color: #5c5c5c;
+  margin-left: 16px;
+}
+
+.menu-arrow {
+  font-size: 36px;
+  color: #c9b8ad;
+}
+</style>

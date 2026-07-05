@@ -9,6 +9,7 @@ AI 档案编写服务 —— 调用千问 API，从对话中提取用户画像�
 - 提取源通过 MessageSource 接口注入，不直接依赖 chat 模块
 - 文件读写独立于数据库，零 ORM 依赖
 """
+import time
 from pathlib import Path
 from app.config import settings
 from app.services.llm_service import call_llm
@@ -16,6 +17,11 @@ from app.utils.logger import logger
 
 # 档案存放根目录
 PROFILES_DIR = Path("data/profiles")
+
+# ── 内存缓存：避免每次请求都读磁盘 ──
+# 结构：{user_id: {"stable": str, "dynamic": str, "ts": float}}
+_profile_cache: dict[str, dict] = {}
+_CACHE_TTL = 60  # 缓存有效期（秒）
 
 # ── 固定档案的 system prompt ──
 STABLE_SYSTEM_PROMPT = """你是一个专业的用户画像分析师。你的任务是根据对话记录，提取用户不会轻易改变的固定信息。
@@ -159,6 +165,7 @@ async def update_dynamic_profile(
     # 写入文件
     file_path = _get_profile_path(user_id, "dynamic")
     file_path.write_text(new_content, encoding="utf-8")
+    _invalidate_profile_cache(user_id)
     logger.info(f"动态档案已更新: {file_path}")
 
     return {
@@ -205,6 +212,7 @@ async def update_stable_profile(
     # 写入文件
     file_path = _get_profile_path(user_id, "stable")
     file_path.write_text(new_content, encoding="utf-8")
+    _invalidate_profile_cache(user_id)
     logger.info(f"固定档案已更新: {file_path}")
 
     return {
@@ -218,18 +226,33 @@ async def update_stable_profile(
 
 def read_profiles(user_id: str) -> dict:
     """
-    读取用户的两份档案。
+    读取用户的两份档案（带内存缓存，60 秒内重复读取不碰磁盘）。
 
     Returns:
         {user_id, stable: str, dynamic: str}
     """
+    now = time.time()
+    cached = _profile_cache.get(user_id)
+    if cached and (now - cached.get("ts", 0)) < _CACHE_TTL:
+        return {
+            "user_id": user_id,
+            "stable": cached.get("stable", ""),
+            "dynamic": cached.get("dynamic", ""),
+        }
+
     stable = _read_existing(_get_profile_path(user_id, "stable"))
     dynamic = _read_existing(_get_profile_path(user_id, "dynamic"))
+    _profile_cache[user_id] = {"stable": stable, "dynamic": dynamic, "ts": now}
     return {
         "user_id": user_id,
         "stable": stable,
         "dynamic": dynamic,
     }
+
+
+def _invalidate_profile_cache(user_id: str) -> None:
+    """写入档案后清除对应缓存，保证下次读取为最新内容"""
+    _profile_cache.pop(user_id, None)
 
 
 def _format_messages(messages: list[dict]) -> str:

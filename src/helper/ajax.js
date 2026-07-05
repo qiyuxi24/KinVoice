@@ -6,6 +6,7 @@
  */
 import $fetch from '@system.fetch'
 import $utils from './utils'
+import userIdentity from './userIdentity'
 import { getErrorInfo, mapDetailToCode, httpStatusToCode, fetchErrorToCode } from './errorCodes'
 
 const TIMEOUT = 20000
@@ -80,6 +81,18 @@ function fetchPromise(params) {
       method: params.method,
       header: params.header || {},
     }
+
+    // 同步注入 X-User-Id Header（getUserId() 始终有值：eagerUuid 或 storage 恢复的 UUID）
+    // 注意：首次启动时 eagerUuid 会立即被 initUserId() 持久化，二者等价；
+    // 重新启动时 eagerUuid 是随机值，但 storage 恢复通常在首次 API 调用前就已完成。
+    // 如需确保使用准确的 UUID，调用方应 await userIdentity.ready()
+    const uid = userIdentity.getUserId()
+    if (uid && !fetchOptions.header['X-User-Id']) {
+      fetchOptions.header['X-User-Id'] = uid
+    }
+
+    // fire-and-forget：确保身份初始化运行（不阻塞当前请求）
+    userIdentity.ready().catch(() => {})
 
     // POST/PUT 请求：手动 JSON.stringify 并设置 Content-Type
     // 快应用 @system.fetch 对 data 的自动处理行为不一致，
@@ -190,6 +203,52 @@ function requestHandle(params, timeout = TIMEOUT) {
   }
 }
 
+/**
+ * 原始请求（支持自定义 responseType，用于下载二进制数据如 TTS 音频）
+ * @param {object}  params       - { url, method, data, header, responseType }
+ * @param {string}  responseType - 默认 'text'，可传 'arraybuffer' 等
+ * @returns {Promise}
+ */
+function rawRequest({ url, method, data, header, responseType = 'text' }) {
+  return new Promise((resolve, reject) => {
+    const fetchOptions = { url, method, header: header || {} }
+    const uid = userIdentity.getUserId()
+    if (uid) {
+      fetchOptions.header['X-User-Id'] = uid
+    }
+    if (data !== undefined && data !== null) {
+      fetchOptions.data = typeof data === 'string' ? data : JSON.stringify(data)
+      fetchOptions.header['Content-Type'] = 'application/json'
+    }
+    fetchOptions.responseType = responseType
+
+    let timerId = null
+    const timeoutPromise = new Promise((_, rej) => {
+      timerId = setTimeout(() => {
+        timerId = null
+        rej(buildError(1001, null, '请求超时'))
+      }, TIMEOUT)
+    })
+
+    const fetchTask = $fetch.fetch(fetchOptions)
+      .then(response => {
+        resolve(response.data)
+      })
+      .catch((err, code) => {
+        reject({ error: err, code })
+      })
+
+    Promise.race([fetchTask, timeoutPromise])
+      .catch(err => {
+        if (err && err.isError) reject(err)
+        else reject(buildError(1001, null))
+      })
+      .finally(() => {
+        if (timerId) clearTimeout(timerId)
+      })
+  })
+}
+
 // ── 导出的 HTTP 方法 ──
 
 export default {
@@ -227,4 +286,7 @@ export default {
       data: params,
     })
   },
+
+  /** 原始请求（支持自定义 responseType，如 TTS 二进制下载） */
+  rawRequest,
 }

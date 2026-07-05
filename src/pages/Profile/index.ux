@@ -1,26 +1,28 @@
 <template>
   <div class="page">
+    <!-- 头部用户信息 -->
     <div class="header">
-      <div class="user-card" onclick="showEditNickname">
+      <div class="user-card" onclick="showUserPanel">
         <div class="avatar">
           <text class="avatar-text">{{ avatarChar }}</text>
         </div>
         <div class="user-info">
-          <text class="user-name">{{ nickname || 'Cloudie 用户' }}</text>
-          <text class="user-desc">点击修改用户名</text>
+          <text class="user-name">{{ nickname || '未登录' }}</text>
+          <text class="user-desc">{{ nickname ? (familyInfo || '点击管理账户') : '点击头像登录' }}</text>
         </div>
       </div>
     </div>
 
+    <!-- 菜单列表 -->
     <div class="menu-list">
-      <div class="menu-item" onclick="goFamily">
-        <text class="menu-icon">🏠</text>
-        <text class="menu-text">我的家庭组</text>
-        <text class="menu-arrow">›</text>
-      </div>
       <div class="menu-item" onclick="goProfileDetail">
         <text class="menu-icon">📋</text>
         <text class="menu-text">用户档案</text>
+        <text class="menu-arrow">›</text>
+      </div>
+      <div class="menu-item" onclick="goFamily">
+        <text class="menu-icon">🏠</text>
+        <text class="menu-text">我的家庭组</text>
         <text class="menu-arrow">›</text>
       </div>
       <div class="menu-item" onclick="updateStableProfile">
@@ -40,42 +42,96 @@
       </div>
       <div class="menu-item" onclick="showHelp">
         <text class="menu-icon">❓</text>
-        <text class="menu-text">帮助与反馈</text>
+        <text class="menu-text">帮助</text>
         <text class="menu-arrow">›</text>
       </div>
     </div>
 
-    <!-- 修改用户名弹窗 -->
-    <div class="modal-overlay" if="showNickModal" onclick="closeNickModal"></div>
-    <div class="modal" if="showNickModal">
-      <text class="modal-title">修改用户名</text>
-      <input class="form-input" type="text" placeholder="输入新用户名" value="{{ newNickname }}" onchange="onNickInput" />
-      <div class="modal-btns">
-        <div class="modal-btn cancel-btn" onclick="closeNickModal">
-          <text class="modal-btn-text">取消</text>
-        </div>
-        <div class="modal-btn confirm-btn" onclick="saveNickname">
-          <text class="modal-btn-text">{{ saving ? '保存中...' : '确认' }}</text>
+    <!-- ===== 用户面板（底部弹出） ===== -->
+    <div class="panel-overlay" if="showPanel" onclick="closePanel"></div>
+    <div class="user-panel {{ showPanel ? 'panel-show' : '' }}">
+      <!-- 面板头部 -->
+      <div class="panel-header">
+        <text class="panel-title">{{ isLoggedIn ? '账户管理' : '登录 / 注册' }}</text>
+        <div class="panel-close" onclick="closePanel">
+          <text class="panel-close-text">✕</text>
         </div>
       </div>
-    </div>
 
-    <div class="tabbar">
-      <div class="tab-item" onclick="goCompanion">
-        <text class="tab-icon">🏠</text>
-        <text class="tab-label">陪伴</text>
+      <!-- 未登录：登录 / 注册 -->
+      <div class="panel-body" if="!isLoggedIn">
+        <!-- 模式切换标签 -->
+        <div class="panel-tabs">
+          <div class="panel-tab {{ authMode === 'login' ? 'panel-tab-active' : '' }}" onclick="switchAuthMode('login')">
+            <text class="panel-tab-text">登录</text>
+          </div>
+          <div class="panel-tab {{ authMode === 'register' ? 'panel-tab-active' : '' }}" onclick="switchAuthMode('register')">
+            <text class="panel-tab-text">注册</text>
+          </div>
+        </div>
+
+        <!-- 用户名 -->
+        <input
+          class="panel-input"
+          type="text"
+          placeholder="用户名"
+          value="{{ authUsername }}"
+          onchange="onAuthUsernameInput"
+        />
+
+        <!-- 密码 -->
+        <input
+          class="panel-input"
+          type="password"
+          placeholder="密码"
+          value="{{ authPassword }}"
+          onchange="onAuthPasswordInput"
+        />
+
+        <!-- 昵称（仅注册时显示） -->
+        <input
+          class="panel-input"
+          type="text"
+          placeholder="昵称"
+          value="{{ authNickname }}"
+          onchange="onAuthNicknameInput"
+          if="{{ authMode === 'register' }}"
+        />
+
+        <!-- 操作按钮 -->
+        <div class="panel-btn panel-btn-primary" onclick="doAuth">
+          <text class="panel-btn-text">{{ authLoading ? '处理中...' : (authMode === 'login' ? '登录' : '注册') }}</text>
+        </div>
       </div>
-      <div class="tab-item" onclick="goBreakIce">
-        <text class="tab-icon">💬</text>
-        <text class="tab-label">聊天</text>
-      </div>
-      <div class="tab-item" onclick="goMemory">
-        <text class="tab-icon">📚</text>
-        <text class="tab-label">传承</text>
-      </div>
-      <div class="tab-item tab-active">
-        <text class="tab-icon">👤</text>
-        <text class="tab-label">我的</text>
+
+      <!-- 已登录：修改昵称 + 退出登录 -->
+      <div class="panel-body" else>
+        <!-- 当前信息 -->
+        <div class="panel-current">
+          <text class="panel-current-label">当前昵称</text>
+          <text class="panel-current-value">{{ nickname }}</text>
+        </div>
+
+        <!-- 修改昵称 -->
+        <text class="panel-section-title">修改昵称</text>
+        <input
+          class="panel-input"
+          type="text"
+          placeholder="输入新昵称"
+          value="{{ editNickname }}"
+          onchange="onEditNickInput"
+        />
+        <div class="panel-btn panel-btn-primary" onclick="doUpdateNickname">
+          <text class="panel-btn-text">{{ saving ? '保存中...' : '确认修改' }}</text>
+        </div>
+
+        <!-- 分隔线 -->
+        <div class="panel-divider"></div>
+
+        <!-- 退出登录 -->
+        <div class="panel-btn panel-btn-danger" onclick="doLogout">
+          <text class="panel-btn-text">退出登录</text>
+        </div>
       </div>
     </div>
   </div>
@@ -84,21 +140,38 @@
 <script>
 import $utils from '../../helper/utils'
 import userIdentity from '../../helper/userIdentity'
+import authAPI from '../../helper/apis/auth'
 import familyAPI from '../../helper/apis/family'
-import { safePush, safeReplace } from '../../helper/navigate'
+import profileAI from '../../helper/apis/profile_ai'
+import { safePush } from '../../helper/navigate'
 
 export default {
   private: {
-    updatingStable: false,
     nickname: '',
-    newNickname: '',
-    showNickModal: false,
+    isLoggedIn: false,
+    familyInfo: '',
+
+    // 用户面板
+    showPanel: false,
+
+    // 认证模式：login | register
+    authMode: 'login',
+    authUsername: '',
+    authPassword: '',
+    authNickname: '',
+    authLoading: false,
+
+    // 修改昵称
+    editNickname: '',
     saving: false,
+
+    // AI 档案更新
+    updatingStable: false,
   },
 
   computed: {
     avatarChar() {
-      return (this.nickname || 'C').charAt(0).toUpperCase()
+      return this.nickname ? this.nickname.charAt(0).toUpperCase() : '?'
     }
   },
 
@@ -106,49 +179,192 @@ export default {
     this.$page.setTitleBar({ text: '' })
     await userIdentity.initUserId()
     await userIdentity.initNickname()
+    await userIdentity.initLogin()
     this.nickname = userIdentity.getNickname()
+    this.isLoggedIn = userIdentity.isLoggedIn()
+    if (this.isLoggedIn) {
+      this.loadFamilyInfo()
+    }
   },
 
   onShow() {
-    // 每次回来刷新用户名
     this.nickname = userIdentity.getNickname()
+    this.isLoggedIn = userIdentity.isLoggedIn()
+    if (this.isLoggedIn) {
+      this.loadFamilyInfo()
+    }
   },
 
-  showEditNickname() {
-    this.newNickname = this.nickname
-    this.showNickModal = true
+  // ==================== 家庭组信息 ====================
+
+  async loadFamilyInfo() {
+    try {
+      const res = await familyAPI.getMyGroup()
+      if (res && res.family_id) {
+        const memberCount = (res.members && res.members.length) || 1
+        const names = (res.members || [])
+          .map((m) => m.nickname)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join('、')
+        this.familyInfo = '家庭组 · ' + memberCount + '人（' + names + '）'
+      } else {
+        this.familyInfo = '暂未加入家庭组'
+      }
+    } catch (e) {
+      this.familyInfo = ''
+    }
   },
 
-  closeNickModal() {
-    this.showNickModal = false
+  // ==================== 面板控制 ====================
+
+  showUserPanel() {
+    if (!this.isLoggedIn) {
+      // 未登录 → 重置表单，默认登录模式
+      this.authMode = 'login'
+      this.authUsername = ''
+      this.authPassword = ''
+      this.authNickname = ''
+    } else {
+      // 已登录 → 预填当前昵称
+      this.editNickname = this.nickname
+    }
+    this.showPanel = true
   },
 
-  onNickInput(e) {
-    this.newNickname = e.value || e.text || ''
+  closePanel() {
+    this.showPanel = false
+    this.authUsername = ''
+    this.authPassword = ''
+    this.authNickname = ''
+    this.editNickname = ''
   },
 
-  async saveNickname() {
-    var name = (this.newNickname || '').trim()
-    if (!name) {
-      $utils.showToast('用户名不能为空')
+  // ==================== 认证模式切换 ====================
+
+  switchAuthMode(mode) {
+    this.authMode = mode
+  },
+
+  // ==================== 认证输入 ====================
+
+  onAuthUsernameInput(e) {
+    this.authUsername = e.value || e.text || ''
+  },
+
+  onAuthPasswordInput(e) {
+    this.authPassword = e.value || e.text || ''
+  },
+
+  onAuthNicknameInput(e) {
+    this.authNickname = e.value || e.text || ''
+  },
+
+  // ==================== 登录 / 注册 ====================
+
+  async doAuth() {
+    const username = (this.authUsername || '').trim()
+    const password = (this.authPassword || '').trim()
+    const nickname = (this.authNickname || '').trim()
+
+    if (!username) {
+      $utils.showToast('请输入用户名')
+      return
+    }
+    if (!password) {
+      $utils.showToast('请输入密码')
+      return
+    }
+    if (this.authMode === 'register' && !nickname) {
+      $utils.showToast('请输入昵称')
+      return
+    }
+    if (this.authLoading) return
+
+    this.authLoading = true
+    try {
+      if (this.authMode === 'login') {
+        // 登录：用户名 + 密码
+        const res = await authAPI.login(username, password)
+        userIdentity.setUserId(res.user_id)
+        userIdentity.setNickname(res.nickname)
+        userIdentity.markLoggedIn()
+        this.nickname = res.nickname
+        this.isLoggedIn = true
+        this.showPanel = false
+        $utils.showToast('登录成功！')
+        this.loadFamilyInfo()
+      } else {
+        // 注册：用户名 + 密码 + 昵称
+        const res = await authAPI.register(username, password, nickname)
+        userIdentity.setUserId(res.user_id)
+        userIdentity.setNickname(res.nickname)
+        userIdentity.markLoggedIn()
+        this.nickname = res.nickname
+        this.isLoggedIn = true
+        this.showPanel = false
+        $utils.showToast('注册成功！')
+        this.loadFamilyInfo()
+      }
+    } catch (e) {
+      const msg = (e && (e.message || e.detail || '')) || ''
+      if (msg.includes('409') || msg.includes('已被注册')) {
+        $utils.showToast('用户名已被注册')
+      } else if (msg.includes('401') || msg.includes('错误')) {
+        $utils.showToast('用户名或密码错误')
+      } else {
+        $utils.showToast('操作失败，请重试')
+      }
+    } finally {
+      this.authLoading = false
+    }
+  },
+
+  // ==================== 修改昵称 ====================
+
+  onEditNickInput(e) {
+    this.editNickname = e.value || e.text || ''
+  },
+
+  async doUpdateNickname() {
+    const trimmed = (this.editNickname || '').trim()
+    if (!trimmed) {
+      $utils.showToast('昵称不能为空')
+      return
+    }
+    if (trimmed === this.nickname) {
+      $utils.showToast('昵称未变化')
       return
     }
     if (this.saving) return
     this.saving = true
     try {
-      // 同步到后端
-      await familyAPI.register(name)
-      // 保存本地
-      userIdentity.setNickname(name)
-      this.nickname = name
-      this.showNickModal = false
-      $utils.showToast('用户名已更新')
+      // 用 register-with-id 更新昵称（upsert）
+      await familyAPI.register(trimmed)
+      userIdentity.setNickname(trimmed)
+      this.nickname = trimmed
+      this.showPanel = false
+      $utils.showToast('昵称已更新')
     } catch (e) {
       $utils.showToast('保存失败，请重试')
     } finally {
       this.saving = false
     }
   },
+
+  // ==================== 退出登录 ====================
+
+  doLogout() {
+    // 清除本地登录态，回到未登录状态
+    userIdentity.setNickname('')
+    userIdentity.markLoggedOut()
+    this.nickname = ''
+    this.isLoggedIn = false
+    this.showPanel = false
+    $utils.showToast('已退出登录')
+  },
+
+  // ==================== 路由 ====================
 
   goProfileDetail() {
     safePush('/pages/ProfileDetail')
@@ -158,58 +374,42 @@ export default {
     safePush('/pages/Family')
   },
 
-  /**
-   * 手动触发 AI 更新固定档案。
-   * 从全部对话历史中提取性别、生日、家庭成员等不变信息。
-   */
+  showSettings() {
+    safePush('/pages/Settings')
+  },
+
+  // ==================== AI 更新固定档案 ====================
+
   updateStableProfile() {
     if (this.updatingStable) return
     this.updatingStable = true
     $utils.showToast('AI 正在分析你的对话...')
 
-    profileAI.updateStable('default')
+    profileAI.updateStable()
       .then((res) => {
         this.updatingStable = false
-        if (res.ok) {
+        if (res && res.ok) {
           $utils.showToast('固定档案已更新！')
         } else {
-          $utils.showToast(res.content_preview || '更新失败，请稍后重试')
+          $utils.showToast((res && res.content_preview) || '更新失败，请稍后重试')
         }
       })
       .catch((err) => {
         this.updatingStable = false
-        console.log('固定档案更新失败:', err)
+        console.log('[Profile] 固定档案更新失败:', err)
         $utils.showToast('更新失败，请检查网络')
       })
   },
 
-  showSettings() {
-    $utils.showToast('设置')
-  },
+  // ==================== 其他路由 ====================
 
   showAbout() {
     safePush('/pages/About')
   },
 
   showHelp() {
-    $utils.showToast('帮助与反馈')
+    safePush('/pages/Help')
   },
-
-  goCompanion() {
-    safeReplace('/pages/Companion')
-  },
-
-  goBreakIce() {
-    safeReplace('/pages/BreakIce')
-  },
-
-  goMemory() {
-    safeReplace('/pages/Memory')
-  },
-
-  goProfile() {
-    safeReplace('/pages/Profile')
-  }
 }
 </script>
 
@@ -267,9 +467,10 @@ export default {
   margin-top: 8px;
 }
 
+/* ========== 菜单列表 ========== */
 .menu-list {
   flex-direction: column;
-  padding: 24px;
+  padding: 0 24px;
 }
 
 .menu-item {
@@ -297,50 +498,8 @@ export default {
   color: #c9b8ad;
 }
 
-.tabbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 90px;
-  background-color: #fff;
-  flex-direction: row;
-  justify-content: space-around;
-  align-items: center;
-}
-
-.tab-item {
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  padding-top: 8px;
-  padding-right: 20px;
-  padding-bottom: 8px;
-  padding-left: 20px;
-  border-radius: 10px;
-  flex-direction: column;
-}
-
-.tab-icon {
-  font-size: 36px;
-}
-
-.tab-label {
-  font-size: 22px;
-  color: #9a8b7a;
-  margin-top: 4px;
-}
-
-.tab-active {
-  background-color: #d4874b;
-}
-
-.tab-active .tab-label {
-  color: #ffffff;
-}
-
-/* 修改用户名弹窗 */
-.modal-overlay {
+/* ========== 用户面板（底部弹出） ========== */
+.panel-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -349,61 +508,168 @@ export default {
   background-color: rgba(0, 0, 0, 0.4);
 }
 
-.modal {
+.user-panel {
   position: fixed;
-  left: 30px;
-  right: 30px;
-  top: 260px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: #ffffff;
-  border-radius: 20px;
-  padding: 30px;
+  border-radius: 28px;
   flex-direction: column;
+  padding-bottom: 40px;
+  /* 默认隐藏在屏幕下方 */
+  transform: translateY(100%);
 }
 
-.modal-title {
-  font-size: 32px;
+.panel-show {
+  transform: translateY(0);
+}
+
+/* 面板头部 */
+.panel-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 30px 20px;
+}
+
+.panel-title {
+  font-size: 34px;
   font-weight: 600;
   color: #4a3728;
-  margin-bottom: 20px;
-  text-align: center;
 }
 
-.form-input {
-  height: 64px;
-  border: 1px solid #d4c8b8;
+.panel-close {
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  background-color: #f0e8dd;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-close-text {
+  font-size: 28px;
+  color: #9a8b7a;
+}
+
+/* 面板内容区 */
+.panel-body {
+  flex-direction: column;
+  padding: 0 30px;
+}
+
+.panel-hint {
+  font-size: 26px;
+  color: #9a8b7a;
+  margin-bottom: 16px;
+}
+
+/* 认证模式标签 */
+.panel-tabs {
+  flex-direction: row;
+  margin-bottom: 20px;
   border-radius: 12px;
-  padding: 0 16px;
+  background-color: #f0e8dd;
+  padding: 4px;
+}
+
+.panel-tab {
+  flex: 1;
+  height: 64px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-tab-active {
+  background-color: #ffffff;
+}
+
+.panel-tab-text {
+  font-size: 28px;
+  font-weight: 600;
+  color: #9a8b7a;
+}
+
+.panel-tab-active .panel-tab-text {
+  color: #d4874b;
+}
+
+.panel-input {
+  height: 72px;
+  border: 1px solid #d4c8b8;
+  border-radius: 14px;
+  padding: 0 18px;
   font-size: 28px;
   color: #4a3728;
+  background-color: #faf7f3;
   margin-bottom: 20px;
 }
 
-.modal-btns {
-  flex-direction: row;
-  justify-content: space-around;
-}
-
-.modal-btn {
-  padding: 16px 40px;
-  border-radius: 12px;
+.panel-btn {
+  height: 80px;
+  border-radius: 16px;
   align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
 }
 
-.cancel-btn {
-  background-color: #f0e8dd;
-}
-
-.confirm-btn {
+.panel-btn-primary {
   background-color: #d4874b;
 }
 
-.modal-btn-text {
-  font-size: 28px;
-  color: #ffffff;
+.panel-btn-danger {
+  background-color: #ffffff;
+  border: 2px solid #e07070;
+}
+
+.panel-btn-text {
+  font-size: 30px;
   font-weight: 600;
 }
 
-.cancel-btn .modal-btn-text {
+.panel-btn-primary .panel-btn-text {
+  color: #ffffff;
+}
+
+.panel-btn-danger .panel-btn-text {
+  color: #e07070;
+}
+
+/* 当前昵称展示 */
+.panel-current {
+  flex-direction: row;
+  align-items: center;
+  background-color: #faf7f3;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.panel-current-label {
+  font-size: 26px;
   color: #9a8b7a;
+}
+
+.panel-current-value {
+  font-size: 30px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-left: 16px;
+}
+
+/* 分区标题 */
+.panel-section-title {
+  font-size: 26px;
+  color: #9a8b7a;
+  margin-bottom: 12px;
+}
+
+/* 分隔线 */
+.panel-divider {
+  height: 1px;
+  background-color: #f0e8dd;
+  margin: 8px 0 20px;
 }
 </style>

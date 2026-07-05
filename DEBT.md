@@ -5,6 +5,60 @@
 
 ---
 
+## ⚡ 常见运行时错误排查
+
+> 新增于 2026-07-05。这类报错已多次出现，统一记录在此避免重复踩坑。
+
+---
+
+### E1. `Cannot find module '../../helper/apis/xxx'`
+
+**症状**：`Uncaught Error: Cannot find module '../../helper/apis/xxx'` 在快应用运行时报错
+
+**原因**：
+- 某个 `.ux` 页面 import 了 `src/helper/apis/` 下不存在或已删除的 JS 文件
+- 通常发生在以下场景：
+  1. 后端重构后某个 API 模块被删除/重命名，但前端 import 没有同步更新
+  2. 新增页面时写了 import 但忘了创建对应的 API 文件
+  3. 合并代码时遗漏了某个文件的删除
+
+**排查方法**：
+```bash
+# 在 src/helper/apis/ 目录下列出所有实存文件
+ls src/helper/apis/*.js
+
+# 搜索所有引用 helper/apis 的 import
+grep -rn "helper/apis/" src/pages/
+```
+
+然后逐一比对：引用的文件名是否在实存列表中？文件名拼写是否一致？
+
+**历史上的实例**：
+
+| 日期 | 文件 | 错误 import | 根因 | 修复 |
+|------|------|-----------|------|------|
+| 2026-07-05 | `src/pages/Companion/index.ux:194` | `import profileAI from '../../helper/apis/profile_ai'` | profile_ai.js 模块已删除，Companion 页面未清除 import | 删除该 import 行 |
+| (更早) | `src/helper/apis/index.js` | 遗漏 profile_ai 导出 | 当时 index.js 没有导出 profile_ai | 已在清理时删除 |
+
+**当前 `src/helper/apis/` 实存文件**（2026-07-05）：
+| 文件 | 说明 |
+|------|------|
+| `.backend-url.js` | 后端 URL 配置 |
+| `cards.js` | 文档卡片 CRUD |
+| `chat.js` | 陪伴对话 |
+| `chatroom.js` | 聊天室 |
+| `config.js` | API 配置 |
+| `family.js` | 家庭组 |
+| `index.js` | 统一导出 |
+| `profiles.js` | 家庭成员档案 |
+
+**预防规则**：
+- 删除/重命名任何 `helper/apis/xxx.js` 时，必须同步检查并更新所有引用该模块的 `.ux` 文件
+- 提交前运行 `grep -rn "helper/apis/" src/` 确认所有引用模块都存在
+- `index.js` 中的导出列表也必须与实际文件保持一致
+
+---
+
 ## 🔴 高优先级（影响功能正确性 / 运行成本）
 
 ### 1. Companion.onHide() 触发两次 LLM 调用
@@ -102,13 +156,11 @@
 
 ---
 
-### 7. apis/index.js 遗漏 profile_ai 导出
+### 7. ~~apis/index.js 遗漏 profile_ai 导出~~ ✅ 已删除（profile_ai 模块已整体移除）
 
 **位置**：`src/helper/apis/index.js`
 
-**问题**：聚合导出了 `cards, chat, config, convert, profiles`，但漏掉了新增的 `profile_ai`。虽然 `Companion/index.ux` 和 `Profile/index.ux` 直接 `import profileAI from '../../helper/apis/profile_ai'` 绕过了 index，但聚合导出不完整是维护隐患。
-
-**建议方案**：在 `index.js` 中补上 `profile_ai` 的导入和导出。
+**状态**：profile_ai 手动触发机制已被对话中自动触发取代，整个模块已删除，本条作废。
 
 ---
 
@@ -158,7 +210,7 @@
 | 第一批 | #3 favorite 接口清理 | 小 |
 | 第一批 | #5 删除未用函数 | 小 |
 | 第一批 | #6 删除 Demo 页面 | 小 |
-| 第一批 | #7 补 profile_ai 导出 | 小 |
+| 第一批 | ~~#7 补 profile_ai 导出~~ ✅ | - |
 | 第二批 | #4 chat_conversation 清理 | 中 |
 | 第二批 | #8 si 兼容分支标记 | 小 |
 | 第三批 | #2 Card 模型拆分 | **大** |

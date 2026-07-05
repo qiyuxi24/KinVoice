@@ -112,67 +112,66 @@ onShow() → 本地全部卡片 POST /cards/sync
 
 ---
 
-## 2026-06-20 — 用户档案功能（家庭成员档案 CRUD）
+## 2026-07-05 — Cloudie Agent 架构：主 Agent + 子 AI 解耦
 
-### 需求
-在「我的」页面增加「用户档案」功能，支持家庭成员档案的增删改查。档案内容支持 Markdown 格式，前端用 richtext 渲染。
-
-### 架构
+### 架构决策
+Cloudie 是主 Agent，Profile AI 和 Cards AI 是独立的子服务（各有独立 prompt + API），由后端 chat.py 编排调用：
 
 ```
-Profile 页面 → 菜单项「📋 用户档案」→ router.push → ProfileDetail 页面
-  → GET /profiles 加载列表（失败降级到本地缓存）
-  → POST /profiles 创建
-  → PUT /profiles/{id} 更新
-  → DELETE /profiles/{id} 删除
+前端只调 POST /chat
+  → chat.py:
+    ① read_profiles(user_id) → 注入 system prompt（每次对话都读）
+    ② FTS search_context() → 检索传承笔记+对话历史 → 注入上下文
+    ③ Cloudie LLM 生成回复
+    ④ asyncio.create_task(_background_extract):
+       - 每3轮 → update_dynamic_profile()（Profile AI 独立 prompt）
+       - 每5轮 → summarize_to_notes() → 写入 Card 表（Cards AI 独立 prompt）
 ```
 
-### 后端改动
+### 三条 AI 线
+| 服务 | Prompt 文件 | 职责 |
+|------|-----------|------|
+| Cloudie（对话） | `cloudie_prompt.py` | 温暖陪伴 + 读档案 + 用检索结果 |
+| Profile AI | `profile_writer.py` | STABLE/DYNAMIC 两个独立 prompt |
+| Cards AI | `card_summarizer.py` | SUMMARIZE_SYSTEM_PROMPT |
 
-#### 新增文件
+### 关键原则
+- 前端绝不直接调用子 AI，只调 `/chat` 一个端点
+- 子 AI 各有独立 API 端点（`/profile/ai/*`、`/cards/ai/*`），可被其他页面直接使用
+- Cloudie 的 system prompt 告知它有这些能力，但不包含任何信号/标记规则
+- 后台提取用 `asyncio.create_task()` fire-and-forget，不阻塞对话响应
 
-| 文件 | 说明 |
-|------|------|
-| `backend/app/models/profile.py` | `FamilyMember` ORM：id, name, relation, birth_date, avatar_url, content_md, created_at, updated_at |
-| `backend/app/schemas/profile.py` | Pydantic：ProfileCreate, ProfileUpdate, ProfileOut, ProfileListOut |
-| `backend/app/api/profile.py` | CRUD 路由：GET/POST/PUT/DELETE `/profiles` |
+### 主动信号机制
+用户明确要求「记下来」「更新档案」时，Cloudie 在回复末尾附加 `<!--PROFILE-->` / `<!--CARD-->` 标记（HTML 注释，用户不可见）。后端 `_parse_signals()` 正则剥离后触发子 AI 服务：
+```
+Cloudie 回复 "恭喜！<!--CARD--><!--PROFILE-->" 
+  → _parse_signals() → clean_reply="恭喜！" + has_card + has_profile
+  → 保存 clean_reply 到 DB
+  → asyncio.create_task(_handle_signals) → update_dynamic_profile + summarize_to_notes
+```
 
-#### 修改文件
+---
 
-| 文件 | 改动 |
-|------|------|
-| `backend/app/main.py` | +2行：import profile_router + include_router |
-| `backend/init_db.py` | +1行：import FamilyMember，确保建表时发现新模型 |
+## 2026-07-05 — userIdentity 模块加载时序崩溃修复
 
-### 前端改动
+### 根因
+`userIdentity.js` 在模块加载时（import 阶段）就调用了 `userIdentity.init()` → `storage.get()`，此时 app 生命周期尚未开始（`onCreate` 未触发），导致：
+1. `storage.get()` 抛异常破坏模块导出 → `app.ux` 中 `userIdentity.init()` 报 `is not a function`
+2. Native 报错 "请在 onCreate() 之后调用"
 
-#### 新增文件
+### 修复
+- **删除**模块级的 `userIdentity.init()` 自动调用，仅保留 `app.ux onCreate()` 中的调用
+- `initUserId()` / `initNickname()` 加缓存守卫（`_userIdPromise` / `_nicknamePromise`），防止多个组件重复调用 storage
 
-| 文件 | 说明 |
-|------|------|
-| `src/helper/apis/profiles.js` | API 封装：list/create/update/remove |
-| `src/pages/ProfileDetail/index.ux` | 档案列表页：列表展示 + 编辑弹窗 + 详情弹窗（Markdown 渲染） |
+### 正确的初始化时序
+```
+app.ux onCreate() → userIdentity.init() [同步设守卫]
+  → initUserId() → storage.get() ✅ (onCreate 已触发)
+页面/组件 onInit → await initUserId() → 命中缓存 Promise（不重复调 storage）
+```
 
-#### 修改文件
-
-| 文件 | 改动 |
-|------|------|
-| `src/manifest.json` | +ProfileDetail 路由 + titleBarText |
-| `src/pages/Profile/index.ux` | 菜单列表首位增加「📋 用户档案」入口，点击 router.push 到 ProfileDetail |
-
-### API 新增
-
-| 路由 | 方法 | 功能 |
-|------|------|------|
-| `/profiles` | GET | 获取全部档案列表 |
-| `/profiles` | POST | 创建档案 |
-| `/profiles/{id}` | PUT | 更新档案 |
-| `/profiles/{id}` | DELETE | 删除档案 |
-
-### 关键设计决策
-
-1. **数据库存储 + Markdown 内容字段**：复用现有 SQLite + SQLAlchemy 体系，content_md 字段存 Markdown 原文
-2. **前端 Markdown 渲染**：快应用 `<richtext type="markdown">` 原生支持，无需引入第三方库
-3. **本地缓存降级**：列表数据同时缓存到 `@system.storage`，后端不可达时从缓存读取
-4. **关系下拉选择**：预设 7 种家庭关系（父亲/母亲/配偶/子女/祖父母/兄弟姐妹/其他家人）
-5. **独立页面**：ProfileDetail 作为独立路由页面，编辑体验更好，不影响 Profile 主页结构
+### ajax.js 关键设计规则
+- **Header 注入必须同步**：`getUserId()` 永远有值（eagerUuid fallback），不应阻塞在 `ready()`
+- `ready()` 是 fire-and-forget，确保 init 在后台完成，但不阻塞任何请求
+- 需要精确 UUID 的页面（如 Family）自己 `await userIdentity.ready()`
+- 通用层（ajax.js）不应因身份未就绪而挂起所有 API 调用
