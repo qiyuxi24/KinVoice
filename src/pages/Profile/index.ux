@@ -1,13 +1,13 @@
 <template>
   <div class="page">
     <div class="header">
-      <div class="user-card">
+      <div class="user-card" onclick="showEditNickname">
         <div class="avatar">
-          <text class="avatar-text">C</text>
+          <text class="avatar-text">{{ avatarChar }}</text>
         </div>
         <div class="user-info">
-          <text class="user-name">Cloudie 用户</text>
-          <text class="user-desc">你的家庭情绪树洞</text>
+          <text class="user-name">{{ nickname || 'Cloudie 用户' }}</text>
+          <text class="user-desc">点击修改用户名</text>
         </div>
       </div>
     </div>
@@ -45,6 +45,21 @@
       </div>
     </div>
 
+    <!-- 修改用户名弹窗 -->
+    <div class="modal-overlay" if="showNickModal" onclick="closeNickModal"></div>
+    <div class="modal" if="showNickModal">
+      <text class="modal-title">修改用户名</text>
+      <input class="form-input" type="text" placeholder="输入新用户名" value="{{ newNickname }}" onchange="onNickInput" />
+      <div class="modal-btns">
+        <div class="modal-btn cancel-btn" onclick="closeNickModal">
+          <text class="modal-btn-text">取消</text>
+        </div>
+        <div class="modal-btn confirm-btn" onclick="saveNickname">
+          <text class="modal-btn-text">{{ saving ? '保存中...' : '确认' }}</text>
+        </div>
+      </div>
+    </div>
+
     <div class="tabbar">
       <div class="tab-item" onclick="goCompanion">
         <text class="tab-icon">🏠</text>
@@ -68,16 +83,71 @@
 
 <script>
 import $utils from '../../helper/utils'
-import profileAI from '../../helper/apis/profile_ai'
+import userIdentity from '../../helper/userIdentity'
+import familyAPI from '../../helper/apis/family'
 import { safePush, safeReplace } from '../../helper/navigate'
 
 export default {
   private: {
-    updatingStable: false
+    updatingStable: false,
+    nickname: '',
+    newNickname: '',
+    showNickModal: false,
+    saving: false,
   },
 
-  onInit() {
+  computed: {
+    avatarChar() {
+      return (this.nickname || 'C').charAt(0).toUpperCase()
+    }
+  },
+
+  async onInit() {
     this.$page.setTitleBar({ text: '' })
+    await userIdentity.initUserId()
+    await userIdentity.initNickname()
+    this.nickname = userIdentity.getNickname()
+  },
+
+  onShow() {
+    // 每次回来刷新用户名
+    this.nickname = userIdentity.getNickname()
+  },
+
+  showEditNickname() {
+    this.newNickname = this.nickname
+    this.showNickModal = true
+  },
+
+  closeNickModal() {
+    this.showNickModal = false
+  },
+
+  onNickInput(e) {
+    this.newNickname = e.value || e.text || ''
+  },
+
+  async saveNickname() {
+    var name = (this.newNickname || '').trim()
+    if (!name) {
+      $utils.showToast('用户名不能为空')
+      return
+    }
+    if (this.saving) return
+    this.saving = true
+    try {
+      // 同步到后端
+      await familyAPI.register(name)
+      // 保存本地
+      userIdentity.setNickname(name)
+      this.nickname = name
+      this.showNickModal = false
+      $utils.showToast('用户名已更新')
+    } catch (e) {
+      $utils.showToast('保存失败，请重试')
+    } finally {
+      this.saving = false
+    }
   },
 
   goProfileDetail() {
@@ -267,5 +337,73 @@ export default {
 
 .tab-active .tab-label {
   color: #ffffff;
+}
+
+/* 修改用户名弹窗 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal {
+  position: fixed;
+  left: 30px;
+  right: 30px;
+  top: 260px;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 30px;
+  flex-direction: column;
+}
+
+.modal-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #4a3728;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.form-input {
+  height: 64px;
+  border: 1px solid #d4c8b8;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 28px;
+  color: #4a3728;
+  margin-bottom: 20px;
+}
+
+.modal-btns {
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+.modal-btn {
+  padding: 16px 40px;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.cancel-btn {
+  background-color: #f0e8dd;
+}
+
+.confirm-btn {
+  background-color: #d4874b;
+}
+
+.modal-btn-text {
+  font-size: 28px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.cancel-btn .modal-btn-text {
+  color: #9a8b7a;
 }
 </style>

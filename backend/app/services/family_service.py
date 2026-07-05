@@ -43,6 +43,7 @@ async def ensure_user(session: AsyncSession, user_id: str, nickname: str) -> Use
     result = await session.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user:
+        user.nickname = nickname
         return user
 
     user = User(id=user_id, nickname=nickname)

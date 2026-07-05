@@ -139,6 +139,12 @@ export default {
     await this.loadMyGroup()
   },
 
+  onShow() {
+    this.nickname = userIdentity.getNickname()
+    this.hasNickname = !!this.nickname
+    this.loadMyGroup()
+  },
+
   // ==================== 数据加载 ====================
 
   async loadMyGroup() {
